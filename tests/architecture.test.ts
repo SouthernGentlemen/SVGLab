@@ -24,6 +24,15 @@ describe("architecture guardrails", () => {
     }
   });
 
+  it("keeps character preview on the presentation side of the combat boundary", () => {
+    const source = readFileSync(join(root, "src", "app", "preview.ts"), "utf8");
+    expect(source).not.toMatch(/from ["'][^"']*combat/);
+    expect(source).not.toMatch(/\bCombatSimulation\b/);
+    expect(source).not.toMatch(/\banimationSnapshot\b/);
+    expect(source).toMatch(/\bsampleClip\b/);
+    expect(source).toMatch(/\bapplyPose\b/);
+  });
+
   it("has no npm deployment surface", () => {
     const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
     expect(Object.keys(pkg.scripts).some((name) => /deploy|publish/.test(name))).toBe(false);
@@ -36,7 +45,7 @@ describe("architecture guardrails", () => {
   // can only move. The atlases live outside src/ and are read by a build script; the moment
   // one is imported, pasted in as a data URI, or dropped next to the code, this fails.
   it("renders from vectors only — no raster reaches the bundle", () => {
-    const bundled = [...filesUnder(join(root, "src")), join(root, "index.html")];
+    const bundled = [...filesUnder(join(root, "src")), join(root, "index.html"), join(root, "preview.html")];
 
     for (const path of bundled) {
       expect(RASTER, `${path} is a raster image inside src/`).not.toContain(extname(path).toLowerCase());

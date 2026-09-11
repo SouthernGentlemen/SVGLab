@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>SVGLab — character preview</title>
+  </head>
+  <body>
+    <main class="preview-shell">
+      <header class="top-overlay preview-topbar">
+        <div class="brand">
+          <p>Unsafe local instrument</p>
+          <h1>Character <span>/</span> Preview</h1>
+        </div>
+        <div class="runtime-status">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>presentation only</span>
+          <a class="preview-link" href="/">Fight stage</a>
+        </div>
+      </header>
+
+      <aside class="preview-controls glass" aria-label="Character preview controls">
+        <p class="overlay-label">RIG + CLIP</p>
+        <div class="preview-field">
+          <label for="skin">Character</label>
+          <select id="skin"></select>
+        </div>
+        <div class="preview-field">
+          <label for="clip">Clip</label>
+          <select id="clip"></select>
+        </div>
+
+        <div class="toggle-grid preview-toggles">
+          <label><input id="compare" type="checkbox" /> Compare all skins</label>
+          <label><input id="show-rig" type="checkbox" /> Bone pivots</label>
+        </div>
+
+        <div class="preview-button-grid">
+          <button id="previous-clip" type="button">Previous <kbd>[</kbd></button>
+          <button id="play-pause" class="primary-button" type="button">Pause <kbd>Space</kbd></button>
+          <button id="next-clip" type="button">Next <kbd>]</kbd></button>
+          <button id="step-frame" type="button">Step <kbd>.</kbd></button>
+          <button id="replay" type="button">Replay <kbd>R</kbd></button>
+        </div>
+
+        <div class="preview-scrub">
+          <div><label for="frame-scrub">Frame</label><output id="frame-output">0</output></div>
+          <input id="frame-scrub" type="range" min="0" max="60" step="1" value="0" />
+        </div>
+
+        <p class="preview-shortcuts">Keyboard: <kbd>Space</kbd> play/pause · <kbd>[</kbd>/<kbd>]</kbd> clip · <kbd>.</kbd> step · <kbd>R</kbd> replay · <kbd>C</kbd> compare · <kbd>G</kbd> pivots</p>
+      </aside>
+
+      <section class="preview-stage glass" aria-label="Character animation preview">
+        <div class="preview-stage-header">
+          <div>
+            <p class="overlay-label">LIVE VECTOR PREVIEW</p>
+            <h2 id="stage-title">Authored fighter</h2>
+          </div>
+          <span id="playback-state" class="tick-chip">playing</span>
+        </div>
+
+        <div id="single-view" class="single-view">
+          <svg id="single-svg" viewBox="0 0 360 320" role="img" aria-label="Selected character animation">
+            <path class="preview-floor" d="M58 262H302" />
+            <g id="single-rig"></g>
+          </svg>
+        </div>
+
+        <div id="compare-view" class="compare-view" hidden></div>
+      </section>
+
+      <aside class="preview-readout glass" aria-label="Clip and rig facts">
+        <section>
+          <p class="overlay-label">CLIP</p>
+          <dl class="preview-facts">
+            <div><dt>Name</dt><dd id="clip-name">idle</dd></div>
+            <div><dt>Frame</dt><dd id="clip-frame">0</dd></div>
+            <div><dt>Duration</dt><dd id="clip-duration">60</dd></div>
+            <div><dt>Loop</dt><dd id="clip-loop">yes</dd></div>
+            <div><dt>Easing</dt><dd id="clip-easing">smoothstep</dd></div>
+          </dl>
+          <p id="clip-note" class="note"></p>
+        </section>
+
+        <section>
+          <p class="overlay-label">RIG CHECK</p>
+          <dl class="preview-facts">
+            <div><dt>Skin</dt><dd id="rig-name">Authored fighter</dd></div>
+            <div><dt>Bones</dt><dd id="bone-count">0</dd></div>
+            <div><dt>Missing clip bones</dt><dd id="missing-count">0</dd></div>
+          </dl>
+          <p id="missing-bones" class="note rig-note">All referenced bones are present.</p>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module" src="/src/app/preview.ts"></script>
+  </body>
+</html>

@@ -8,6 +8,34 @@ export interface FighterNode {
   bones: Map<string, SVGGElement>;
 }
 
+export interface FighterModelFacts {
+  readonly bones: readonly string[];
+}
+
+/**
+ * Reads the small structural contract the rig requires without needing the DOM.
+ *
+ * Keeping this pure lets tests validate every generated skin in Node, while buildFighterNode
+ * still performs the browser's XML parse before anything is drawn. The same check therefore
+ * guards both the preview gallery and the fight renderer instead of inventing a second model
+ * registry or a test-only interpretation of what a fighter is.
+ */
+export function inspectFighterModel(model: string): FighterModelFacts {
+  if (!/\bdata-model\s*=\s*(["'])fighter\1/.test(model)) {
+    throw new Error("Authored fighter SVG has no data-model='fighter' group");
+  }
+
+  const bones = [...model.matchAll(/\bdata-bone\s*=\s*(["'])([^"']+)\1/g)].map((match) => match[2]);
+  if (bones.length === 0) throw new Error("Authored fighter SVG has no data-bone groups");
+
+  const seen = new Set<string>();
+  for (const name of bones) {
+    if (seen.has(name)) throw new Error(`Authored fighter SVG has duplicate bone '${name}'`);
+    seen.add(name);
+  }
+  return { bones };
+}
+
 function baseNumber(node: Element, name: "x" | "y"): number {
   return Number(node.getAttribute(`data-${name}`) ?? 0);
 }
@@ -27,6 +55,7 @@ function transform(node: Element, pose = {} as NonNullable<Pose[string]>): strin
  * without this file changing.
  */
 export function buildFighterNode(role: "player" | "dummy", model: string = AUTHORED_SKIN.model): FighterNode {
+  inspectFighterModel(model);
   const parsed = new DOMParser().parseFromString(model, "image/svg+xml");
   if (parsed.querySelector("parsererror")) throw new Error("Authored fighter SVG is invalid");
   const found = parsed.querySelector<SVGGElement>("[data-model='fighter']");
