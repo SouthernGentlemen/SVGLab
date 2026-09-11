@@ -5,17 +5,12 @@ interface Env {
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
-    let assetRequest = request;
+    const previewRoute = url.pathname === "/preview" || url.pathname === "/preview/";
+    if (previewRoute) url.pathname = "/preview.html";
 
-    if ((url.pathname === "/preview" || url.pathname === "/preview/") && (request.method === "GET" || request.method === "HEAD")) {
-      url.pathname = "/preview.html";
-      assetRequest = new Request(url.toString(), {
-        method: request.method,
-        headers: request.headers,
-      });
-    }
-
-    const response = await env.ASSETS.fetch(assetRequest);
+    const response = previewRoute && (request.method === "GET" || request.method === "HEAD")
+      ? await env.ASSETS.fetch(url.toString(), { method: request.method, headers: request.headers })
+      : await env.ASSETS.fetch(request);
     const headers = new Headers(response.headers);
     headers.set("X-Combat-Lab-Mode", "unsafe-local-only");
     return new Response(response.body, {
