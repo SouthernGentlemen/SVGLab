@@ -15,6 +15,22 @@ function required<T extends Element>(selector: string): T {
   return node;
 }
 
+/**
+ * `required` for a `<select>`, which cannot go through the generic above.
+ *
+ * `@cloudflare/workers-types` puts HTMLRewriter's `Element` in the global scope, where it
+ * merges with the DOM's and contributes a `remove(): Element` overload. `HTMLSelectElement`
+ * redeclares `remove()` for its own options-list signature, which drops that overload, so it
+ * no longer satisfies `T extends Element` — a collision between two libraries rather than
+ * anything about this element. An `instanceof` check sidesteps the constraint entirely and
+ * checks the tag at runtime into the bargain.
+ */
+function requiredSelect(selector: string): HTMLSelectElement {
+  const node = document.querySelector(selector);
+  if (!(node instanceof HTMLSelectElement)) throw new Error(`Missing required <select>: ${selector}`);
+  return node;
+}
+
 const simulation = new CombatSimulation();
 const keyboard = new KeyboardInput(window);
 const renderer = new ArenaRenderer(required<SVGSVGElement>("#arena"), simulation.config.definitions);
@@ -29,8 +45,8 @@ const timelineCursor = required<HTMLElement>("#timeline-cursor");
 const runState = required<HTMLElement>("#run-state");
 const debugOverlay = required<HTMLElement>("#debug-overlay");
 const debugToggle = required<HTMLButtonElement>("#debug-toggle");
-const playerSkin = required<HTMLSelectElement>("#player-skin");
-const dummySkin = required<HTMLSelectElement>("#dummy-skin");
+const playerSkin = requiredSelect("#player-skin");
+const dummySkin = requiredSelect("#dummy-skin");
 
 let paused = false;
 let lastTime = performance.now();
