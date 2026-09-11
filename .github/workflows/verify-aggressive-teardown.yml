@@ -1,0 +1,52 @@
+name: Verify aggressive local teardown
+
+on:
+  push:
+    branches:
+      - aggressive-local-teardown
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+      - name: Prove dev nukes an occupied local port
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8788 --bind 127.0.0.1 >/tmp/blocker.log 2>&1 &
+          blocker_pid=$!
+          sleep 0.5
+          kill -0 "$blocker_pid"
+
+          SVGLAB_NO_OPEN=1 SVGLAB_PORT=8788 npm run dev >/tmp/svglab-dev.log 2>&1 &
+          dev_pid=$!
+
+          for attempt in {1..80}; do
+            if curl --fail --silent http://127.0.0.1:8788/ | grep -q "SVGLab"; then
+              break
+            fi
+            sleep 0.25
+          done
+
+          curl --fail --silent http://127.0.0.1:8788/ | grep -q "SVGLab"
+          if kill -0 "$blocker_pid" 2>/dev/null; then
+            echo "blocker survived destructive teardown"
+            exit 1
+          fi
+          grep -F "teardown: terminating local lab processes on port 8788" /tmp/svglab-dev.log
+          grep -F "teardown: local port 8788 is clear" /tmp/svglab-dev.log
+          grep -F "browser: skipped (SVGLAB_NO_OPEN=1); open http://127.0.0.1:8788/" /tmp/svglab-dev.log
+
+          SVGLAB_PORT=8788 npm run teardown
+          wait "$dev_pid" || true
