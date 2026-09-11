@@ -21,6 +21,17 @@ The generated SVG is build output. Editing it is pointless, because the next bui
 the change, and `tests/characters.test.ts` fails the moment a checked-in file stops matching
 its atlas.
 
+## The atlas never reaches the game
+
+Everything the stage draws is vector. The atlases are build-time input: they live outside
+`src/`, nothing in the app imports them, and no raster follows a character into the bundle —
+`tests/architecture.test.ts` fails if one ever does, whether by an import, a `url()`, an
+`<image>` element or a `data:` URI pasted into an SVG.
+
+That is not tidiness. A traced character scales to any stage size, stays legible under the
+debug overlay, and is a set of paths the rig can pose — which is the entire difference between
+a fighter and a picture of one.
+
 ## Why the output is an authored fighter
 
 The tracer emits exactly the document `src/svg/fighter.svg` is: a `data-model="fighter"` group

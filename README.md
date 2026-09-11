@@ -40,6 +40,9 @@ also be *traced*: drop a sheet of loose body parts at `characters/<id>/atlas.png
 eleven-bone document shape, so the same rig reads it and the same clips play on it. Three
 traced characters ship as examples; switch between them mid-fight in the debug overlay.
 
+The atlases are build-time input only. Everything the stage draws is vector, and a guardrail
+test fails if any raster ever reaches the bundle.
+
 See [the character atlas guide](docs/CHARACTER_ATLAS.md).
 
 ## Useful commands
