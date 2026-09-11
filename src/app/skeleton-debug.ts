@@ -2,18 +2,23 @@ import "./skeleton-debug.css";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-const toggle = document.querySelector<HTMLInputElement>("#show-skeleton");
-if (!toggle) throw new Error("Missing skeleton debug toggle");
+function requiredToggle(): HTMLInputElement {
+  const node = document.querySelector("#show-skeleton");
+  if (!(node instanceof HTMLInputElement)) throw new Error("Missing skeleton debug toggle");
+  return node;
+}
+
+const toggle = requiredToggle();
 
 function boneName(bone: SVGGElement): string {
   return bone.dataset.bone ?? "";
 }
 
 function parentBone(bone: SVGGElement, fighter: SVGGElement): SVGGElement | null {
-  let current = bone.parentElement;
+  let current: Node | null = bone.parentNode;
   while (current && current !== fighter) {
     if (current instanceof SVGGElement && current.hasAttribute("data-bone")) return current;
-    current = current.parentElement;
+    current = current.parentNode;
   }
   return null;
 }
