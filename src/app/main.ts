@@ -5,6 +5,7 @@ import { attackPhase } from "../combat/state/machine";
 import type { CombatEvent, FrameReport } from "../combat/types";
 import { renderAnimationPanel, renderEvents, renderSimulationPanel } from "../debug/panel";
 import { KeyboardInput } from "../input/keyboard";
+import { SKINS } from "../svg/characters";
 import { ArenaRenderer } from "../svg/renderer";
 import type { DebugToggles } from "../svg/renderer";
 
@@ -28,6 +29,8 @@ const timelineCursor = required<HTMLElement>("#timeline-cursor");
 const runState = required<HTMLElement>("#run-state");
 const debugOverlay = required<HTMLElement>("#debug-overlay");
 const debugToggle = required<HTMLButtonElement>("#debug-toggle");
+const playerSkin = required<HTMLSelectElement>("#player-skin");
+const dummySkin = required<HTMLSelectElement>("#dummy-skin");
 
 let paused = false;
 let lastTime = performance.now();
@@ -44,6 +47,33 @@ function toggles(): DebugToggles {
     origins: enabled("origins"),
     rig: enabled("rig"),
   };
+}
+
+/**
+ * Fills the skin pickers and applies whatever is chosen.
+ *
+ * Every skin is the same eleven bones, so switching one changes nothing the simulation can
+ * observe — same state, same clip, same frame data, different art. The pickers live in the
+ * debug overlay because that independence is a thing to inspect rather than a feature to
+ * dress up.
+ */
+function setUpSkins(): void {
+  for (const select of [playerSkin, dummySkin]) {
+    select.replaceChildren(...SKINS.map((entry) => {
+      const option = document.createElement("option");
+      option.value = entry.id;
+      option.textContent = entry.name;
+      return option;
+    }));
+    select.addEventListener("change", () => {
+      renderer.setSkins([skinModel(playerSkin.value), skinModel(dummySkin.value)]);
+      render();
+    });
+  }
+}
+
+function skinModel(id: string): string {
+  return (SKINS.find((entry) => entry.id === id) ?? SKINS[0]).model;
 }
 
 function updateHealth(id: "player" | "dummy", health: number): void {
@@ -128,6 +158,7 @@ dummyInvulnerable.addEventListener("change", () => {
   render();
 });
 for (const toggle of document.querySelectorAll<HTMLInputElement>("[data-toggle]")) toggle.addEventListener("change", render);
+setUpSkins();
 
 window.addEventListener("keydown", (event) => {
   if (event.repeat) return;

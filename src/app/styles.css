@@ -132,6 +132,25 @@ button kbd { float: right; min-width: 17px; height: 17px; border: 0; background:
 .debug-tools { padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 7px; color: #b6c0d3; font: 9px ui-monospace, "SFMono-Regular", monospace; }
 .toggle-grid input { width: 12px; height: 12px; margin: 0 5px 0 0; vertical-align: -2px; accent-color: var(--cyan); }
+.skin-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 0.7rem;
+  align-items: center;
+  margin-top: 0.7rem;
+  font-size: 0.78rem;
+}
+
+.skin-grid select {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(12, 16, 26, 0.75);
+  color: inherit;
+  font: inherit;
+}
+
 .legend { display: flex; gap: 6px; margin-top: 11px; font: 8px ui-monospace, "SFMono-Regular", monospace; text-transform: uppercase; }
 .legend span { padding: 3px 5px; border: 1px solid; border-radius: 2px; }
 .legend-push { color: var(--violet); }

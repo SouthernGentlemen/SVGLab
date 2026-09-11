@@ -1,0 +1,56 @@
+{
+  "name": "Kiran",
+  "height": 104,
+  "proportions": {
+    "shoulderInset": 0.16,
+    "shoulderDrop": 0.04,
+    "hipSpread": 0.2,
+    "neckSink": -0.1
+  },
+  "pivots": {
+    "head": [
+      0.5,
+      1.0
+    ]
+  },
+  "props": [
+    {
+      "slot": "prop_13",
+      "bone": "head",
+      "x": 0,
+      "y": -8,
+      "under": true
+    },
+    {
+      "slot": "prop_14",
+      "bone": "torso",
+      "x": 0,
+      "y": -22,
+      "under": true
+    },
+    {
+      "slot": "prop_03",
+      "bone": "torso",
+      "x": -17,
+      "y": 20
+    },
+    {
+      "slot": "prop_09",
+      "bone": "torso",
+      "x": 17,
+      "y": 22
+    },
+    {
+      "slot": "prop_02",
+      "bone": "torso",
+      "x": 16,
+      "y": -8
+    },
+    {
+      "slot": "prop_10",
+      "bone": "torso",
+      "x": -16,
+      "y": 50
+    }
+  ]
+}

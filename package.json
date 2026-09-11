@@ -9,6 +9,8 @@
     "reset": "node scripts/lifecycle.mjs reset",
     "prebuild": "node scripts/assert-local-only.mjs",
     "build": "vite build",
+    "build:characters": "node scripts/build-characters.mjs",
+    "check:characters": "node scripts/build-characters.mjs --check",
     "launch": "node scripts/lifecycle.mjs launch",
     "dev": "node scripts/lifecycle.mjs dev",
     "typecheck": "tsc --noEmit",

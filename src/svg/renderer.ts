@@ -2,6 +2,7 @@ import { animationSnapshot } from "../animation/sample";
 import { SCALE } from "../combat/constants";
 import { debugBoxes } from "../combat/collision/boxes";
 import type { Aabb, FighterDefinition, FrameReport, SimulationState } from "../combat/types";
+import { AUTHORED_SKIN } from "./characters";
 import { applyPose, buildFighterNode } from "./rig";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -36,7 +37,8 @@ function rectFor(box: Aabb, className: string): SVGRectElement {
 }
 
 export class ArenaRenderer {
-  private readonly fighters;
+  private fighters: ReturnType<typeof buildFighterNode>[];
+  private readonly fighterLayer: SVGGElement;
   private readonly debugLayer: SVGGElement;
 
   constructor(
@@ -46,9 +48,24 @@ export class ArenaRenderer {
     const fighterLayer = svg.querySelector<SVGGElement>("#fighter-layer");
     const debugLayer = svg.querySelector<SVGGElement>("#debug-layer");
     if (!fighterLayer || !debugLayer) throw new Error("Arena SVG layers are missing");
+    this.fighterLayer = fighterLayer;
     this.debugLayer = debugLayer;
-    this.fighters = [buildFighterNode("player"), buildFighterNode("dummy")] as const;
+    this.fighters = [buildFighterNode("player"), buildFighterNode("dummy")];
     this.fighters.forEach(({ root }) => fighterLayer.appendChild(root));
+  }
+
+  /**
+   * Swaps the models the fighters are drawn with, mid-fight.
+   *
+   * Nothing about the simulation moves: a skin is eleven bones with different art on them, so
+   * the next `render` poses the new nodes from the same state and the same clip. That the
+   * swap is invisible to combat is the property worth being able to see, which is why the
+   * control sits in the debug overlay rather than in a menu.
+   */
+  setSkins(models: readonly [string, string]): void {
+    this.fighters.forEach(({ root }) => root.remove());
+    this.fighters = [buildFighterNode("player", models[0]), buildFighterNode("dummy", models[1])];
+    this.fighters.forEach(({ root }) => this.fighterLayer.appendChild(root));
   }
 
   render(state: SimulationState, report: FrameReport | null, toggles: DebugToggles) {

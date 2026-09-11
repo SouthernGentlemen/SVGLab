@@ -32,6 +32,16 @@ Authored work under `src/` and `docs/` is never reset.
 
 The stage is focus-first: controls, frame timing, state, events, and geometry tools float over the fight rather than reducing the play area. Open the debug overlay to inspect pushboxes, hurtboxes, hitboxes, fighter origins, bone pivots, and animation state.
 
+## Characters
+
+The fighter in `src/svg/fighter.svg` is hand-drawn and deliberately readable. Characters can
+also be *traced*: drop a sheet of loose body parts at `characters/<id>/atlas.png`, run
+`npm run build:characters`, and the build writes `src/svg/characters/<id>.svg` — the same
+eleven-bone document shape, so the same rig reads it and the same clips play on it. Three
+traced characters ship as examples; switch between them mid-fight in the debug overlay.
+
+See [the character atlas guide](docs/CHARACTER_ATLAS.md).
+
 ## Useful commands
 
 ```bash
@@ -40,6 +50,7 @@ npm run reset     # clear generated/disposable state
 npm run build     # enforce local-only config, then build
 npm run launch    # launch the already-built local runtime
 npm run verify    # types, tests, local-only guard, production bundle
+npm run build:characters  # re-trace every character atlas
 ```
 
 There is intentionally no deployment command, production environment, secret, remote route, account binding, database, or persistence contract.

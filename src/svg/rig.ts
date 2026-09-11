@@ -1,4 +1,4 @@
-import fighterSource from "./fighter.svg?raw";
+import { AUTHORED_SKIN } from "./characters";
 import type { Pose } from "../animation/types";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -18,14 +18,22 @@ function transform(node: Element, pose = {} as NonNullable<Pose[string]>): strin
   return `translate(${x.toFixed(3)} ${y.toFixed(3)}) rotate(${(pose.rotation ?? 0).toFixed(3)})`;
 }
 
-export function buildFighterNode(role: "player" | "dummy"): FighterNode {
-  const parsed = new DOMParser().parseFromString(fighterSource, "image/svg+xml");
+/**
+ * Builds a posable fighter from an authored model.
+ *
+ * `model` defaults to the hand-drawn fighter and accepts any character built from an atlas:
+ * both are the same document shape, so the rig has no idea which it was given and no reason
+ * to care. That is the boundary worth keeping — a skin can be traced, redrawn or replaced
+ * without this file changing.
+ */
+export function buildFighterNode(role: "player" | "dummy", model: string = AUTHORED_SKIN.model): FighterNode {
+  const parsed = new DOMParser().parseFromString(model, "image/svg+xml");
   if (parsed.querySelector("parsererror")) throw new Error("Authored fighter SVG is invalid");
-  const model = parsed.querySelector<SVGGElement>("[data-model='fighter']");
-  if (!model) throw new Error("Authored fighter SVG has no data-model='fighter' group");
+  const found = parsed.querySelector<SVGGElement>("[data-model='fighter']");
+  if (!found) throw new Error("Authored fighter SVG has no data-model='fighter' group");
   const root = document.createElementNS(SVG_NS, "g");
   root.classList.add("fighter", `fighter--${role}`);
-  root.appendChild(document.importNode(model, true));
+  root.appendChild(document.importNode(found, true));
   const bones = new Map<string, SVGGElement>();
   for (const bone of root.querySelectorAll<SVGGElement>("[data-bone]")) {
     const name = bone.dataset.bone;

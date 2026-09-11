@@ -1,0 +1,68 @@
+{
+  "name": "Yuliya",
+  "height": 104,
+  "proportions": {
+    "shoulderInset": 0.0,
+    "shoulderDrop": 0.08,
+    "hipSpread": 0.16
+  },
+  "props": [
+    {
+      "slot": "prop_10",
+      "bone": "head",
+      "x": -10,
+      "y": -24,
+      "under": true
+    },
+    {
+      "slot": "prop_11",
+      "bone": "head",
+      "x": 18,
+      "y": -22,
+      "under": true
+    },
+    {
+      "slot": "prop_06",
+      "bone": "torso",
+      "x": -14,
+      "y": -12,
+      "under": true
+    },
+    {
+      "slot": "prop_07",
+      "bone": "torso",
+      "x": -14,
+      "y": 34
+    },
+    {
+      "slot": "prop_08",
+      "bone": "torso",
+      "x": 16,
+      "y": 33
+    },
+    {
+      "slot": "prop_09",
+      "bone": "torso",
+      "x": 0,
+      "y": 34
+    },
+    {
+      "slot": "prop_04",
+      "bone": "torso",
+      "x": 0,
+      "y": 24
+    },
+    {
+      "slot": "prop_03",
+      "bone": "torso",
+      "x": 0,
+      "y": 44
+    },
+    {
+      "slot": "prop_01",
+      "bone": "torso",
+      "x": 0,
+      "y": -19
+    }
+  ]
+}
