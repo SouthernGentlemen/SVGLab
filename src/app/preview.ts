@@ -120,7 +120,8 @@ function buildGallery(): void {
     const name = document.createElement("strong");
     name.textContent = entry.name;
     const facts = document.createElement("span");
-    header.append(name, facts);
+    header.appendChild(name);
+    header.appendChild(facts);
 
     const svg = document.createElementNS(SVG_NS, "svg");
     svg.setAttribute("viewBox", "0 0 240 270");
@@ -131,7 +132,8 @@ function buildGallery(): void {
     const node = buildFighterNode("player", entry.model);
     node.root.setAttribute("transform", "translate(120 224) scale(1.55)");
     svg.appendChild(node.root);
-    card.append(header, svg);
+    card.appendChild(header);
+    card.appendChild(svg);
     gallery.push({ skin: entry, node, svg, facts });
     return card;
   }));
