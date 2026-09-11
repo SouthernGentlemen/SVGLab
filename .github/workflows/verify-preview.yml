@@ -20,6 +20,22 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+      - name: Smoke local Cloudflare preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          SVGLAB_PORT=8788 npm run dev > /tmp/svglab-dev.log 2>&1 &
+          dev_pid=$!
+          trap 'kill -TERM "$dev_pid" 2>/dev/null || true; npm run teardown >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 30); do
+            if body=$(curl -fsS http://127.0.0.1:8788/preview 2>/dev/null); then
+              grep -q 'Character <span>/</span> Preview' <<<"$body"
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/svglab-dev.log
+          exit 1
       - uses: actions/upload-artifact@v4
         with:
           name: preview-dist
