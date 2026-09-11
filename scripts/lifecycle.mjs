@@ -1,5 +1,6 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { get } from "node:http";
 import { createServer } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -53,6 +54,53 @@ function wait(milliseconds) {
   return new Promise((resolveWait) => setTimeout(resolveWait, milliseconds));
 }
 
+function runtimeResponding(url) {
+  return new Promise((done) => {
+    const request = get(url, (response) => {
+      response.resume();
+      done(true);
+    });
+    request.setTimeout(500, () => {
+      request.destroy();
+      done(false);
+    });
+    request.once("error", () => done(false));
+  });
+}
+
+async function waitForRuntime(url, timeoutMilliseconds = 10_000) {
+  const deadline = Date.now() + timeoutMilliseconds;
+  while (Date.now() < deadline) {
+    if (await runtimeResponding(url)) return;
+    await wait(100);
+  }
+  throw new Error(`Local Cloudflare runtime did not become reachable at ${url}`);
+}
+
+function openBrowser(url) {
+  if (process.env.SVGLAB_NO_OPEN === "1") {
+    console.log(`browser: skipped (SVGLAB_NO_OPEN=1); open ${url}`);
+    return;
+  }
+
+  let command;
+  let args;
+  if (process.platform === "darwin") {
+    command = "open";
+    args = [url];
+  } else if (process.platform === "win32") {
+    command = "cmd";
+    args = ["/c", "start", "", url];
+  } else {
+    command = "xdg-open";
+    args = [url];
+  }
+
+  const opener = spawn(command, args, { detached: true, stdio: "ignore" });
+  opener.unref();
+  console.log(`browser: opened ${url}`);
+}
+
 async function teardown() {
   if (!existsSync(pidFile)) {
     console.log("teardown: no previous local runtime");
@@ -93,7 +141,7 @@ function build() {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-async function launch() {
+async function launch({ open = false } = {}) {
   mkdirSync(runtime, { recursive: true });
   const executable = join(root, "node_modules", ".bin", process.platform === "win32" ? "wrangler.cmd" : "wrangler");
   if (!existsSync(executable)) throw new Error("Dependencies are missing. Run npm install first.");
@@ -126,7 +174,8 @@ async function launch() {
   });
 
   writeFileSync(pidFile, String(child.pid), "utf8");
-  console.log(`launch: local Cloudflare runtime starting at http://127.0.0.1:${port}`);
+  const url = `http://127.0.0.1:${port}/`;
+  console.log(`launch: local Cloudflare runtime starting at ${url}`);
 
   const stop = (signal) => {
     if (child.exitCode === null) child.kill(signal);
@@ -141,6 +190,11 @@ async function launch() {
     rmSync(pidFile, { force: true });
     throw error;
   });
+
+  if (open) {
+    await waitForRuntime(url);
+    openBrowser(url);
+  }
 }
 
 const command = process.argv[2];
@@ -148,11 +202,11 @@ if (command === "teardown") await teardown();
 else if (command === "reset") reset();
 else if (command === "launch") await launch();
 else if (command === "dev") {
-  console.log("dev: teardown → reset → rebuild → local Cloudflare launch");
+  console.log("dev: teardown → reset → rebuild → local Cloudflare launch → browser");
   await teardown();
   reset();
   build();
-  await launch();
+  await launch({ open: true });
 } else {
   throw new Error("Usage: node scripts/lifecycle.mjs <teardown|reset|launch|dev>");
 }

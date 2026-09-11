@@ -12,10 +12,12 @@ npm run dev
 Every `npm run dev` performs:
 
 ```text
-teardown → reset → rebuild → local Cloudflare launch
+teardown → reset → rebuild → local Cloudflare launch → browser
 ```
 
-The lab opens at <http://127.0.0.1:8787>. Set `SVGLAB_PORT` to use another local port. Re-running the command stops only the prior Wrangler process recorded and verified as belonging to this repository, clears generated output and disposable local runtime state, rebuilds, and launches again.
+The command waits until the local runtime is reachable and then opens the lab in your default browser at <http://127.0.0.1:8787>. Set `SVGLAB_PORT` to use another local port; the browser follows that port automatically. Use `SVGLAB_NO_OPEN=1 npm run dev` only when you deliberately want the full dev lifecycle without opening a browser, such as in headless automation.
+
+Re-running the command stops only the prior Wrangler process recorded and verified as belonging to this repository, clears generated output and disposable local runtime state, rebuilds, and launches again.
 
 Authored work under `src/` and `docs/` is never reset.
 
@@ -51,7 +53,7 @@ See [the character atlas guide](docs/CHARACTER_ATLAS.md).
 npm run teardown  # stop the recorded local runtime
 npm run reset     # clear generated/disposable state
 npm run build     # enforce local-only config, then build
-npm run launch    # launch the already-built local runtime
+npm run launch    # launch the already-built local runtime without opening a browser
 npm run verify    # types, tests, local-only guard, production bundle
 npm run build:characters  # re-trace every character atlas
 ```
