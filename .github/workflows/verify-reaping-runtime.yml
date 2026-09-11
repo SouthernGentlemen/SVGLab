@@ -1,0 +1,76 @@
+name: Verify restarting local runtime reaping
+
+on:
+  push:
+    branches:
+      - reap-restarting-local-runtime
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+      - name: Prove dev reaps a respawning listener tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/svglab-blocker
+          printf 'BLOCKER\n' >/tmp/svglab-blocker/index.html
+
+          setsid bash -c '
+            trap "" TERM
+            while true; do
+              (cd /tmp/svglab-blocker && python3 -m http.server 8788 --bind 127.0.0.1) >/tmp/blocker.log 2>&1 || true
+              sleep 0.05
+            done
+          ' &
+          supervisor_pid=$!
+          sleep 0.5
+          curl --fail --silent http://127.0.0.1:8788/ | grep -q BLOCKER
+          old_listener="$(lsof -nP -iTCP:8788 -sTCP:LISTEN -t | head -1)"
+
+          SVGLAB_NO_OPEN=1 SVGLAB_PORT=8788 npm run dev >/tmp/svglab-dev.log 2>&1 &
+          dev_pid=$!
+
+          ready=0
+          for attempt in {1..120}; do
+            if curl --fail --silent --dump-header /tmp/svglab-headers.txt http://127.0.0.1:8788/ -o /tmp/svglab-page.html; then
+              if grep -qi '^X-Combat-Lab-Mode: unsafe-local-only' /tmp/svglab-headers.txt; then
+                ready=1
+                break
+              fi
+            fi
+            sleep 0.25
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/svglab-dev.log
+            exit 1
+          fi
+
+          new_listener="$(lsof -nP -iTCP:8788 -sTCP:LISTEN -t | head -1)"
+          if [ "$new_listener" = "$old_listener" ]; then
+            echo "old listener still owns 8788"
+            cat /tmp/svglab-dev.log
+            exit 1
+          fi
+          if ps -p "$supervisor_pid" >/dev/null 2>&1; then
+            echo "respawn supervisor survived teardown"
+            cat /tmp/svglab-dev.log
+            exit 1
+          fi
+          grep -F "teardown: local port 8788 is clear" /tmp/svglab-dev.log
+          grep -F "browser: skipped (SVGLAB_NO_OPEN=1); open http://127.0.0.1:8788/" /tmp/svglab-dev.log
+
+          SVGLAB_PORT=8788 npm run teardown
+          wait "$dev_pid" || true
