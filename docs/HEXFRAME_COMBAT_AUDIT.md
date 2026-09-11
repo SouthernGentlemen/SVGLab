@@ -2,7 +2,7 @@
 
 Audit source: `Wizard-Gang/Hexframe` at commit `d519945b5e6a60291f63916c4580619a697c75e3`.
 
-This is a provenance and boundary record, not an instruction to keep the projects in sync. Combat Lab is a rewrite around a reduced interface, not a Hexframe fork.
+This is a provenance and boundary record, not an instruction to keep the projects in sync. SVGLab is a rewrite around a reduced interface, not a Hexframe fork.
 
 ## 1. Current Hexframe fighting execution path
 

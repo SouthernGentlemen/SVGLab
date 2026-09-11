@@ -1,6 +1,6 @@
-# Combat Lab
+# SVGLab
 
-Combat Lab is a deliberately unsafe, local-only laboratory for deterministic fighting mechanics and readable SVG character animation. It extracts a small combat kernel from lessons in Hexframe without copying Hexframe's game, product architecture, content, or deployment model.
+SVGLab is a deliberately unsafe, local-only laboratory for deterministic fighting mechanics and readable SVG character animation. It extracts a small combat kernel from lessons in Hexframe without copying Hexframe's game, product architecture, content, or deployment model.
 
 ## Start from clean state
 
@@ -15,7 +15,7 @@ Every `npm run dev` performs:
 teardown → reset → rebuild → local Cloudflare launch
 ```
 
-The lab opens at <http://127.0.0.1:8787>. Set `COMBAT_LAB_PORT` to use another local port. Re-running the command stops only the prior Wrangler process recorded and verified as belonging to this repository, clears generated output and disposable local runtime state, rebuilds, and launches again.
+The lab opens at <http://127.0.0.1:8787>. Set `SVGLAB_PORT` to use another local port. Re-running the command stops only the prior Wrangler process recorded and verified as belonging to this repository, clears generated output and disposable local runtime state, rebuilds, and launches again.
 
 Authored work under `src/` and `docs/` is never reset.
 

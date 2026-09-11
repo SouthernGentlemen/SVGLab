@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "combat-lab-local-only",
+  "name": "svg-lab-local-only",
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-11",
   "workers_dev": false,

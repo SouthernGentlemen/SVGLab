@@ -1,4 +1,4 @@
-# Working in Combat Lab
+# Working in SVGLab
 
 This repository is an intentionally unsafe, local-only combat and SVG animation sandbox.
 

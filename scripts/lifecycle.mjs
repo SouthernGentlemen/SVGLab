@@ -73,7 +73,7 @@ function launch() {
   mkdirSync(runtime, { recursive: true });
   const executable = join(root, "node_modules", ".bin", process.platform === "win32" ? "wrangler.cmd" : "wrangler");
   if (!existsSync(executable)) throw new Error("Dependencies are missing. Run npm install first.");
-  const port = process.env.COMBAT_LAB_PORT ?? "8787";
+  const port = process.env.SVGLAB_PORT ?? "8787";
   const child = spawn(executable, [
     "dev",
     "--local",
