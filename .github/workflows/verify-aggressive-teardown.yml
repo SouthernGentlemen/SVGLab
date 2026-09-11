@@ -24,18 +24,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 8788 --bind 127.0.0.1 >/tmp/blocker.log 2>&1 &
+          mkdir -p /tmp/svglab-blocker
+          printf 'BLOCKER\n' >/tmp/svglab-blocker/index.html
+          (cd /tmp/svglab-blocker && python3 -m http.server 8788 --bind 127.0.0.1 >/tmp/blocker.log 2>&1) &
           blocker_pid=$!
           sleep 0.5
           kill -0 "$blocker_pid"
+          curl --fail --silent http://127.0.0.1:8788/ | grep -q BLOCKER
 
           SVGLAB_NO_OPEN=1 SVGLAB_PORT=8788 npm run dev >/tmp/svglab-dev.log 2>&1 &
           dev_pid=$!
 
           ready=0
           for attempt in {1..80}; do
-            if curl --fail --silent http://127.0.0.1:8788/ -o /tmp/svglab-page.html; then
-              if grep -q "SVGLab" /tmp/svglab-page.html; then
+            if curl --fail --silent --dump-header /tmp/svglab-headers.txt http://127.0.0.1:8788/ -o /tmp/svglab-page.html; then
+              if grep -qi '^X-Combat-Lab-Mode: unsafe-local-only' /tmp/svglab-headers.txt; then
                 ready=1
                 break
               fi
@@ -47,8 +50,8 @@ jobs:
             cat /tmp/svglab-dev.log
             exit 1
           fi
-          if kill -0 "$blocker_pid" 2>/dev/null; then
-            echo "blocker survived destructive teardown"
+          if lsof -nP -iTCP:8788 -sTCP:LISTEN -t | grep -qx "$blocker_pid"; then
+            echo "blocker still owns port 8788"
             cat /tmp/svglab-dev.log
             exit 1
           fi
@@ -58,3 +61,4 @@ jobs:
 
           SVGLAB_PORT=8788 npm run teardown
           wait "$dev_pid" || true
+          wait "$blocker_pid" || true
