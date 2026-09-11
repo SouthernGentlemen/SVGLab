@@ -1,3 +1,5 @@
+import "./skeleton-debug.css";
+
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 const toggle = document.querySelector<HTMLInputElement>("#show-skeleton");
