@@ -2,10 +2,11 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { get } from "node:http";
 import { createServer } from "node:net";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const repoName = basename(root);
 const runtime = join(root, ".runtime");
 const pidFile = join(runtime, "wrangler.pid");
 const generatedPaths = [join(root, "dist"), join(root, ".wrangler"), join(runtime, "cloudflare"), join(runtime, "cache")];
@@ -47,23 +48,53 @@ function listenerPids(port) {
   }
 }
 
-function repoWranglerPids() {
+function processRows() {
   if (process.platform === "win32") return [];
   try {
-    const rows = execFileSync("ps", ["-axo", "pid=,command="], { encoding: "utf8" }).split("\n");
-    return rows.flatMap((row) => {
-      const match = row.trim().match(/^(\d+)\s+(.+)$/);
-      if (!match) return [];
-      const pid = Number.parseInt(match[1], 10);
-      const command = match[2];
-      return pid !== process.pid && command.includes(root) && command.includes("wrangler") ? [pid] : [];
-    });
+    return execFileSync("ps", ["-axo", "pid=,ppid=,pgid=,command="], { encoding: "utf8" })
+      .split("\n")
+      .flatMap((row) => {
+        const match = row.match(/^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.+)$/);
+        if (!match) return [];
+        return [{
+          pid: Number.parseInt(match[1], 10),
+          ppid: Number.parseInt(match[2], 10),
+          pgid: Number.parseInt(match[3], 10),
+          command: match[4],
+        }];
+      });
   } catch {
     return [];
   }
 }
 
-function killPid(pid, force = false) {
+function svglabRuntimePids(rows = processRows()) {
+  return rows.flatMap(({ pid, command }) => {
+    if (pid === process.pid || !command.includes(repoName)) return [];
+    return /(?:wrangler|workerd|lifecycle\.mjs)/i.test(command) ? [pid] : [];
+  });
+}
+
+function descendantsOf(seedPids, rows) {
+  const descendants = new Set(seedPids);
+  let added = true;
+  while (added) {
+    added = false;
+    for (const row of rows) {
+      if (!descendants.has(row.pid) && descendants.has(row.ppid)) {
+        descendants.add(row.pid);
+        added = true;
+      }
+    }
+  }
+  return [...descendants];
+}
+
+function currentProcessGroup(rows = processRows()) {
+  return rows.find((row) => row.pid === process.pid)?.pgid ?? null;
+}
+
+function signalPid(pid, force = false) {
   if (!isRunning(pid)) return;
   if (process.platform === "win32") {
     try {
@@ -77,24 +108,35 @@ function killPid(pid, force = false) {
   try {
     process.kill(pid, force ? "SIGKILL" : "SIGTERM");
   } catch {
-    // The process may already be gone.
+    // The process may already be gone or may require higher OS permissions.
   }
 }
 
-async function killPids(pids, label) {
-  const live = [...new Set(pids)].filter((pid) => isRunning(pid));
-  if (live.length === 0) return;
-
-  console.log(`teardown: terminating ${label}: ${live.join(", ")}`);
-  for (const pid of live) killPid(pid, false);
-  await wait(400);
-
-  const survivors = live.filter((pid) => isRunning(pid));
-  if (survivors.length > 0) {
-    console.log(`teardown: force killing ${label}: ${survivors.join(", ")}`);
-    for (const pid of survivors) killPid(pid, true);
-    await wait(150);
+function signalGroup(pgid, force = false) {
+  if (process.platform === "win32" || !Number.isInteger(pgid) || pgid <= 1) return;
+  try {
+    process.kill(-pgid, force ? "SIGKILL" : "SIGTERM");
+  } catch {
+    // The group may already be gone or may require higher OS permissions.
   }
+}
+
+async function signalTrees(seedPids, label, force = false) {
+  const rows = processRows();
+  const currentPgid = currentProcessGroup(rows);
+  const targets = descendantsOf([...new Set(seedPids)].filter((pid) => pid !== process.pid), rows)
+    .filter((pid) => pid !== process.pid);
+  if (targets.length === 0) return;
+
+  const groups = new Set();
+  for (const pid of targets) {
+    const pgid = rows.find((row) => row.pid === pid)?.pgid;
+    if (Number.isInteger(pgid) && pgid > 1 && pgid !== currentPgid) groups.add(pgid);
+  }
+
+  console.log(`teardown: ${force ? "force killing" : "terminating"} ${label}: ${targets.join(", ")}`);
+  for (const pgid of groups) signalGroup(pgid, force);
+  for (const pid of targets) signalPid(pid, force);
 }
 
 function portFree(port, host = "127.0.0.1") {
@@ -162,38 +204,72 @@ function openBrowser(url) {
   console.log(`browser: opened ${url}`);
 }
 
-async function teardown() {
-  const port = Number(process.env.SVGLAB_PORT ?? "8787");
-  const pids = new Set(repoWranglerPids());
+function recordedRuntimePid() {
+  if (!existsSync(pidFile)) return null;
+  const pid = Number.parseInt(readFileSync(pidFile, "utf8"), 10);
+  if (!Number.isInteger(pid) || pid <= 1 || !isRunning(pid)) return null;
+  const command = commandFor(pid);
+  return /(?:wrangler|workerd)/i.test(command) ? pid : null;
+}
 
-  if (existsSync(pidFile)) {
-    const recordedPid = Number.parseInt(readFileSync(pidFile, "utf8"), 10);
-    if (Number.isInteger(recordedPid) && recordedPid > 1) {
-      const command = commandFor(recordedPid);
-      if (command.includes(root) && command.includes("wrangler")) pids.add(recordedPid);
+async function reclaimLocalRuntime(port, label = "local lab runtime") {
+  const deadline = Date.now() + 6_000;
+  let pass = 0;
+  let touched = false;
+
+  while (Date.now() < deadline) {
+    pass += 1;
+    const rows = processRows();
+    const listeners = listenerPids(port);
+    const runtimes = svglabRuntimePids(rows);
+    const recorded = recordedRuntimePid();
+    const seeds = new Set([...listeners, ...runtimes]);
+    if (recorded) seeds.add(recorded);
+
+    if (seeds.size === 0 && await portFree(port)) {
+      // A stale supervisor can respawn workerd after the first child dies. Require the port
+      // to stay clear for a beat before declaring teardown complete.
+      await wait(200);
+      if (listenerPids(port).length === 0 && svglabRuntimePids().length === 0 && await portFree(port)) {
+        if (!touched) console.log(`teardown: nothing running on local port ${port}`);
+        console.log(`teardown: local port ${port} is clear`);
+        return;
+      }
+    }
+
+    touched = true;
+    const description = `${label} reap pass ${pass} on port ${port}`;
+    if (seeds.size > 0) {
+      await signalTrees([...seeds], description, false);
+      await wait(250);
+    }
+
+    const survivors = new Set([...listenerPids(port), ...svglabRuntimePids()]);
+    const stillRecorded = recordedRuntimePid();
+    if (stillRecorded) survivors.add(stillRecorded);
+    if (survivors.size > 0) {
+      await signalTrees([...survivors], description, true);
+      await wait(250);
     }
   }
 
-  for (const pid of listenerPids(port)) pids.add(pid);
+  const remaining = listenerPids(port);
+  const remainingRuntime = svglabRuntimePids();
+  const details = [...new Set([...remaining, ...remainingRuntime])].map((pid) => {
+    const command = commandFor(pid);
+    return command ? `${pid}: ${command}` : String(pid);
+  });
+  fail([
+    `teardown: could not reclaim local port ${port} after repeated process-tree reaping`,
+    details.length > 0 ? `remaining processes: ${details.join(" | ")}` : "the port is still occupied",
+    "The remaining process may be protected by higher OS permissions.",
+  ]);
+}
 
-  if (pids.size === 0) {
-    console.log(`teardown: nothing running on local port ${port}`);
-  } else {
-    await killPids([...pids], `local lab processes on port ${port}`);
-  }
-
+async function teardown() {
+  const port = Number(process.env.SVGLAB_PORT ?? "8787");
+  await reclaimLocalRuntime(port);
   rmSync(pidFile, { force: true });
-
-  if (!(await portFree(port))) {
-    const remaining = listenerPids(port);
-    fail([
-      `teardown: could not reclaim local port ${port}`,
-      remaining.length > 0 ? `remaining listener PIDs: ${remaining.join(", ")}` : "the port is still occupied",
-      "This lab is intentionally destructive, but the remaining process may require higher OS permissions.",
-    ]);
-  }
-
-  console.log(`teardown: local port ${port} is clear`);
 }
 
 function reset() {
@@ -215,13 +291,10 @@ async function launch({ open = false } = {}) {
   mkdirSync(runtime, { recursive: true });
   const executable = join(root, "node_modules", ".bin", process.platform === "win32" ? "wrangler.cmd" : "wrangler");
   if (!existsSync(executable)) throw new Error("Dependencies are missing. Run npm install first.");
-  const port = process.env.SVGLAB_PORT ?? "8787";
+  const port = Number(process.env.SVGLAB_PORT ?? "8787");
 
-  if (!(await portFree(Number(port)))) {
-    await killPids(listenerPids(Number(port)), `unexpected listeners on port ${port}`);
-  }
-  if (!(await portFree(Number(port)))) {
-    fail([`launch: local port ${port} is still occupied after destructive cleanup`]);
+  if (!(await portFree(port)) || listenerPids(port).length > 0 || svglabRuntimePids().length > 0) {
+    await reclaimLocalRuntime(port, "pre-launch local runtime");
   }
 
   const child = spawn(executable, [
@@ -232,7 +305,7 @@ async function launch({ open = false } = {}) {
     "--persist-to",
     join(runtime, "cloudflare"),
     "--port",
-    port,
+    String(port),
   ], {
     cwd: root,
     detached: process.platform !== "win32",
