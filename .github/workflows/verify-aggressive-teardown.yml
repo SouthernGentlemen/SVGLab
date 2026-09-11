@@ -32,16 +32,24 @@ jobs:
           SVGLAB_NO_OPEN=1 SVGLAB_PORT=8788 npm run dev >/tmp/svglab-dev.log 2>&1 &
           dev_pid=$!
 
+          ready=0
           for attempt in {1..80}; do
-            if curl --fail --silent http://127.0.0.1:8788/ | grep -q "SVGLab"; then
-              break
+            if curl --fail --silent http://127.0.0.1:8788/ -o /tmp/svglab-page.html; then
+              if grep -q "SVGLab" /tmp/svglab-page.html; then
+                ready=1
+                break
+              fi
             fi
             sleep 0.25
           done
 
-          curl --fail --silent http://127.0.0.1:8788/ | grep -q "SVGLab"
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/svglab-dev.log
+            exit 1
+          fi
           if kill -0 "$blocker_pid" 2>/dev/null; then
             echo "blocker survived destructive teardown"
+            cat /tmp/svglab-dev.log
             exit 1
           fi
           grep -F "teardown: terminating local lab processes on port 8788" /tmp/svglab-dev.log
