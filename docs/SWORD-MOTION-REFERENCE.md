@@ -42,7 +42,7 @@ The Stick Nodes/Pivot/itch.io examples are also not copied into the repository. 
 4. The blade leads the hands through acceleration.
 5. Contact is not the end of the animation. The sword passes through longpoint and the body continues rotating and translating after impact.
 6. Follow-through must visibly carry the hips, chest, head counter-rotation, and stance beyond the contact pose before recovery begins.
-7. Recovery is asymmetric. The fighter gathers momentum back under control instead of snapping directly to the starting pose.
+7. Recovery follows momentum instead of reversing the attack path. A committed cut finishes low, circles the blade around, then rebuilds guard.
 8. Center-of-mass movement stays continuous and readable; forward drive is allowed and should communicate commitment, but must never teleport.
 9. Both hands are solved to fixed points on the handle with fixed upper-arm and forearm lengths.
 10. Torso lean changes shoulder/elbow geometry, not the sword trajectory. The sword translation and rotation are inverse-transformed out of torso space.
@@ -50,7 +50,7 @@ The Stick Nodes/Pivot/itch.io examples are also not copied into the repository. 
 
 ## Primary reference sequence
 
-`swordOberhauReference` is the first canonical move. The current pass is deliberately exaggerated enough to read as a committed fighting-game strike rather than a technical sword-position demo.
+`swordOberhauReference` is the first canonical move. The pass is deliberately exaggerated enough to read as a committed fighting-game strike rather than a technical sword-position demo. The blade continuously advances through the entire attack/recovery cycle instead of rotating backward after contact.
 
 | Frame | Pose | Blade | Body intent |
 | ---: | --- | --- | --- |
@@ -60,12 +60,12 @@ The Stick Nodes/Pivot/itch.io examples are also not copied into the repository. 
 | 10 | release | starts forward | stored body rotation begins unwinding |
 | 12 | drive | fast diagonal | pelvis travels forward and torso crosses neutral |
 | 14 | impact / longpoint | near horizontal | contact happens while the body is still accelerating |
-| 16 | follow through | past horizontal | chest and hips continue through the target |
-| 19 | overshoot | low finishing arc | maximum body rotation and forward commitment |
-| 23 | settle | low diagonal | momentum decays without freezing the pose |
-| 28 | recover | rising toward center | stance starts gathering back underneath the fighter |
-| 34 | return | near guard | body unwinds before the weapon becomes vertical |
-| 40 | guard | vertical | exact weapon pose returns only after full recovery |
+| 16 | follow through | past horizontal | chest, hips, and stance continue through the target |
+| 19 | overshoot | steep finishing arc | maximum forward commitment occurs after contact |
+| 23 | low finish | almost blade-down | the cut completes below the target instead of freezing at impact |
+| 28 | circle recover | continues around body | remaining sword momentum is redirected into recovery, not reversed |
+| 34 | return | rising around the far side | torso unwinds while the blade completes the recovery circle |
+| 40 | guard | full 360° back to vertical | exact guard is rebuilt only after the motion completes |
 
 `swordOberhauStudyReference` is the same pose sequence at half speed so every joint can be scrubbed and inspected without inventing a second animation.
 
