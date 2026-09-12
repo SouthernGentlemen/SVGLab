@@ -22,10 +22,17 @@ SVGLab does not vendor or trace any third-party sword animation. External materi
 - Public stick-figure flipbook example surfaced during search:
   - https://4.bp.blogspot.com/_JGWd5B4HcY0/S-ohL5k07II/AAAAAAAAACY/bloanPeQ70Y/s1600/epic%2Bflipbook2.jpg
   - Useful as a literal frame-by-frame example, but too crude and inconsistently proportioned to drive our joints directly.
+- Overcrafted Stickman Fighter Spine 2D pack: https://overcrafted.itch.io/stickman-fighter-spine-2d-game-character-sprites
+  - Closest structured third-party asset found: vector rig, Spine JSON/source, 24 fps PNG sequences, and a dedicated sword-slash animation.
+  - Useful comparison material, but paywalled and externally authored, so it is not imported or treated as canonical joint data.
+- 2D Stickman Swordsman asset: https://dannyv3.itch.io/2d-stickman-swordsman
+  - Includes idle/run/jump and multiple sword attacks. Useful visual comparison, but not a better rig contract than owning our reference coordinates.
 
 ## Rejected as canonical input
 
 Search results contain many AI-generated sprite sheets and isolated sword-VFX sheets. They can be useful for ideation, but they are poor joint references: limb lengths drift, grip contact changes, and the blade often changes size between frames. They must not drive the rig.
+
+The Stick Nodes/Pivot/itch.io examples are also not copied into the repository. Even when their silhouettes are useful, they are presentation assets rather than a stable, auditable joint specification for SVGLab's eleven-bone rig.
 
 ## SVGLab canonical constraints
 
