@@ -1,8 +1,8 @@
 import "./styles.css";
 import { TICK_MS } from "../combat/constants";
 import { CombatSimulation } from "../combat/simulation";
-import { attackPhase } from "../combat/state/machine";
-import type { CombatEvent, FrameReport } from "../combat/types";
+import { activeMove, attackPhase } from "../combat/state/machine";
+import type { CombatEvent, FrameReport, MoveDefinition } from "../combat/types";
 import { renderAnimationPanel, renderEvents, renderSimulationPanel } from "../debug/panel";
 import { KeyboardInput } from "../input/keyboard";
 import { SKINS } from "../svg/characters";
@@ -42,6 +42,9 @@ const pauseButton = required<HTMLButtonElement>("#pause");
 const stepButton = required<HTMLButtonElement>("#step");
 const dummyInvulnerable = required<HTMLInputElement>("#dummy-invulnerable");
 const timelineCursor = required<HTMLElement>("#timeline-cursor");
+const timelineTrack = required<HTMLElement>("#timeline-track");
+const timelineMove = required<HTMLElement>("#timeline-move");
+const timelineLast = required<HTMLElement>("#timeline-last");
 const runState = required<HTMLElement>("#run-state");
 const debugOverlay = required<HTMLElement>("#debug-overlay");
 const debugToggle = required<HTMLButtonElement>("#debug-toggle");
@@ -116,11 +119,38 @@ function render(): void {
   animationNote.textContent = animations[0].note;
 
   const player = state.fighters[0];
-  const phase = attackPhase(player, simulation.config.definitions[0].move);
+  const move = activeMove(player, simulation.config.definitions[0]);
+  const phase = attackPhase(player, move);
+  drawTimeline(move);
   required<HTMLElement>("#phase").textContent = phase ?? "neutral";
   required<HTMLElement>("#move-frame").textContent = phase ? String(player.moveFrame) : "—";
   timelineCursor.hidden = phase === null;
-  if (phase) timelineCursor.style.left = `${((player.moveFrame + 0.5) / simulation.config.definitions[0].move.duration) * 100}%`;
+  if (phase) timelineCursor.style.left = `${((player.moveFrame + 0.5) / move.duration) * 100}%`;
+}
+
+/**
+ * Redraws the phase bar for whichever move the player last committed to.
+ *
+ * The strike and the sword slash have different frame data, so the bar is authored from the
+ * move rather than the markup. It reads the same numbers combat resolves hits with.
+ */
+function drawTimeline(move: MoveDefinition): void {
+  if (timelineMove.textContent === move.name.toLowerCase()) return;
+  timelineMove.textContent = move.name.toLowerCase();
+  timelineLast.textContent = String(move.duration - 1);
+  timelineTrack.replaceChildren(...([
+    ["startup", move.startup],
+    ["active", move.active],
+    ["recovery", move.recovery],
+  ] as const).map(([phase, span]) => {
+    const segment = document.createElement("span");
+    segment.className = phase;
+    segment.style.setProperty("--span", String(span));
+    const label = document.createElement("i");
+    label.textContent = `${phase} ${span}`;
+    segment.appendChild(label);
+    return segment;
+  }), timelineCursor);
 }
 
 function step(): void {
@@ -162,6 +192,7 @@ function frame(now: number): void {
 }
 
 required<HTMLButtonElement>("#attack").addEventListener("click", () => keyboard.pulseAttack());
+required<HTMLButtonElement>("#slash").addEventListener("click", () => keyboard.pulseSlash());
 pauseButton.addEventListener("click", () => setPaused(!paused));
 stepButton.addEventListener("click", () => {
   if (paused) step();

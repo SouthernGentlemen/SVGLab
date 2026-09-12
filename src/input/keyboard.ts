@@ -12,13 +12,14 @@ export class KeyboardInput {
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyJ"].includes(event.code)) {
+    if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyJ", "KeyK"].includes(event.code)) {
       this.held.add(event.code);
       if (event.code === "KeyW") this.queuedInput |= InputBit.Up;
       else if (event.code === "KeyA") this.queuedInput |= InputBit.Left;
       else if (event.code === "KeyS") this.queuedInput |= InputBit.Down;
       else if (event.code === "KeyD") this.queuedInput |= InputBit.Right;
       else if (event.code === "KeyJ") this.queuedInput |= InputBit.Attack;
+      else if (event.code === "KeyK") this.queuedInput |= InputBit.Slash;
       event.preventDefault();
     }
   };
@@ -36,6 +37,10 @@ export class KeyboardInput {
     this.queuedInput |= InputBit.Attack;
   }
 
+  pulseSlash(): void {
+    this.queuedInput |= InputBit.Slash;
+  }
+
   sample(): InputFrame {
     let input = this.queuedInput;
     this.queuedInput = 0;
@@ -44,6 +49,7 @@ export class KeyboardInput {
     if (this.held.has("KeyW")) input |= InputBit.Up;
     if (this.held.has("KeyS")) input |= InputBit.Down;
     if (this.held.has("KeyJ")) input |= InputBit.Attack;
+    if (this.held.has("KeyK")) input |= InputBit.Slash;
     return input;
   }
 

@@ -45,19 +45,62 @@ describe("minimal combat vertical slice", () => {
     simulation.step([InputBit.Attack, 0]);
     const player = simulation.getState().fighters[0];
     expect(player.moveFrame).toBe(0);
-    expect(attackPhase(player, LAB_FIGHTER.move)).toBe("startup");
+    expect(attackPhase(player, LAB_FIGHTER.moves.basic)).toBe("startup");
 
     for (let frame = 0; frame < 4; frame++) simulation.step([0, 0]);
     expect(player.moveFrame).toBe(4);
-    expect(attackPhase(player, LAB_FIGHTER.move)).toBe("startup");
+    expect(attackPhase(player, LAB_FIGHTER.moves.basic)).toBe("startup");
     simulation.step([0, 0]);
     expect(player.moveFrame).toBe(5);
-    expect(attackPhase(player, LAB_FIGHTER.move)).toBe("active");
+    expect(attackPhase(player, LAB_FIGHTER.moves.basic)).toBe("active");
     simulation.step([0, 0]);
     simulation.step([0, 0]);
     simulation.step([0, 0]);
     expect(player.moveFrame).toBe(8);
-    expect(attackPhase(player, LAB_FIGHTER.move)).toBe("recovery");
+    expect(attackPhase(player, LAB_FIGHTER.moves.basic)).toBe("recovery");
+  });
+
+  it("runs the sword slash on its own frame data and reach", () => {
+    const simulation = new CombatSimulation({ definitions: [LAB_FIGHTER, LAB_FIGHTER], startX: [px(-100), px(100)] });
+    simulation.step([InputBit.Slash, 0]);
+    const player = simulation.getState().fighters[0];
+    expect(player.move).toBe("sword");
+    expect(attackPhase(player, LAB_FIGHTER.moves.sword)).toBe("startup");
+
+    for (let frame = 0; frame < 13; frame++) simulation.step([0, 0]);
+    expect(player.moveFrame).toBe(13);
+    expect(attackPhase(player, LAB_FIGHTER.moves.sword)).toBe("startup");
+    simulation.step([0, 0]);
+    expect(attackPhase(player, LAB_FIGHTER.moves.sword)).toBe("active");
+
+    for (let frame = 0; frame < 4; frame++) simulation.step([0, 0]);
+    expect(attackPhase(player, LAB_FIGHTER.moves.sword)).toBe("recovery");
+    for (let frame = 0; frame < 12; frame++) simulation.step([0, 0]);
+    expect(player).toMatchObject({ mode: "idle", moveFrame: 0 });
+  });
+
+  it("hits harder and further with the sword than with the fist", () => {
+    // One spacing past the fist's reach but inside the blade's: only frame data separates them.
+    const swing = (bit: number, frames: number) => {
+      const simulation = new CombatSimulation({ definitions: [LAB_FIGHTER, LAB_FIGHTER], startX: [px(-52), px(53)] });
+      simulation.step([bit, 0]);
+      for (let frame = 0; frame < frames; frame++) simulation.step([0, 0]);
+      return simulation.getState().fighters[1];
+    };
+    const punched = swing(InputBit.Attack, 6);
+    const cut = swing(InputBit.Slash, 15);
+    expect(punched.health).toBe(100);
+    expect(cut.health).toBe(82);
+    expect(cut.mode).toBe("hitstun");
+  });
+
+  it("keeps the committed move running while its button is held or swapped", () => {
+    const simulation = new CombatSimulation({ definitions: [LAB_FIGHTER, LAB_FIGHTER], startX: [px(-100), px(100)] });
+    simulation.step([InputBit.Slash, 0]);
+    const player = simulation.getState().fighters[0];
+    for (let frame = 0; frame < 5; frame++) simulation.step([InputBit.Attack, 0]);
+    expect(player.move).toBe("sword");
+    expect(player.moveFrame).toBe(5);
   });
 
   it("connects once, applies damage, hitstop, hitstun, and knockback, then recovers", () => {

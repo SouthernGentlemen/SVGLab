@@ -72,19 +72,21 @@
         <div class="control-copy">
           <strong>Move / jump / crouch</strong>
           <span><kbd>J</kbd> strike</span>
+          <span><kbd>K</kbd> sword</span>
         </div>
         <button id="attack" class="primary-button" type="button">Strike <kbd>J</kbd></button>
+        <button id="slash" class="primary-button" type="button">Sword <kbd>K</kbd></button>
         <button id="pause" type="button">Pause <kbd>P</kbd></button>
         <button id="step" type="button" disabled>Step <kbd>.</kbd></button>
         <button id="reset" type="button">Reset <kbd>R</kbd></button>
       </section>
 
-      <section class="timeline-overlay glass" aria-label="Basic strike frame timeline">
+      <section class="timeline-overlay glass" aria-label="Move frame timeline">
         <div class="timeline-copy">
-          <span>basic strike / <strong id="phase">neutral</strong></span>
-          <span>frame <strong id="move-frame">—</strong> / 19</span>
+          <span><span id="timeline-move">basic strike</span> / <strong id="phase">neutral</strong></span>
+          <span>frame <strong id="move-frame">—</strong> / <span id="timeline-last">19</span></span>
         </div>
-        <div class="timeline-track">
+        <div class="timeline-track" id="timeline-track">
           <span class="startup" style="--span: 5"><i>startup 5</i></span>
           <span class="active" style="--span: 3"><i>active 3</i></span>
           <span class="recovery" style="--span: 12"><i>recovery 12</i></span>

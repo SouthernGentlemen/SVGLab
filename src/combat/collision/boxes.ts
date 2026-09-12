@@ -1,5 +1,6 @@
-import type { Aabb, DebugBoxes, FighterDefinition, FighterState, SimulationState } from "../types";
+import type { Aabb, DebugBoxes, FighterDefinition, FighterState, MoveDefinition, SimulationState } from "../types";
 import { boxToWorld } from "./aabb";
+import { activeMove } from "../state/machine";
 
 export function pushboxOf(fighter: FighterState, definition: FighterDefinition): Aabb {
   const box = fighter.y > 0
@@ -23,9 +24,9 @@ export function hurtboxesOf(fighter: FighterState, definition: FighterDefinition
 export function activeHitboxesOf(
   fighter: FighterState,
   definition: FighterDefinition,
-): Array<{ id: string; aabb: Aabb; definition: FighterDefinition["move"]["hitboxes"][number] }> {
+): Array<{ id: string; aabb: Aabb; definition: MoveDefinition["hitboxes"][number] }> {
   if (fighter.mode !== "attack") return [];
-  return definition.move.hitboxes
+  return activeMove(fighter, definition).hitboxes
     .filter((hitbox) => fighter.moveFrame >= hitbox.startFrame && fighter.moveFrame <= hitbox.endFrame)
     .map((hitbox) => ({
       id: hitbox.id,

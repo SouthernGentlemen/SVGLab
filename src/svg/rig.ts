@@ -43,6 +43,10 @@ const ARM_LAYER_PROFILES = {
   bnrRunNormal: "locomotion",
   bnrDashNormal: "locomotion",
   bnrStrikeNormal: "punch",
+  bnrSwordGuardNormal: "both-front",
+  bnrSwordSlashNormal: "punch",
+  bnrSwordCutNormal: "punch",
+  bnrSlashStudyNormal: "punch",
   bnrPunchStudyNormal: "punch",
 } as const satisfies Record<ClipName, ArmLayerProfile>;
 

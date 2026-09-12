@@ -4,7 +4,7 @@ import { advanceAttack, startAttack } from "./commands/attack";
 import { resolvePushboxes } from "./collision/pushbox";
 import { resolveContacts } from "./hit-resolution";
 import { applyGroundInput, applyMovement } from "./movement/physics";
-import { attackPhase, enterMode, isActionable } from "./state/machine";
+import { activeMove, attackPhase, enterMode, isActionable } from "./state/machine";
 import { InputBit } from "./types";
 import type { AttackPhase, FighterState, FrameReport, InputFrame, SimulationConfig, SimulationState } from "./types";
 
@@ -24,6 +24,7 @@ function fighter(id: FighterState["id"], x: number, health: number, facing: -1 |
     facing,
     mode: "idle",
     stateFrame: 0,
+    move: "basic",
     moveFrame: 0,
     health,
     hitstop: 0,
@@ -70,7 +71,8 @@ export class CombatSimulation {
   step(inputs: readonly InputFrame[]): FrameReport {
     const state = this.state;
     const beforeModes = state.fighters.map(({ mode }) => mode);
-    const beforePhases = state.fighters.map((current, index) => attackPhase(current, this.config.definitions[index].move));
+    const beforePhases = state.fighters.map((current, index) =>
+      attackPhase(current, activeMove(current, this.config.definitions[index])));
     const frozen = [false, false];
     const report: FrameReport = { frame: state.tick, phase: beforePhases[0], contacts: [], events: [] };
 
@@ -85,8 +87,9 @@ export class CombatSimulation {
         continue;
       }
 
-      if (current.mode === "attack" && advanceAttack(current, definition.move)) {
-        report.events.push({ frame: state.tick, kind: "attack-ended", fighter: current.id, detail: `${definition.move.name} recovered` });
+      const running = activeMove(current, definition);
+      if (current.mode === "attack" && advanceAttack(current, running)) {
+        report.events.push({ frame: state.tick, kind: "attack-ended", fighter: current.id, detail: `${running.name} recovered` });
       } else if (current.mode === "hitstun") {
         if (current.stun === 0) {
           enterMode(current, current.y > GROUND_Y ? "jump" : "idle");
@@ -96,11 +99,13 @@ export class CombatSimulation {
         }
       }
 
-      const attackPressed = (input & InputBit.Attack) !== 0 && (current.previousInput & InputBit.Attack) === 0;
+      const pressed = (bit: number): boolean => (input & bit) !== 0 && (current.previousInput & bit) === 0;
+      // Both buttons reach the same attack state; only the frame data behind it differs.
+      const requested = pressed(InputBit.Slash) ? "sword" : pressed(InputBit.Attack) ? "basic" : null;
       applyGroundInput(current, definition, input);
-      if (attackPressed && isActionable(current)) {
-        startAttack(current);
-        report.events.push({ frame: state.tick, kind: "attack-started", fighter: current.id, detail: definition.move.name });
+      if (requested !== null && isActionable(current)) {
+        startAttack(current, requested);
+        report.events.push({ frame: state.tick, kind: "attack-started", fighter: current.id, detail: definition.moves[requested].name });
       }
     }
 
@@ -117,7 +122,7 @@ export class CombatSimulation {
 
     for (let index = 0; index < state.fighters.length; index++) {
       const current = state.fighters[index];
-      const phase = attackPhase(current, this.config.definitions[index].move);
+      const phase = attackPhase(current, activeMove(current, this.config.definitions[index]));
       if (phase !== beforePhases[index] && phase !== null) {
         report.events.push({ frame: state.tick, kind: "phase-changed", fighter: current.id, detail: phase });
       }
@@ -133,7 +138,7 @@ export class CombatSimulation {
       current.previousInput = inputs[index] ?? 0;
     }
 
-    report.phase = attackPhase(player, this.config.definitions[0].move);
+    report.phase = attackPhase(player, activeMove(player, this.config.definitions[0]));
     state.tick++;
     return report;
   }

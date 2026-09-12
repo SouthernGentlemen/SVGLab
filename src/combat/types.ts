@@ -6,11 +6,14 @@ export const InputBit = {
   Up: 1 << 2,
   Down: 1 << 3,
   Attack: 1 << 4,
+  Slash: 1 << 5,
 } as const;
 
 export type Facing = -1 | 1;
 export type FighterMode = "idle" | "walk" | "crouch" | "jump" | "attack" | "hitstun" | "defeated";
 export type AttackPhase = "startup" | "active" | "recovery";
+/** Which authored move an attack is executing. Combat reads frame data through this key. */
+export type MoveId = "basic" | "sword";
 
 /** Fighter-local geometry. X points forward and Y points up from the ground origin. */
 export interface Box {
@@ -65,7 +68,7 @@ export interface FighterDefinition {
   hurtboxesStand: readonly Box[];
   hurtboxesCrouch: readonly Box[];
   hurtboxesAir: readonly Box[];
-  move: MoveDefinition;
+  moves: { readonly [K in MoveId]: MoveDefinition };
 }
 
 export interface FighterState {
@@ -77,6 +80,7 @@ export interface FighterState {
   facing: Facing;
   mode: FighterMode;
   stateFrame: number;
+  move: MoveId;
   moveFrame: number;
   health: number;
   hitstop: number;

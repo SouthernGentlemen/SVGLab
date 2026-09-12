@@ -1,4 +1,9 @@
-import type { AttackPhase, FighterMode, FighterState, MoveDefinition } from "../types";
+import type { AttackPhase, FighterDefinition, FighterMode, FighterState, MoveDefinition } from "../types";
+
+/** The frame data the fighter's current attack runs on. */
+export function activeMove(fighter: FighterState, definition: FighterDefinition): MoveDefinition {
+  return definition.moves[fighter.move];
+}
 
 export function isActionable(fighter: FighterState): boolean {
   return fighter.mode === "idle" || fighter.mode === "walk" || fighter.mode === "crouch";

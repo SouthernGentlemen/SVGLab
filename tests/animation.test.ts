@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CLIPS } from "../src/animation/clips";
 import { animationSnapshot, sampleClip } from "../src/animation/sample";
+import { px } from "../src/combat/constants";
+import { LAB_FIGHTER } from "../src/combat/content";
 import { CombatSimulation } from "../src/combat/simulation";
 import { InputBit } from "../src/combat/types";
 
@@ -25,6 +27,17 @@ describe("SVG animation boundary", () => {
     expect(snapshot.clip).toBe("bnrStrikeNormal");
     expect(snapshot.frame).toBe(5);
     expect(snapshot.duration).toBe(20);
+  });
+
+  it("selects the sword clip from the committed move, not from the button", () => {
+    // Out of reach, so no hitstop interrupts the clip's own tick count.
+    const simulation = new CombatSimulation({ definitions: [LAB_FIGHTER, LAB_FIGHTER], startX: [px(-100), px(100)] });
+    simulation.step([InputBit.Slash, 0]);
+    for (let frame = 0; frame < 15; frame++) simulation.step([0, 0]);
+    const snapshot = animationSnapshot(simulation.getState().fighters[0]);
+    expect(snapshot.clip).toBe("bnrSwordSlashNormal");
+    expect(snapshot.frame).toBe(15);
+    expect(snapshot.duration).toBe(30);
   });
 
   it("uses the imported walk while preserving the simulation-owned state frame", () => {

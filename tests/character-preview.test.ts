@@ -41,9 +41,13 @@ describe("character preview rig contract", () => {
       expect(armLayerProfile(clip)).toBe("locomotion");
     }
     expect(armLayerProfile("bnrIdleNormal")).toBe("both-front");
-    for (const clip of ["bnrStrikeNormal", "bnrPunchStudyNormal"] as const) {
+    for (const clip of
+      ["bnrStrikeNormal", "bnrSwordSlashNormal", "bnrSwordCutNormal", "bnrSlashStudyNormal",
+        "bnrPunchStudyNormal"] as const) {
       expect(armLayerProfile(clip)).toBe("punch");
     }
+    // The guard never lifts the blade across the head, so the arms stay anatomically layered.
+    expect(armLayerProfile("bnrSwordGuardNormal")).toBe("both-front");
     expect(armLayerProfile("bnrCrouchNormal")).toBe("anatomical");
 
     expect(armLayerPlan(1, "bnrWalkNormal")).toEqual({

@@ -1,7 +1,7 @@
 import { px } from "./constants";
 import type { FighterDefinition, MoveDefinition } from "./types";
 
-/** The first extraction slice: one transparent frame-data contract, not a move catalog. */
+/** Two transparent frame-data contracts, not a move catalog: an unarmed strike and a sword cut. */
 export const BASIC_STRIKE: MoveDefinition = {
   id: "basic-strike",
   name: "Basic strike",
@@ -22,6 +22,35 @@ export const BASIC_STRIKE: MoveDefinition = {
       hitstopDefender: 8,
       pushbackAttacker: px(-0.8),
       pushbackDefender: px(3.2),
+    },
+  ],
+};
+
+/**
+ * The Bandai Namco cut is a committed swing, so its frame data is slower and longer than the
+ * strike's: a 14-tick descent before contact, a wider window while the blade travels, and
+ * reach past the fist. The clip is warped onto these ticks, never the other way around.
+ */
+export const SWORD_SLASH: MoveDefinition = {
+  id: "sword-slash",
+  name: "Sword slash",
+  animation: "bnrSwordSlashNormal",
+  startup: 14,
+  active: 4,
+  recovery: 12,
+  duration: 30,
+  hitboxes: [
+    {
+      id: "blade",
+      startFrame: 14,
+      endFrame: 17,
+      box: { x: px(20), y: px(26), w: px(78), h: px(52) },
+      damage: 18,
+      hitstun: 22,
+      hitstopAttacker: 8,
+      hitstopDefender: 11,
+      pushbackAttacker: px(-1),
+      pushbackDefender: px(4.2),
     },
   ],
 };
@@ -49,17 +78,18 @@ export const LAB_FIGHTER: FighterDefinition = {
     { x: px(-15), y: px(3), w: px(30), h: px(42) },
     { x: px(-16), y: px(45), w: px(32), h: px(34) },
   ],
-  move: BASIC_STRIKE,
+  moves: { basic: BASIC_STRIKE, sword: SWORD_SLASH },
 };
 
 export function validateContent(definition: FighterDefinition): void {
-  const move = definition.move;
-  if (move.duration !== move.startup + move.active + move.recovery) {
-    throw new Error(`${move.id}: duration must equal startup + active + recovery`);
-  }
-  for (const hitbox of move.hitboxes) {
-    if (hitbox.startFrame < move.startup) throw new Error(`${move.id}/${hitbox.id}: hitbox begins during startup`);
-    if (hitbox.endFrame >= move.startup + move.active) throw new Error(`${move.id}/${hitbox.id}: hitbox extends beyond active frames`);
-    if (hitbox.startFrame > hitbox.endFrame) throw new Error(`${move.id}/${hitbox.id}: inverted frame window`);
+  for (const move of Object.values(definition.moves)) {
+    if (move.duration !== move.startup + move.active + move.recovery) {
+      throw new Error(`${move.id}: duration must equal startup + active + recovery`);
+    }
+    for (const hitbox of move.hitboxes) {
+      if (hitbox.startFrame < move.startup) throw new Error(`${move.id}/${hitbox.id}: hitbox begins during startup`);
+      if (hitbox.endFrame >= move.startup + move.active) throw new Error(`${move.id}/${hitbox.id}: hitbox extends beyond active frames`);
+      if (hitbox.startFrame > hitbox.endFrame) throw new Error(`${move.id}/${hitbox.id}: inverted frame window`);
+    }
   }
 }

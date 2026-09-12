@@ -89,10 +89,10 @@ h2 { margin: 0; font-size: 15px; letter-spacing: -.02em; }
   z-index: 5;
   left: 20px;
   bottom: 20px;
-  width: 286px;
+  width: 300px;
   padding: 13px;
   display: grid;
-  grid-template-columns: 66px 1fr 68px 68px;
+  grid-template-columns: 66px 1fr 74px 74px;
   gap: 8px;
   align-items: end;
 }
@@ -111,7 +111,8 @@ button:disabled { opacity: .38; cursor: not-allowed; }
 button kbd { float: right; min-width: 17px; height: 17px; border: 0; background: rgba(0,0,0,.22); box-shadow: none; }
 .primary-button { color: #06100f; border-color: var(--cyan); background: var(--cyan); }
 .primary-button:hover:not(:disabled) { border-color: #8cfff4; background: #8cfff4; }
-.controls-overlay #attack { grid-column: 3 / -1; }
+.controls-overlay #attack { grid-column: 3; }
+.controls-overlay #slash { grid-column: 4; }
 .controls-overlay #pause { grid-column: 1 / 3; }
 
 .timeline-overlay { position: absolute; z-index: 4; left: 50%; bottom: 20px; width: min(530px, calc(100vw - 650px)); min-width: 330px; padding: 12px 14px 14px; transform: translateX(-50%); }

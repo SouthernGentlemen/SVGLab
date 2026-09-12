@@ -1,5 +1,5 @@
 import type { AnimationSnapshot } from "../animation/sample";
-import { attackPhase } from "../combat/state/machine";
+import { activeMove, attackPhase } from "../combat/state/machine";
 import { toPixels } from "../combat/constants";
 import type { CombatEvent, FighterDefinition, SimulationState } from "../combat/types";
 
@@ -8,10 +8,12 @@ function row(label: string, value: string | number): string {
 }
 
 function fighterRows(label: string, fighter: SimulationState["fighters"][number], definition: FighterDefinition): string {
-  const phase = attackPhase(fighter, definition.move) ?? "—";
+  const move = activeMove(fighter, definition);
+  const phase = attackPhase(fighter, move) ?? "—";
   return [
     `<h3>${label}</h3>`,
     row("state", fighter.mode),
+    row("move", fighter.mode === "attack" ? move.name : "—"),
     row("phase", phase),
     row("state frame", fighter.stateFrame),
     row("move frame", fighter.mode === "attack" ? fighter.moveFrame : "—"),

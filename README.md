@@ -27,6 +27,7 @@ Generated output and disposable local runtime state are cleared on every dev run
 - `A` / `D`: move
 - `S`: crouch
 - `J`: basic attack
+- `K`: sword slash
 - `R`: reset the combat state
 - `P`: pause or resume
 - `.`: advance one tick while paused
@@ -49,8 +50,9 @@ test fails if any raster ever reaches the bundle.
 See [the character atlas guide](docs/CHARACTER_ATLAS.md).
 
 Selected motion-capture studies can also be retargeted into the same eleven-bone rig with
-`npm run build:motions`. The animation catalog now contains only Bandai Namco-derived clips;
-combat still owns fighter movement, move phases, and contact timing. See
+`npm run build:motions`. The animation catalog now contains only Bandai Namco-derived clips,
+including four two-handed sword motions, one of which drives a second authored move; combat
+still owns fighter movement, move phases, and contact timing. See
 [the motion import guide](docs/MOTION_IMPORT.md), including the CC BY-NC terms that apply to
 the included Bandai Namco source subset.
 

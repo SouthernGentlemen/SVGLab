@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { BANDAI_NAMCO_CLIPS } from "../src/animation/generated/bandai-namco";
+import type { AnimationKeyframe } from "../src/animation/types";
+import { SWORD_SLASH } from "../src/combat/content";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -23,6 +25,10 @@ describe("Bandai Namco motion import", () => {
     expect(BANDAI_NAMCO_CLIPS.bnrRunNormal.duration).toBe(46);
     expect(BANDAI_NAMCO_CLIPS.bnrDashNormal.duration).toBe(38);
     expect(BANDAI_NAMCO_CLIPS.bnrStrikeNormal.duration).toBe(20);
+    expect(BANDAI_NAMCO_CLIPS.bnrSwordGuardNormal.duration).toBe(118);
+    expect(BANDAI_NAMCO_CLIPS.bnrSwordSlashNormal.duration).toBe(30);
+    expect(BANDAI_NAMCO_CLIPS.bnrSwordCutNormal.duration).toBe(124);
+    expect(BANDAI_NAMCO_CLIPS.bnrSlashStudyNormal.duration).toBe(802);
     expect(BANDAI_NAMCO_CLIPS.bnrPunchStudyNormal.duration).toBe(446);
   });
 
@@ -34,10 +40,35 @@ describe("Bandai Namco motion import", () => {
     expect(atContact?.bones["forearm-front"]?.rotation).toBeDefined();
   });
 
+  it("keeps the two-handed cut arms together through the overhead sweep", () => {
+    const arms = (clip: { keyframes: readonly AnimationKeyframe[] }): number[] => clip.keyframes
+      .flatMap((keyframe) => Object.entries(keyframe.bones))
+      .filter(([bone]) => bone === "arm-front" || bone === "arm-back")
+      .map(([, pose]) => pose.rotation)
+      .filter((rotation): rotation is number => rotation !== undefined);
+
+    // The source holds a sword in both hands, so both arms sweep from guard to overhead.
+    const sweep = arms(BANDAI_NAMCO_CLIPS.bnrSwordCutNormal);
+    expect(Math.min(...sweep)).toBeLessThan(-100);
+    expect(Math.max(...sweep)).toBeGreaterThan(-30);
+  });
+
+  it("lands the warped sword cut inside the authoritative active window", () => {
+    const atContact = BANDAI_NAMCO_CLIPS.bnrSwordSlashNormal.keyframes
+      .find((keyframe) => keyframe.frame === SWORD_SLASH.startup + 1);
+    expect(atContact).toBeDefined();
+    expect(SWORD_SLASH.animation).toBe("bnrSwordSlashNormal");
+    for (const hitbox of SWORD_SLASH.hitboxes) {
+      expect(15).toBeGreaterThanOrEqual(hitbox.startFrame);
+      expect(15).toBeLessThanOrEqual(hitbox.endFrame);
+    }
+  });
+
   it("closes locomotion loops and emits only finite SVG poses", () => {
     for (const clip of [
       BANDAI_NAMCO_CLIPS.bnrWalkNormal,
       BANDAI_NAMCO_CLIPS.bnrRunNormal,
+      BANDAI_NAMCO_CLIPS.bnrSwordGuardNormal,
     ]) {
       expect(clip.keyframes[0].frame).toBe(0);
       expect(clip.keyframes.at(-1)?.frame).toBe(clip.duration);

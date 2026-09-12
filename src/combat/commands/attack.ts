@@ -1,7 +1,8 @@
-import type { FighterState, MoveDefinition } from "../types";
+import type { FighterState, MoveDefinition, MoveId } from "../types";
 import { enterMode } from "../state/machine";
 
-export function startAttack(fighter: FighterState): void {
+export function startAttack(fighter: FighterState, move: MoveId): void {
+  fighter.move = move;
   fighter.moveFrame = 0;
   fighter.hitTargets = [];
   fighter.vx = 0;
