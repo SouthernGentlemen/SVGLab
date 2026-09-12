@@ -10,12 +10,15 @@ import {
   previewMovesetName,
 } from "../animation/movesets";
 import type { WeaponId } from "../animation/movesets";
+import { advancePreviewFrame, previewLastFrame } from "../animation/preview-playback";
 import { sampleClip } from "../animation/sample";
 import type { AnimationClip } from "../animation/types";
 import { SKINS } from "../svg/characters";
 import type { CharacterSkin } from "../svg/characters";
 import { applyPose, buildFighterNode, placeFighter } from "../svg/rig";
 import type { FighterNode } from "../svg/rig";
+import { SWORDS, equipSword, swordName } from "../svg/weapons";
+import type { SwordId } from "../svg/weapons";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const FRAME_MS = 1000 / 60;
@@ -42,6 +45,7 @@ interface GalleryRig {
 
 const skinSelect = requiredSelect("#skin");
 const weaponSelect = requiredSelect("#weapon");
+const swordSelect = requiredSelect("#sword");
 const clipSelect = requiredSelect("#clip");
 const compareToggle = required<HTMLInputElement>("#compare");
 const facingToggle = required<HTMLInputElement>("#face-left");
@@ -77,6 +81,18 @@ function currentWeaponName(): string {
   return WEAPONS.find((entry) => entry.id === currentWeapon())?.name ?? WEAPONS[0].name;
 }
 
+function currentSword(): SwordId {
+  return SWORDS.some((entry) => entry.id === swordSelect.value) ? swordSelect.value as SwordId : SWORDS[0].id;
+}
+
+function equippedSword(): SwordId | null {
+  return currentWeapon() === "sword" ? currentSword() : null;
+}
+
+function equipmentLabel(): string {
+  return currentWeapon() === "sword" ? `${currentWeaponName()} · ${swordName(currentSword())}` : currentWeaponName();
+}
+
 function availableClipNames(): ClipName[] {
   return previewClipNames(currentWeapon());
 }
@@ -96,6 +112,18 @@ function refreshClipOptions(preferred?: ClipName): void {
     return option;
   }));
   clipSelect.value = names.includes(selected) ? selected : defaultPreviewClip(weapon);
+}
+
+function refreshSwordAvailability(): void {
+  const armed = currentWeapon() === "sword";
+  swordSelect.disabled = !armed;
+  swordSelect.title = armed ? "Cycle the equipped sword model" : "Equip Sword to choose a sword model";
+}
+
+function applyEquipment(): void {
+  const sword = equippedSword();
+  equipSword(singleNode, sword);
+  for (const entry of gallery) equipSword(entry.node, sword);
 }
 
 function placePreviewFighters(): void {
@@ -119,6 +147,14 @@ function populateSelects(): void {
     return option;
   }));
 
+  swordSelect.replaceChildren(...SWORDS.map((entry) => {
+    const option = document.createElement("option");
+    option.value = entry.id;
+    option.textContent = entry.name;
+    return option;
+  }));
+
+  refreshSwordAvailability();
   refreshClipOptions();
 }
 
@@ -179,6 +215,7 @@ function buildGallery(): void {
     svg.appendChild(makeFloor(240, 226));
 
     const node = buildFighterNode("player", entry.model);
+    equipSword(node, equippedSword());
     placeFighter(node, 120, 224, 1.55, facing(), currentClipName());
     svg.appendChild(node.root);
     card.appendChild(header);
@@ -191,9 +228,10 @@ function buildGallery(): void {
 function rebuildSingle(): void {
   const entry = currentSkin();
   singleNode = buildFighterNode("player", entry.model);
+  equipSword(singleNode, equippedSword());
   placeFighter(singleNode, 180, 260, 2.2, facing(), currentClipName());
   singleLayer.replaceChildren(singleNode.root);
-  stageTitle.textContent = `${entry.name} · ${currentWeaponName()}`;
+  stageTitle.textContent = `${entry.name} · ${equipmentLabel()}`;
 }
 
 function setRigOverlay(show: boolean): void {
@@ -205,8 +243,8 @@ function setCompare(compare: boolean): void {
   singleView.hidden = compare;
   compareView.hidden = !compare;
   stageTitle.textContent = compare
-    ? `Compare all ${SKINS.length} skins · ${currentWeaponName()}`
-    : `${currentSkin().name} · ${currentWeaponName()}`;
+    ? `Compare all ${SKINS.length} skins · ${equipmentLabel()}`
+    : `${currentSkin().name} · ${equipmentLabel()}`;
 }
 
 function resetPlayback(): void {
@@ -229,8 +267,19 @@ function setWeaponByOffset(offset: number): void {
   const currentIndex = Math.max(0, WEAPONS.findIndex((entry) => entry.id === currentWeapon()));
   const nextIndex = (currentIndex + offset + WEAPONS.length) % WEAPONS.length;
   weaponSelect.value = WEAPONS[nextIndex].id;
+  refreshSwordAvailability();
   refreshClipOptions();
+  applyEquipment();
   resetPlayback();
+  render();
+}
+
+function setSwordByOffset(offset: number): void {
+  if (currentWeapon() !== "sword") return;
+  const currentIndex = Math.max(0, SWORDS.findIndex((entry) => entry.id === currentSword()));
+  const nextIndex = (currentIndex + offset + SWORDS.length) % SWORDS.length;
+  swordSelect.value = SWORDS[nextIndex].id;
+  applyEquipment();
   render();
 }
 
@@ -240,8 +289,6 @@ function replay(): void {
 }
 
 function togglePlayback(): void {
-  const clip = currentClip();
-  if (!clip.loop && frame >= clip.duration && !playing) frame = 0;
   playing = !playing;
   accumulator = 0;
   lastTime = performance.now();
@@ -249,15 +296,7 @@ function togglePlayback(): void {
 }
 
 function advanceOneFrame(): void {
-  const clip = currentClip();
-  if (clip.loop) {
-    frame = frame + 1 >= clip.duration ? 0 : frame + 1;
-  } else if (frame < clip.duration) {
-    frame += 1;
-    if (frame >= clip.duration) playing = false;
-  } else {
-    playing = false;
-  }
+  frame = advancePreviewFrame(currentClip(), frame);
 }
 
 function stepOneFrame(): void {
@@ -271,10 +310,12 @@ function renderFacts(clip: AnimationClip): void {
   const missing = missingBones(singleNode, clip);
   required<HTMLElement>("#clip-name").textContent = clip.name;
   required<HTMLElement>("#weapon-name").textContent = currentWeaponName();
+  required<HTMLElement>("#sword-name").textContent = equippedSword() ? swordName(currentSword()) : "—";
   required<HTMLElement>("#moveset-name").textContent = previewMovesetName(currentWeapon());
   required<HTMLElement>("#clip-frame").textContent = String(frame);
   required<HTMLElement>("#clip-duration").textContent = String(clip.duration);
   required<HTMLElement>("#clip-loop").textContent = clip.loop ? "yes" : "no";
+  required<HTMLElement>("#preview-repeat").textContent = "yes";
   required<HTMLElement>("#clip-easing").textContent = clip.easing;
   required<HTMLElement>("#clip-note").textContent = clip.note;
   required<HTMLElement>("#rig-name").textContent = skin.name;
@@ -295,15 +336,15 @@ function render(): void {
     entry.facts.classList.toggle("has-warning", missingBones(entry.node, clip).length > 0);
   }
 
-  scrub.max = String(clip.duration);
-  scrub.value = String(Math.min(frame, clip.duration));
-  frameOutput.value = `${frame} / ${clip.duration}`;
+  const lastFrame = previewLastFrame(clip);
+  scrub.max = String(lastFrame);
+  scrub.value = String(Math.min(frame, lastFrame));
+  frameOutput.value = `${frame} / ${lastFrame}`;
 
-  const held = !clip.loop && frame >= clip.duration && !playing;
-  playPauseButton.firstChild!.textContent = playing ? "Pause " : held ? "Play again " : "Play ";
-  playbackState.textContent = held ? "held on last frame" : playing ? "playing" : "paused";
+  playPauseButton.firstChild!.textContent = playing ? "Pause " : "Resume ";
+  playbackState.textContent = playing ? "playing" : "paused";
   playbackState.classList.toggle("is-paused", !playing);
-  replayButton.classList.toggle("replay-ready", held);
+  replayButton.classList.remove("replay-ready");
 
   renderFacts(clip);
   placePreviewFighters();
@@ -336,8 +377,14 @@ skinSelect.addEventListener("change", () => {
   render();
 });
 weaponSelect.addEventListener("change", () => {
+  refreshSwordAvailability();
   refreshClipOptions();
+  applyEquipment();
   resetPlayback();
+  render();
+});
+swordSelect.addEventListener("change", () => {
+  applyEquipment();
   render();
 });
 clipSelect.addEventListener("change", () => {
@@ -367,6 +414,7 @@ window.addEventListener("keydown", (event) => {
   else if (event.code === "BracketLeft") setClipByOffset(-1);
   else if (event.code === "BracketRight") setClipByOffset(1);
   else if (event.code === "KeyW") setWeaponByOffset(1);
+  else if (event.code === "KeyQ") setSwordByOffset(1);
   else if (event.code === "Period") stepOneFrame();
   else if (event.code === "KeyR") replay();
   else if (event.code === "KeyC") {
