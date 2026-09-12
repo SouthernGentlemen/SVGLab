@@ -50,28 +50,40 @@ describe("rigid sword constraints", () => {
     expect(Math.hypot(target.x - solution.elbow.x, target.y - solution.elbow.y)).toBeCloseTo(22);
   });
 
-  it("authors the primary cut as guard -> load -> point lead -> impact -> longpoint -> recovery", () => {
+  it("authors the primary cut as a committed full-body strike with overshoot and recovery", () => {
     const frames = SWORD_REFERENCE_SEQUENCES.swordOberhauReference.frames;
     expect(frames.map((entry) => entry.label)).toEqual([
       "guard",
-      "load",
-      "point leads",
-      "hips turn",
-      "impact",
-      "longpoint",
+      "coil",
+      "loaded",
+      "release",
+      "drive",
+      "impact / longpoint",
+      "follow through",
+      "overshoot",
+      "settle",
       "recover",
+      "return",
       "guard",
     ]);
-    expect(frames.find((entry) => entry.label === "longpoint")?.sword.angle).toBe(90);
+
+    const impact = frames.find((entry) => entry.label === "impact / longpoint")!;
+    const followThrough = frames.find((entry) => entry.label === "follow through")!;
+    const overshoot = frames.find((entry) => entry.label === "overshoot")!;
+    expect(followThrough.sword.angle).toBeGreaterThan(impact.sword.angle);
+    expect(overshoot.sword.angle).toBeGreaterThan(followThrough.sword.angle);
+    expect(overshoot.bones.torso?.rotation).toBeGreaterThan(impact.bones.torso?.rotation ?? 0);
+    expect(overshoot.bones.pelvis?.x).toBeGreaterThan(impact.bones.pelvis?.x ?? 0);
     expect(frames.at(-1)?.sword).toEqual(frames[0].sword);
   });
 
-  it("rotates the whole rigid sword through the authored cut without resizing it", () => {
+  it("rotates the whole rigid sword through impact and follow-through without resizing it", () => {
     const startup = swordPoseForClip("swordOberhauReference", 0);
-    const contact = swordPoseForClip("swordOberhauReference", 15);
+    const contact = swordPoseForClip("swordOberhauReference", 14);
+    const overshoot = swordPoseForClip("swordOberhauReference", 19);
 
-    expect(startup.rotation).toBe(0);
-    expect(contact.rotation).toBe(90);
+    expect(startup.rotation).toBeCloseTo(2); // torso is counter-rotated from the -2 degree guard lean
+    expect(contact.rotation).toBeLessThan(overshoot.rotation);
     expect(SWORD_SPECS.longsword.bladeLength).toBe(56);
     expect(SWORD_SPECS.longsword.handleLength).toBe(15);
   });
@@ -83,8 +95,8 @@ describe("rigid sword constraints", () => {
       ["bnrRunNormal", 46],
       ["bnrDashNormal", 38],
       ["swordGuardReference", 60],
-      ["swordOberhauReference", 24],
-      ["swordOberhauStudyReference", 48],
+      ["swordOberhauReference", 40],
+      ["swordOberhauStudyReference", 80],
       ["bnrSlashStudyNormal", 802],
     ];
     const torsoRotations = [-45, -30, -15, 0, 15, 30, 45];
