@@ -27,10 +27,16 @@ describe("weapon-aware animation movesets", () => {
     expect(unarmed).not.toContain(SWORD_MOVESET.clips.study);
 
     expect(sword).toContain(SWORD_MOVESET.clips.primary);
-    expect(sword).toContain(SWORD_MOVESET.clips.secondary);
     expect(sword).toContain(SWORD_MOVESET.clips.study);
+    expect(sword).toContain(SWORD_MOVESET.clips.sourceCapture);
     expect(sword).not.toContain(UNARMED_MOVESET.clips.primary);
     expect(sword).not.toContain(UNARMED_MOVESET.clips.study);
+  });
+
+  it("uses the authored reference guard and attack as the active sword moveset", () => {
+    expect(SWORD_MOVESET.clips.neutral).toBe("swordGuardReference");
+    expect(SWORD_MOVESET.clips.primary).toBe("swordOberhauReference");
+    expect(SWORD_MOVESET.clips.study).toBe("swordOberhauStudyReference");
   });
 
   it("uses weapon-specific neutral clips and only references shipped animation", () => {
