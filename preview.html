@@ -31,6 +31,10 @@
           <select id="weapon"></select>
         </div>
         <div class="preview-field">
+          <label for="sword">Sword model</label>
+          <select id="sword"></select>
+        </div>
+        <div class="preview-field">
           <label for="clip">Clip</label>
           <select id="clip"></select>
         </div>
@@ -55,7 +59,7 @@
           <input id="frame-scrub" type="range" min="0" max="60" step="1" value="0" />
         </div>
 
-        <p class="preview-shortcuts">Keyboard: <kbd>Space</kbd> play/pause · <kbd>[</kbd>/<kbd>]</kbd> clip · <kbd>W</kbd> weapon · <kbd>.</kbd> step · <kbd>R</kbd> replay · <kbd>C</kbd> compare · <kbd>F</kbd> facing · <kbd>G</kbd> pivots · <kbd>K</kbd> skeleton</p>
+        <p class="preview-shortcuts">Keyboard: <kbd>Space</kbd> pause/resume · <kbd>[</kbd>/<kbd>]</kbd> clip · <kbd>W</kbd> weapon · <kbd>Q</kbd> sword model · <kbd>.</kbd> step · <kbd>R</kbd> replay · <kbd>C</kbd> compare · <kbd>F</kbd> facing · <kbd>G</kbd> pivots · <kbd>K</kbd> skeleton</p>
       </aside>
 
       <section class="preview-stage glass" aria-label="Character animation preview">
@@ -82,11 +86,13 @@
           <p class="overlay-label">MOVESET</p>
           <dl class="preview-facts">
             <div><dt>Weapon</dt><dd id="weapon-name">Unarmed</dd></div>
+            <div><dt>Sword model</dt><dd id="sword-name">—</dd></div>
             <div><dt>Moveset</dt><dd id="moveset-name">Generic + Unarmed</dd></div>
             <div><dt>Clip</dt><dd id="clip-name">bnrIdleNormal</dd></div>
             <div><dt>Frame</dt><dd id="clip-frame">0</dd></div>
             <div><dt>Duration</dt><dd id="clip-duration">60</dd></div>
-            <div><dt>Loop</dt><dd id="clip-loop">yes</dd></div>
+            <div><dt>Source loop</dt><dd id="clip-loop">yes</dd></div>
+            <div><dt>Preview repeat</dt><dd id="preview-repeat">yes</dd></div>
             <div><dt>Easing</dt><dd id="clip-easing">smoothstep</dd></div>
           </dl>
           <p id="clip-note" class="note"></p>
