@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CLIPS } from "../src/animation/clips";
 import { SKINS } from "../src/svg/characters";
-import { armDepth, fighterPlacement, inspectFighterModel, legDepth } from "../src/svg/rig";
+import { armDepth, armLayerPlan, armLayerProfile, fighterPlacement, inspectFighterModel, legDepth } from "../src/svg/rig";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -26,6 +26,29 @@ describe("character preview rig contract", () => {
     expect(armDepth(-1)).toEqual({ far: "arm-back", near: "arm-front" });
     expect(legDepth(1)).toEqual({ far: "leg-front", near: "leg-back" });
     expect(legDepth(-1)).toEqual({ far: "leg-back", near: "leg-front" });
+  });
+
+  it("selects motion-aware arm layering for every Bandai Namco clip family", () => {
+    for (const clip of ["bnrWalkNormal", "bnrRunNormal", "bnrDashNormal"] as const) {
+      expect(armLayerProfile(clip)).toBe("locomotion");
+    }
+    for (const clip of ["bnrIdleNormal", "bnrStrikeNormal", "bnrPunchStudyNormal"] as const) {
+      expect(armLayerProfile(clip)).toBe("both-front");
+    }
+    expect(armLayerProfile("bnrCrouchNormal")).toBe("anatomical");
+
+    expect(armLayerPlan(1, "bnrWalkNormal")).toEqual({
+      underPelvis: "arm-front", behindTorso: null, foreground: ["arm-back"],
+    });
+    expect(armLayerPlan(-1, "bnrWalkNormal")).toEqual({
+      underPelvis: "arm-back", behindTorso: null, foreground: ["arm-front"],
+    });
+    expect(armLayerPlan(1, "bnrStrikeNormal")).toEqual({
+      underPelvis: null, behindTorso: null, foreground: ["arm-front", "arm-back"],
+    });
+    expect(armLayerPlan(-1, "bnrStrikeNormal")).toEqual({
+      underPelvis: null, behindTorso: null, foreground: ["arm-back", "arm-front"],
+    });
   });
 
   it("exposes both facings in the visual clip preview", () => {

@@ -73,7 +73,7 @@ export class ArenaRenderer {
       const animation = animationSnapshot(fighter);
       const node = this.fighters[index];
       applyPose(node, animation.pose);
-      placeFighter(node, screenX(fighter.x), screenY(fighter.y), VIEW_SCALE, fighter.facing);
+      placeFighter(node, screenX(fighter.x), screenY(fighter.y), VIEW_SCALE, fighter.facing, animation.clip);
       node.root.classList.toggle("is-invulnerable", fighter.invulnerable);
       return animation;
     });

@@ -1,4 +1,5 @@
 import { AUTHORED_SKIN } from "./characters";
+import type { ClipName } from "../animation/clips";
 import type { Pose } from "../animation/types";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -19,9 +20,33 @@ export interface ArmDepth {
   readonly near: "arm-front" | "arm-back";
 }
 
+type ArmBone = ArmDepth["far"];
+
+export interface ArmLayerPlan {
+  readonly underPelvis: ArmBone | null;
+  readonly behindTorso: ArmBone | null;
+  readonly foreground: readonly ArmBone[];
+}
+
 export interface LegDepth {
   readonly far: "leg-front" | "leg-back";
   readonly near: "leg-front" | "leg-back";
+}
+
+export type ArmLayerProfile = "anatomical" | "locomotion" | "both-front";
+
+const ARM_LAYER_PROFILES = {
+  bnrIdleNormal: "both-front",
+  bnrCrouchNormal: "anatomical",
+  bnrWalkNormal: "locomotion",
+  bnrRunNormal: "locomotion",
+  bnrDashNormal: "locomotion",
+  bnrStrikeNormal: "both-front",
+  bnrPunchStudyNormal: "both-front",
+} as const satisfies Record<ClipName, ArmLayerProfile>;
+
+export function armLayerProfile(clip: ClipName): ArmLayerProfile {
+  return ARM_LAYER_PROFILES[clip];
 }
 
 /** The imported source-left arm is far when facing right and near after a turn to the left. */
@@ -29,6 +54,18 @@ export function armDepth(facing: VisualFacing): ArmDepth {
   return facing === 1
     ? { far: "arm-front", near: "arm-back" }
     : { far: "arm-back", near: "arm-front" };
+}
+
+export function armLayerPlan(facing: VisualFacing, clip: ClipName): ArmLayerPlan {
+  const { far, near } = armDepth(facing);
+  const profile = armLayerProfile(clip);
+  if (profile === "locomotion") {
+    return { underPelvis: far, behindTorso: null, foreground: [near] };
+  }
+  if (profile === "both-front") {
+    return { underPelvis: null, behindTorso: null, foreground: [far, near] };
+  }
+  return { underPelvis: null, behindTorso: far, foreground: [near] };
 }
 
 export function legDepth(facing: VisualFacing): LegDepth {
@@ -42,7 +79,7 @@ export function legDepth(facing: VisualFacing): LegDepth {
  *
  * Bone rotations and local x offsets stay authored for a right-facing fighter. A negative
  * horizontal scale mirrors the completed hierarchy, so the same clip reaches and recoils in
- * the correct direction. `placeFighter` also swaps the anatomical near/far limb layers.
+ * the correct direction. `placeFighter` also applies the clip- and facing-aware limb layers.
  */
 export function fighterPlacement(x: number, y: number, scale: number, facing: VisualFacing): string {
   return `translate(${x} ${y}) scale(${facing * scale} ${scale})`;
@@ -113,22 +150,36 @@ export function applyPose(node: FighterNode, pose: Pose): void {
   for (const [name, bone] of node.bones) bone.setAttribute("transform", transform(bone, pose[name]));
 }
 
-const layeredFacing = new WeakMap<FighterNode, VisualFacing>();
+const layeredPose = new WeakMap<FighterNode, string>();
+const armUnderlays = new WeakMap<FighterNode, SVGGElement>();
 
-function arrangeLimbDepth(node: FighterNode, facing: VisualFacing): void {
-  if (layeredFacing.get(node) === facing) return;
+function armUnderlay(node: FighterNode, pelvis: SVGGElement, torso: SVGGElement): SVGGElement {
+  let layer = armUnderlays.get(node);
+  if (!layer) {
+    layer = document.createElementNS(SVG_NS, "g");
+    layer.dataset.depthLayer = "arm-underlay";
+    const firstPelvisArt = [...pelvis.children]
+      .find((child) => !child.hasAttribute("data-bone"));
+    pelvis.insertBefore(layer, firstPelvisArt ?? torso);
+    armUnderlays.set(node, layer);
+  }
+  // This layer is a sibling of the torso so the pelvis can paint over it. Mirroring the
+  // torso transform preserves the arm's original shoulder-space motion after reparenting.
+  layer.setAttribute("transform", torso.getAttribute("transform") ?? "");
+  return layer;
+}
+
+function arrangeLimbDepth(node: FighterNode, facing: VisualFacing, clip: ClipName): void {
   const torso = node.bones.get("torso");
   const head = node.bones.get("head");
-  const { far, near } = armDepth(facing);
-  const farArm = node.bones.get(far);
-  const nearArm = node.bones.get(near);
-  if (!torso || !head || !farArm || !nearArm) throw new Error("Fighter model is missing upper-body depth bones");
-
-  // Far limb, body art, near limb, head. This lets the torso occlude the far shoulder and
-  // lets the face occlude either hand whenever a guarded/recovering pose crosses the chin.
-  torso.insertBefore(farArm, torso.firstChild);
-  torso.appendChild(nearArm);
-  torso.appendChild(head);
+  const plan = armLayerPlan(facing, clip);
+  const underArm = plan.underPelvis ? node.bones.get(plan.underPelvis) : null;
+  const behindArm = plan.behindTorso ? node.bones.get(plan.behindTorso) : null;
+  const foregroundArms = plan.foreground.map((name) => node.bones.get(name));
+  if (!torso || !head || (plan.underPelvis && !underArm) || (plan.behindTorso && !behindArm)
+    || foregroundArms.some((arm) => !arm)) {
+    throw new Error("Fighter model is missing upper-body depth bones");
+  }
 
   const pelvis = node.bones.get("pelvis");
   const { far: farLegName, near: nearLegName } = legDepth(facing);
@@ -136,14 +187,37 @@ function arrangeLimbDepth(node: FighterNode, facing: VisualFacing): void {
   const nearLeg = node.bones.get(nearLegName);
   if (!pelvis || !farLeg || !nearLeg) throw new Error("Fighter model is missing lower-body depth bones");
 
+  const underlay = armUnderlay(node, pelvis, torso);
+  const profile = armLayerProfile(clip);
+  const layerKey = `${facing}:${profile}`;
+  if (layeredPose.get(node) === layerKey) return;
+
+  if (underArm) {
+    // The screen-leading/far arm is the one that crosses the hip in the imported walk, run
+    // and dash. Move it into torso space below the pelvis artwork so the hip occludes it.
+    underlay.appendChild(underArm);
+  }
+  if (behindArm) torso.insertBefore(behindArm, torso.firstChild);
+  // Guard and punch silhouettes put both arms here. The head still paints last so a raised
+  // hand tucks naturally beneath the chin instead of cutting through the face.
+  for (const arm of foregroundArms) torso.appendChild(arm!);
+  torso.appendChild(head);
+
   // Both legs stay behind the pelvis and costume art, but their crossing order follows the
   // same anatomical near/far side as the arms.
   pelvis.insertBefore(farLeg, pelvis.firstChild);
   pelvis.insertBefore(nearLeg, farLeg.nextSibling);
-  layeredFacing.set(node, facing);
+  layeredPose.set(node, layerKey);
 }
 
-export function placeFighter(node: FighterNode, x: number, y: number, scale: number, facing: VisualFacing): void {
-  arrangeLimbDepth(node, facing);
+export function placeFighter(
+  node: FighterNode,
+  x: number,
+  y: number,
+  scale: number,
+  facing: VisualFacing,
+  clip: ClipName,
+): void {
+  arrangeLimbDepth(node, facing, clip);
   node.root.setAttribute("transform", fighterPlacement(x, y, scale, facing));
 }

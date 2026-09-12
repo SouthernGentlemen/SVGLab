@@ -62,8 +62,9 @@ const gallery: GalleryRig[] = [];
 const facing = () => facingToggle.checked ? -1 : 1;
 
 function placePreviewFighters(): void {
-  placeFighter(singleNode, 180, 260, 2.2, facing());
-  for (const entry of gallery) placeFighter(entry.node, 120, 224, 1.55, facing());
+  const clip = currentClipName();
+  placeFighter(singleNode, 180, 260, 2.2, facing(), clip);
+  for (const entry of gallery) placeFighter(entry.node, 120, 224, 1.55, facing(), clip);
 }
 
 function populateSelects(): void {
@@ -138,7 +139,7 @@ function buildGallery(): void {
     svg.appendChild(makeFloor(240, 226));
 
     const node = buildFighterNode("player", entry.model);
-    placeFighter(node, 120, 224, 1.55, facing());
+    placeFighter(node, 120, 224, 1.55, facing(), currentClipName());
     svg.appendChild(node.root);
     card.appendChild(header);
     card.appendChild(svg);
@@ -150,7 +151,7 @@ function buildGallery(): void {
 function rebuildSingle(): void {
   const entry = currentSkin();
   singleNode = buildFighterNode("player", entry.model);
-  placeFighter(singleNode, 180, 260, 2.2, facing());
+  placeFighter(singleNode, 180, 260, 2.2, facing(), currentClipName());
   singleLayer.replaceChildren(singleNode.root);
   stageTitle.textContent = entry.name;
 }

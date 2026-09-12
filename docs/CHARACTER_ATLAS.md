@@ -100,10 +100,11 @@ because that is the frame you are looking at when lining a cape up against a tor
 scales them along with the art. `under` paints the piece behind the bone's own art.
 
 There is no per-skin draw-order control. The generated document carries the right-facing base
-order, then `src/svg/rig.ts` swaps the anatomical near/far arms and legs whenever facing changes.
-The far arm goes behind torso and costume art, the near arm goes in front, and the head paints
-above both so a guarded hand disappears naturally behind the chin. Both legs remain behind the
-pelvis and costume art while their crossing order swaps with facing.
+order, then `src/svg/rig.ts` adjusts limb depth for facing and motion. Walk, run, and dash move
+the screen-leading arm into a torso-transformed underlay below the pelvis artwork, so the leading
+hip occludes it naturally in either direction. Idle and punch clips keep both arms visible above
+the torso while the head masks hands at the chin. The bow/crouch keeps conventional far/body/near
+depth. Both legs remain behind pelvis and costume art while their crossing order swaps with facing.
 
 ## What the tracer is doing
 
