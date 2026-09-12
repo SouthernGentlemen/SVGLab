@@ -1,6 +1,8 @@
+import type { ClipName } from "../animation/clips";
 import type { FighterNode } from "./rig";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+const DEG = 180 / Math.PI;
 
 export const SWORDS = [
   { id: "longsword", name: "Longsword" },
@@ -10,7 +12,7 @@ export const SWORDS = [
 
 export type SwordId = (typeof SWORDS)[number]["id"];
 
-export interface GripPoint {
+export interface Point {
   readonly x: number;
   readonly y: number;
 }
@@ -18,20 +20,97 @@ export interface GripPoint {
 export interface SwordPose {
   readonly x: number;
   readonly y: number;
+  /** Rotation in torso-local SVG degrees. Sword art itself always points up local -Y. */
   readonly rotation: number;
-  readonly gripLength: number;
 }
 
-interface Matrix2d {
-  readonly a: number;
-  readonly b: number;
-  readonly c: number;
-  readonly d: number;
-  readonly e: number;
-  readonly f: number;
+export interface SwordSpec {
+  readonly bladeLength: number;
+  readonly handleLength: number;
+  readonly upperGripY: number;
+  readonly lowerGripY: number;
 }
 
-const IDENTITY: Matrix2d = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+export interface ArmSolution {
+  readonly upperRotation: number;
+  readonly lowerRotation: number;
+  readonly elbow: Point;
+  readonly hand: Point;
+  readonly clamped: boolean;
+}
+
+export const SWORD_SPECS: Readonly<Record<SwordId, SwordSpec>> = {
+  longsword: { bladeLength: 56, handleLength: 15, upperGripY: 4, lowerGripY: 12 },
+  katana: { bladeLength: 57, handleLength: 14, upperGripY: 4, lowerGripY: 11 },
+  greatsword: { bladeLength: 70, handleLength: 18, upperGripY: 5, lowerGripY: 15 },
+};
+
+interface SwordKeyframe {
+  readonly frame: number;
+  readonly x: number;
+  readonly y: number;
+  /** Desired blade angle in fighter space. Zero means straight up. */
+  readonly angle: number;
+}
+
+const GUARD: readonly SwordKeyframe[] = [
+  { frame: 0, x: 2, y: 4, angle: 0 },
+];
+
+const SLASH: readonly SwordKeyframe[] = [
+  { frame: 0, x: 0, y: -11, angle: -18 },
+  { frame: 7, x: 0, y: -13, angle: -8 },
+  { frame: 12, x: 3, y: -9, angle: 22 },
+  { frame: 16, x: 6, y: -5, angle: 58 },
+  { frame: 21, x: 8, y: 2, angle: 96 },
+  { frame: 30, x: 7, y: 5, angle: 108 },
+];
+
+const CUT: readonly SwordKeyframe[] = [
+  { frame: 0, x: 2, y: 4, angle: 0 },
+  { frame: 28, x: 2, y: 2, angle: -5 },
+  { frame: 46, x: 0, y: -7, angle: -16 },
+  { frame: 62, x: 0, y: -14, angle: -8 },
+  { frame: 72, x: 2, y: -12, angle: 18 },
+  { frame: 82, x: 6, y: -5, angle: 62 },
+  { frame: 92, x: 9, y: 3, angle: 104 },
+  { frame: 108, x: 7, y: 6, angle: 94 },
+  { frame: 124, x: 4, y: 5, angle: 72 },
+];
+
+const STUDY: readonly SwordKeyframe[] = [
+  { frame: 0, x: 2, y: 4, angle: 0 },
+  { frame: 62, x: 2, y: 2, angle: -4 },
+  { frame: 92, x: 0, y: -8, angle: -15 },
+  { frame: 116, x: 0, y: -14, angle: -7 },
+  { frame: 132, x: 3, y: -9, angle: 27 },
+  { frame: 148, x: 7, y: -3, angle: 72 },
+  { frame: 164, x: 9, y: 4, angle: 108 },
+  { frame: 220, x: 3, y: 5, angle: 36 },
+  { frame: 300, x: 2, y: 4, angle: 0 },
+  { frame: 340, x: 2, y: 2, angle: -4 },
+  { frame: 370, x: 0, y: -9, angle: -16 },
+  { frame: 392, x: 0, y: -14, angle: -6 },
+  { frame: 408, x: 4, y: -8, angle: 30 },
+  { frame: 424, x: 8, y: -2, angle: 76 },
+  { frame: 442, x: 9, y: 5, angle: 108 },
+  { frame: 500, x: 2, y: 4, angle: 0 },
+  { frame: 620, x: 2, y: 2, angle: -4 },
+  { frame: 652, x: 0, y: -9, angle: -16 },
+  { frame: 674, x: 0, y: -14, angle: -6 },
+  { frame: 690, x: 4, y: -8, angle: 30 },
+  { frame: 706, x: 8, y: -2, angle: 76 },
+  { frame: 724, x: 9, y: 5, angle: 108 },
+  { frame: 770, x: 4, y: 5, angle: 55 },
+  { frame: 802, x: 2, y: 4, angle: 0 },
+];
+
+const SWORD_TRACKS: Partial<Record<ClipName, readonly SwordKeyframe[]>> = {
+  bnrSwordGuardNormal: GUARD,
+  bnrSwordSlashNormal: SLASH,
+  bnrSwordCutNormal: CUT,
+  bnrSlashStudyNormal: STUDY,
+};
 
 function svg<K extends keyof SVGElementTagNameMap>(name: K): SVGElementTagNameMap[K] {
   return document.createElementNS(SVG_NS, name);
@@ -57,7 +136,7 @@ function detailPath(d: string): SVGPathElement {
   return path;
 }
 
-function grip(width: number, guardWidth: number): SVGGElement {
+function grip(width: number, guardWidth: number, handleLength: number): SVGGElement {
   const group = svg("g");
 
   const guard = svg("rect");
@@ -69,11 +148,10 @@ function grip(width: number, guardWidth: number): SVGGElement {
   guard.setAttribute("fill", "#c99a55");
 
   const handle = svg("rect");
-  handle.dataset.swordHandle = "true";
   handle.setAttribute("x", String(-width / 2));
   handle.setAttribute("y", "1");
   handle.setAttribute("width", String(width));
-  handle.setAttribute("height", "12");
+  handle.setAttribute("height", String(handleLength - 2));
   handle.setAttribute("rx", "1.3");
   handle.setAttribute("fill", "#49362d");
   handle.setAttribute("stroke", "#b88c55");
@@ -81,9 +159,8 @@ function grip(width: number, guardWidth: number): SVGGElement {
   handle.setAttribute("vector-effect", "non-scaling-stroke");
 
   const pommel = svg("circle");
-  pommel.dataset.swordPommel = "true";
   pommel.setAttribute("cx", "0");
-  pommel.setAttribute("cy", "15");
+  pommel.setAttribute("cy", String(handleLength));
   pommel.setAttribute("r", "2.1");
   pommel.setAttribute("fill", "#c99a55");
 
@@ -93,6 +170,7 @@ function grip(width: number, guardWidth: number): SVGGElement {
 
 function buildSword(id: SwordId): SVGGElement {
   const group = svg("g");
+  const spec = SWORD_SPECS[id];
   group.dataset.equippedSword = id;
   group.setAttribute("pointer-events", "none");
 
@@ -100,116 +178,180 @@ function buildSword(id: SwordId): SVGGElement {
     group.append(
       bladePath("M-2 0 L-1.5 -48 L0 -56 L1.5 -48 L2 0 Z"),
       detailPath("M0 -3 L0 -48"),
-      grip(4.5, 17),
+      grip(4.5, 17, spec.handleLength),
     );
   } else if (id === "katana") {
     group.append(
       bladePath("M-1.8 0 C-1 -18 0 -38 6 -53 L8 -57 L6 -51 C2 -35 1 -17 1.7 0 Z"),
       detailPath("M0 -3 C0 -21 1.5 -38 6 -51"),
-      grip(4, 12),
+      grip(4, 12, spec.handleLength),
     );
   } else {
     group.append(
       bladePath("M-3.2 0 L-2.7 -55 L0 -70 L2.7 -55 L3.2 0 Z"),
       detailPath("M0 -4 L0 -59"),
-      grip(5.5, 22),
+      grip(5.5, 22, spec.handleLength),
     );
   }
 
   return group;
 }
 
-function multiply(left: Matrix2d, right: Matrix2d): Matrix2d {
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function interpolateTrack(track: readonly SwordKeyframe[], frame: number): SwordKeyframe {
+  if (track.length === 1 || frame <= track[0].frame) return track[0];
+  for (let index = 1; index < track.length; index++) {
+    const next = track[index];
+    if (frame > next.frame) continue;
+    const previous = track[index - 1];
+    const span = next.frame - previous.frame;
+    const t = span <= 0 ? 0 : (frame - previous.frame) / span;
+    return {
+      frame,
+      x: previous.x + (next.x - previous.x) * t,
+      y: previous.y + (next.y - previous.y) * t,
+      angle: previous.angle + (next.angle - previous.angle) * t,
+    };
+  }
+  return track[track.length - 1];
+}
+
+/**
+ * The weapon owns its orientation. Generic locomotion keeps an upright guard; sword attacks
+ * use a small authored rigid-body track. Torso rotation is cancelled so the blade does not
+ * inherit a body lean and then force the hands to chase a bent-looking weapon.
+ */
+export function swordPoseForClip(clip: ClipName, frame: number, torsoRotation = 0): SwordPose {
+  const key = interpolateTrack(SWORD_TRACKS[clip] ?? GUARD, frame);
+  return { x: key.x, y: key.y, rotation: key.angle - torsoRotation };
+}
+
+function rotateLocal(point: Point, rotation: number): Point {
+  const radians = rotation / DEG;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return { x: point.x * cos - point.y * sin, y: point.x * sin + point.y * cos };
+}
+
+export function swordGripTargets(id: SwordId, pose: SwordPose): { upper: Point; lower: Point } {
+  const spec = SWORD_SPECS[id];
+  const upper = rotateLocal({ x: 0, y: spec.upperGripY }, pose.rotation);
+  const lower = rotateLocal({ x: 0, y: spec.lowerGripY }, pose.rotation);
   return {
-    a: left.a * right.a + left.c * right.b,
-    b: left.b * right.a + left.d * right.b,
-    c: left.a * right.c + left.c * right.d,
-    d: left.b * right.c + left.d * right.d,
-    e: left.a * right.e + left.c * right.f + left.e,
-    f: left.b * right.e + left.d * right.f + left.f,
+    upper: { x: pose.x + upper.x, y: pose.y + upper.y },
+    lower: { x: pose.x + lower.x, y: pose.y + lower.y },
   };
 }
 
-function localMatrix(element: SVGGElement): Matrix2d {
-  const matrix = element.transform.baseVal.consolidate()?.matrix;
-  if (!matrix) return IDENTITY;
-  return { a: matrix.a, b: matrix.b, c: matrix.c, d: matrix.d, e: matrix.e, f: matrix.f };
-}
-
-function pointInFighter(node: FighterNode, bone: SVGGElement, point: GripPoint): GripPoint {
-  const chain: SVGGElement[] = [];
-  let current: SVGGElement | null = bone;
-  while (current && current !== node.root) {
-    chain.push(current);
-    current = current.parentElement as SVGGElement | null;
-  }
-  if (current !== node.root) throw new Error("Sword hand bone is outside fighter root");
-
-  let matrix = IDENTITY;
-  for (let index = chain.length - 1; index >= 0; index--) matrix = multiply(matrix, localMatrix(chain[index]));
+/** Two-link IK in torso-local coordinates. Link lengths never change. */
+export function solveTwoBoneArm(
+  shoulder: Point,
+  target: Point,
+  upperLength: number,
+  lowerLength: number,
+  bend: -1 | 1,
+): ArmSolution {
+  const dx = target.x - shoulder.x;
+  const dy = target.y - shoulder.y;
+  const rawDistance = Math.hypot(dx, dy);
+  const minDistance = Math.abs(upperLength - lowerLength) + 0.001;
+  const maxDistance = upperLength + lowerLength - 0.001;
+  const distance = clamp(rawDistance, minDistance, maxDistance);
+  const base = Math.atan2(dy, dx);
+  const shoulderOffset = Math.acos(clamp(
+    (upperLength * upperLength + distance * distance - lowerLength * lowerLength)
+      / (2 * upperLength * distance),
+    -1,
+    1,
+  ));
+  const upperWorld = base + bend * shoulderOffset;
+  const elbow = {
+    x: shoulder.x + Math.cos(upperWorld) * upperLength,
+    y: shoulder.y + Math.sin(upperWorld) * upperLength,
+  };
+  const lowerWorld = Math.atan2(target.y - elbow.y, target.x - elbow.x);
   return {
-    x: matrix.a * point.x + matrix.c * point.y + matrix.e,
-    y: matrix.b * point.x + matrix.d * point.y + matrix.f,
+    upperRotation: upperWorld * DEG - 90,
+    lowerRotation: (lowerWorld - upperWorld) * DEG,
+    elbow,
+    hand: target,
+    clamped: Math.abs(rawDistance - distance) > 0.01,
   };
 }
 
-function localHandPoint(bone: SVGGElement, fallback: GripPoint): GripPoint {
-  try {
-    const box = bone.getBBox();
-    if (box.width > 0 && box.height > 0) {
-      return { x: box.x + box.width * 0.5, y: box.y + box.height * 0.9 };
-    }
-  } catch {
-    // Detached/hidden SVGs may not expose a box in every browser. The authored rig fallback is stable.
-  }
-  return fallback;
+function baseNumber(node: Element, name: "x" | "y"): number {
+  return Number(node.getAttribute(`data-${name}`) ?? 0);
 }
 
-export function swordPoseFromHands(front: GripPoint, back: GripPoint): SwordPose {
-  const dx = front.x - back.x;
-  const dy = front.y - back.y;
-  const gripLength = Math.max(1, Math.hypot(dx, dy));
-  const bladeAngle = Math.atan2(dy, dx) * 180 / Math.PI;
-  // Sword art points up local -Y. Rotate that axis through the rear hand and out past the front hand.
-  return { x: front.x, y: front.y, rotation: bladeAngle + 90, gripLength };
+function setBoneRotation(bone: SVGGElement, rotation: number): void {
+  bone.setAttribute(
+    "transform",
+    `translate(${baseNumber(bone, "x").toFixed(3)} ${baseNumber(bone, "y").toFixed(3)}) rotate(${rotation.toFixed(3)})`,
+  );
+}
+
+function constrainArm(
+  upper: SVGGElement,
+  lower: SVGGElement,
+  target: Point,
+  bend: -1 | 1,
+): void {
+  const shoulder = { x: baseNumber(upper, "x"), y: baseNumber(upper, "y") };
+  const upperLength = Math.abs(baseNumber(lower, "y")) || 21;
+  const solution = solveTwoBoneArm(shoulder, target, upperLength, 22, bend);
+  setBoneRotation(upper, solution.upperRotation);
+  setBoneRotation(lower, solution.lowerRotation);
 }
 
 export function swordName(id: SwordId): string {
   return SWORDS.find((entry) => entry.id === id)?.name ?? SWORDS[0].name;
 }
 
-/** Equip one preview sword beneath fighter art. Passing null restores the rig to unarmed. */
+/** Equip one fixed-size preview sword beneath torso/arm art. */
 export function equipSword(node: FighterNode, id: SwordId | null): void {
   for (const equipped of node.root.querySelectorAll<SVGGElement>("[data-equipped-sword]")) equipped.remove();
   if (id === null) return;
 
-  const sword = buildSword(id);
-  node.root.insertBefore(sword, node.root.firstChild);
+  const torso = node.bones.get("torso");
+  if (!torso) throw new Error("Fighter model is missing torso for sword attachment");
+  torso.insertBefore(buildSword(id), torso.firstChild);
 }
 
 /**
- * Re-aim the sword from the actual two-hand grip every rendered frame.
+ * Apply the rigid weapon after the body clip has been sampled.
  *
- * Bandai Namco's sword capture is two-handed. Using the line from the rear hand through the
- * front hand keeps the blade direction independent from either forearm's bend, while adapting
- * the handle length to the current pose and to each skin's traced forearm geometry.
+ * The sword transform is authoritative. Both arm chains are then solved onto two fixed points
+ * on its handle. Nothing in this function changes blade length, handle length, or grip spacing.
  */
-export function updateSwordPose(node: FighterNode): void {
+export function applySwordConstraint(
+  node: FighterNode,
+  clip: ClipName,
+  frame: number,
+  torsoRotation = 0,
+): void {
   const sword = node.root.querySelector<SVGGElement>("[data-equipped-sword]");
   if (!sword) return;
 
-  const frontBone = node.bones.get("forearm-front");
-  const backBone = node.bones.get("forearm-back");
-  if (!frontBone || !backBone) throw new Error("Fighter model is missing forearms for sword attachment");
+  const id = sword.dataset.equippedSword as SwordId | undefined;
+  if (!id || !SWORD_SPECS[id]) throw new Error("Unknown equipped sword model");
 
-  const front = pointInFighter(node, frontBone, localHandPoint(frontBone, { x: 4, y: 21 }));
-  const back = pointInFighter(node, backBone, localHandPoint(backBone, { x: 3, y: 20 }));
-  const pose = swordPoseFromHands(front, back);
+  const torso = node.bones.get("torso");
+  const frontArm = node.bones.get("arm-front");
+  const frontForearm = node.bones.get("forearm-front");
+  const backArm = node.bones.get("arm-back");
+  const backForearm = node.bones.get("forearm-back");
+  if (!torso || !frontArm || !frontForearm || !backArm || !backForearm) {
+    throw new Error("Fighter model is missing upper-body bones for sword constraint");
+  }
+
+  if (sword.parentElement !== torso) torso.insertBefore(sword, torso.firstChild);
+  const pose = swordPoseForClip(clip, frame, torsoRotation);
   sword.setAttribute("transform", `translate(${pose.x.toFixed(3)} ${pose.y.toFixed(3)}) rotate(${pose.rotation.toFixed(3)})`);
 
-  const handle = sword.querySelector<SVGRectElement>("[data-sword-handle]");
-  const pommel = sword.querySelector<SVGCircleElement>("[data-sword-pommel]");
-  if (!handle || !pommel) throw new Error("Sword model is missing grip geometry");
-  handle.setAttribute("height", (pose.gripLength + 2).toFixed(3));
-  pommel.setAttribute("cy", (pose.gripLength + 3).toFixed(3));
+  const grips = swordGripTargets(id, pose);
+  constrainArm(frontArm, frontForearm, grips.upper, -1);
+  constrainArm(backArm, backForearm, grips.lower, 1);
 }
