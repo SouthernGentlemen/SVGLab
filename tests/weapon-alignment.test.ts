@@ -1,17 +1,31 @@
 import { describe, expect, it } from "vitest";
+import type { ClipName } from "../src/animation/clips";
+import { SWORD_REFERENCE_SEQUENCES } from "../src/animation/sword-reference";
 import {
   SWORD_SPECS,
   solveTwoBoneArm,
   swordGripTargets,
   swordPoseForClip,
 } from "../src/svg/weapons";
-import type { ClipName } from "../src/animation/clips";
 import type { SwordId } from "../src/svg/weapons";
 
+function rotate(point: { x: number; y: number }, degrees: number) {
+  const radians = degrees * Math.PI / 180;
+  return {
+    x: point.x * Math.cos(radians) - point.y * Math.sin(radians),
+    y: point.x * Math.sin(radians) + point.y * Math.cos(radians),
+  };
+}
+
 describe("rigid sword constraints", () => {
-  it("keeps guard sword pointed up independent of torso lean", () => {
-    const pose = swordPoseForClip("bnrSwordGuardNormal", 30, 17);
-    expect(pose.rotation + 17).toBeCloseTo(0);
+  it("keeps the canonical guard sword pointed up and in place independent of torso lean", () => {
+    const torsoRotation = 17;
+    const pose = swordPoseForClip("swordGuardReference", 30, torsoRotation);
+    const fighterSpace = rotate(pose, torsoRotation);
+
+    expect(pose.rotation + torsoRotation).toBeCloseTo(0);
+    expect(fighterSpace.x).toBeCloseTo(4);
+    expect(fighterSpace.y).toBeCloseTo(-8);
   });
 
   it("keeps each sword's grip spacing fixed", () => {
@@ -36,11 +50,28 @@ describe("rigid sword constraints", () => {
     expect(Math.hypot(target.x - solution.elbow.x, target.y - solution.elbow.y)).toBeCloseTo(22);
   });
 
-  it("rotates the whole rigid sword through a slash without resizing it", () => {
-    const startup = swordPoseForClip("bnrSwordSlashNormal", 0);
-    const contact = swordPoseForClip("bnrSwordSlashNormal", 21);
+  it("authors the primary cut as guard -> load -> point lead -> impact -> longpoint -> recovery", () => {
+    const frames = SWORD_REFERENCE_SEQUENCES.swordOberhauReference.frames;
+    expect(frames.map((entry) => entry.label)).toEqual([
+      "guard",
+      "load",
+      "point leads",
+      "hips turn",
+      "impact",
+      "longpoint",
+      "recover",
+      "guard",
+    ]);
+    expect(frames.find((entry) => entry.label === "longpoint")?.sword.angle).toBe(90);
+    expect(frames.at(-1)?.sword).toEqual(frames[0].sword);
+  });
 
-    expect(contact.rotation).toBeGreaterThan(startup.rotation);
+  it("rotates the whole rigid sword through the authored cut without resizing it", () => {
+    const startup = swordPoseForClip("swordOberhauReference", 0);
+    const contact = swordPoseForClip("swordOberhauReference", 15);
+
+    expect(startup.rotation).toBe(0);
+    expect(contact.rotation).toBe(90);
     expect(SWORD_SPECS.longsword.bladeLength).toBe(56);
     expect(SWORD_SPECS.longsword.handleLength).toBe(15);
   });
@@ -51,9 +82,9 @@ describe("rigid sword constraints", () => {
       ["bnrWalkNormal", 60],
       ["bnrRunNormal", 46],
       ["bnrDashNormal", 38],
-      ["bnrSwordGuardNormal", 118],
-      ["bnrSwordSlashNormal", 30],
-      ["bnrSwordCutNormal", 124],
+      ["swordGuardReference", 60],
+      ["swordOberhauReference", 24],
+      ["swordOberhauStudyReference", 48],
       ["bnrSlashStudyNormal", 802],
     ];
     const torsoRotations = [-45, -30, -15, 0, 15, 30, 45];
