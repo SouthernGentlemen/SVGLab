@@ -2,7 +2,7 @@
 
 `AGENTS.md` is the contract. This file is how the repository gets there: the milestones
 expanded into files, gates and definitions of done; a verdict on every path that exists today;
-what six spikes measured; and the places where those measurements contradict the contract.
+what seven spikes measured; and the places where those measurements contradict the contract.
 
 Everything numbered here was run. Where a number is a projection rather than a measurement it
 says so. Where I could not settle a question, it is in [Open questions](#open-questions)
@@ -12,7 +12,7 @@ Spike work happened in a throwaway worktree. Nothing from it is committed.
 
 ---
 
-## 1. The six spikes
+## 1. The seven spikes
 
 ### Spike 1 — TypeScript pipelines with no build step
 
@@ -320,6 +320,70 @@ The draft exposed two things:
 
 ---
 
+### Spike 7 — every piece swappable with every piece
+
+The goal is that a figure is assembled from parts that can come from anywhere, with cosmetic
+overlays that do not clip through it. Two questions, both measurable.
+
+**Do body parts from different sheets already compose?** Mostly yes, and by construction: the
+rig already canonicalises joints (`CANONICAL_REST`) and part sizes (`CANONICAL_ART_HEIGHT`), so
+a thigh is 25 units tall whoever drew it. Nine chimeras were built from parts belonging to
+different atlases with no retouching and all nine read as figures.
+
+Coverage at the joint, measured for **all 36 cross-sheet pairings** of the four in-line joints:
+
+| joint | parent reaches past | child starts above | overlap |
+| --- | ---: | ---: | ---: |
+| knee | 2.5–3.0 | 0.0–0.7 | **1.7–3.0** |
+| elbow | 2.4–3.0 | 0.0–0.6 | **1.8–3.0** |
+
+**No gaps anywhere.** A cross-sheet pairing overlaps as much as a same-sheet one (1.8 against
+1.9 at the knee). Background never shows through.
+
+What does vary is the *width* at the joint. The child paints over the parent, so a narrower
+child leaves the parent's end showing:
+
+| joint | narrowest | widest | worst cross-sheet step |
+| --- | ---: | ---: | ---: |
+| knee | 8.5 (yuliya) | 14.1 (barst) | **5.6 units** |
+| elbow | 5.7 (kiran) | 11.1 (kiran) | **5.4 units** |
+
+That reads as a taper rather than damage — barst's own elbow already steps 3.3 units inside one
+sheet — but it is the thing to declare and guard rather than discover.
+
+**Do cosmetics transfer?** No, and the reason is structural. A prop is bound in the sidecar as a
+raw offset in the *source sheet's atlas pixels*, multiplied at build time by the *target bone's*
+scale. The same authored offset `(0, -19)`:
+
+| figure | torso scale | lands at | art scale |
+| --- | ---: | ---: | ---: |
+| yuliya | 0.966 | (0, −18.35) | 0.966 |
+| kiran | 0.737 | (0, −14.00) | 0.737 |
+| barst | 0.459 | (0, −8.72) | 0.459 |
+
+Three places, three sizes. Rendered side by side the piece sits at yuliya's neck, buried in
+kiran's chest and floating over barst's ribs. Bound instead to a **named anchor** with a height
+declared in rig units, the same art lands at `(0, −31)` at scale `0.412` on all three.
+
+**The same place is already spelled three ways.** The forearm carries `CANONICAL_WRIST` `[0,18]`
+(where hand art goes), `LEAF_TIPS` `[0,23]` (the BVH End Site), and a hardcoded `22` in
+`weapons.ts` (the IK's lower link) — in three files, with nothing saying which is which. They
+are three different concepts that drifted into three unrelated constants.
+
+**Splitting a figure into per-part files is nearly free**, measured at the proposed trace
+profile:
+
+| | barst | kiran | yuliya |
+| --- | ---: | ---: | ---: |
+| one document | 64,790 | 81,791 | 114,371 |
+| eleven part files | 64,100 | 81,101 | 113,690 |
+| eleven part files, gzip | 20,549 | 25,693 | 35,681 |
+| largest single part | — | — | 51,711 (head) |
+
+Raw is ~1% *smaller* split (the per-bone wrappers cost less than the nesting they replace);
+gzip is ~4% worse because each file compresses alone. yuliya lands at 35,681 against a 35,840
+gzip budget — inside it, with 159 bytes to spare, which is too tight to call comfortable.
+
 ## 2. Contracts these findings contradict
 
 Five, named rather than worked around. The evidence for each is in section 1; this is only the
@@ -365,6 +429,49 @@ than drift — but the tracer regenerates it on every build.
 > **No amendment: C1 is right and the code is the bug.** M1 and M3 emit art carrying only
 > `data-bone`; the renderer takes offsets from the contract.
 
+**C1 — the rig has to carry four things it does not name today.** "Every piece of every character
+swappable with every piece of every other character" is a contract, not a feature, and spike 7
+found the parts of it that are missing.
+
+> **C1 gains named anchors.** Points on a bone, in that bone's own frame, in rig units:
+> `torso.neck`, `torso.belt`, `torso.shoulder-front`, `head.crown`, `head.face`,
+> `forearm-front.grip`, `shin-front.foot`, and so on — 19 across 11 bones in the draft. A
+> cosmetic binds to an anchor. Nothing binds to a pixel offset in the sheet it was drawn on.
+> Every anchor is derived from the skeleton or from a constant that already exists: a joint
+> anchor *is* the child bone's offset, and `grip` *is* `CANONICAL_WRIST`.
+>
+> **C1 gains depth slots.** `["under", "part", "over", "outer"]`, ordered, per bone. A cosmetic
+> names one. The `under` boolean in the sidecar today is two layers where four are needed, and a
+> boolean cannot say that a cloak goes outside a pauldron.
+>
+> **C1 gains sockets.** Each part declares the overlap it provides at each joint it touches and
+> its width there. The guard asserts every part pairs with every other at or above the minimum
+> overlap (measured: 1.7 units today, so declare 1.5) and reports width steps past a tolerance
+> (measured worst: 5.6 units, so declare 6). The guard reports; it never resizes art.
+>
+> **C1 gains a `hides` list on a cosmetic.** A full helm names `head`, and that part's own art
+> is not drawn rather than painted over. This is what stops hair poking through a helmet, and
+> it is the only mechanism here that addresses clipping directly.
+>
+> **A new concept: a figure.** Today "character" means both a set of art and a thing you play.
+> Splitting them is what makes every piece swappable: `figures/<name>.json` is a *manifest of
+> choices* — which part fills each slot, which cosmetics are worn, which rig it targets — and
+> the art it names may come from any number of sheets. A character becomes one possible figure
+> rather than the only unit of assembly.
+>
+> **Every contract file carries `"contract": 1`** and a loader refuses a major it does not know.
+> The rig path is `rigs/<name>.rig.json` and a figure names its rig, so a second skeleton costs
+> a file rather than a fork.
+
+**C7 — "one character" stops being a meaningful unit.** As eleven part files a figure is
+64,100 / 81,101 / 113,690 raw and 20,549 / 25,693 / 35,681 gzip. yuliya clears the 35,840 gzip
+budget by 159 bytes.
+
+> **C7** measures *a figure* — the set of parts and cosmetics that assemble one — not a file,
+> and states both a per-figure bound (120 KB raw, 35 KB gzip) and a per-part bound so no single
+> part can be pathological. The measured largest part is yuliya's head at 51,711 bytes; a 64 KB
+> per-part bound leaves room without inviting it.
+
 One more worth naming, though it contradicts nothing: gate 7's cost is 1.72 s, while building a
 reviewable `.blend` per clip is 13.97 s. Those stay two commands — `check:blender` is the gate,
 `npm run blender` is the authoring aid.
@@ -376,38 +483,48 @@ is in. Every milestone turns on a gate, and once on, a gate never goes off.
 
 ### M0 — clean head
 
-**Creates.** Orphan branch. `AGENTS.md` (amended per section 2). `rigs/fighter.rig.json`.
-`src/rig/contract.ts` (reads and validates it), `src/rig/types.ts`, `src/rig/sample.ts` (the one
-sampler), `src/rig/fk.ts` (forward kinematics, shared by the renderer and gate 7). The sampler itself is
-already split out and catalog-free — see the bug list — so M0 moves it rather than writing it.
-`src/clips/types.ts`, `src/clips/index.ts` with an empty catalog. `pipelines/guards/rig.ts`.
-`package.json`, `tsconfig.json` (nodenext / `allowImportingTsExtensions` / `erasableSyntaxOnly`),
-`vitest.config.ts`. `tests/rig/contract.test.ts`, `tests/rig/sample.test.ts`.
+**Creates.** Orphan branch. `AGENTS.md` (amended per section 2). `rigs/fighter.rig.json` —
+bones, anchors, depth slots, sockets, paint order, depth profiles, axis map, BVH layout,
+`"contract": 1`. `src/rig/contract.ts` (reads and validates it), `src/rig/types.ts`,
+`src/rig/sample.ts` (the one sampler), `src/rig/fk.ts` (forward kinematics, shared by the
+renderer and gate 7). `src/clips/types.ts`, `src/clips/index.ts` with an empty catalog.
+`pipelines/guards/rig.ts`. `package.json`, `tsconfig.json` (nodenext /
+`allowImportingTsExtensions` / `erasableSyntaxOnly`), `vitest.config.ts`.
+`tests/rig/{contract,sample,anchors}.test.ts`.
+
+The sampler is already split out and catalog-free — see the bug list — so M0 moves it rather
+than writing it.
 
 **Gate on.** `check:rig`, `typecheck`, `test`.
 
 **Done when.** An empty catalog builds; `check:rig` rejects all seven mutations from spike 6
-with a message naming the bone; a test samples a clip through `src/rig/sample.ts` from both a
-`pipelines/` script and a `tests/` file and asserts the same numbers — C2 held by construction
-from the first commit rather than asserted later.
+with a message naming the bone, and rejects an anchor on an unknown bone, a depth slot outside
+the declared list, and an unknown `"contract"` major; a test samples a clip through
+`src/rig/sample.ts` from both a `pipelines/` script and a `tests/` file and asserts the same
+numbers — C2 held by construction from the first commit.
 
-**Defers.** All art, all clips, the kernel, the Worker. No character exists yet.
+**Defers.** All art, all clips, the kernel, the Worker. No figure exists yet.
 
-### M1 — sprite sheets
+### M1 — parts and figures
 
-**Creates.** `pipelines/sprite/{png,segment,trace,fit,character,build}.ts`.
-`characters/<id>/character.svg` for all three. Per-slot `trace` profiles in each
-`characters/<id>/atlas.json`. `pipelines/guards/footprint.ts`.
-`tests/sprite/{trace,characters}.test.ts`.
+The milestone that makes everything swappable. It stops emitting one document per character.
 
-**Gate on.** `check:sprites`, and the character half of `check:footprint`.
+**Creates.** `pipelines/sprite/{png,segment,trace,fit,part,build}.ts`.
+`characters/<id>/parts/<slot>.svg` — one file per part, the swappable unit, carrying
+`data-bone` and no skeleton. `figures/<name>.json` — the manifest of choices.
+Per-slot `trace` profiles in each `characters/<id>/atlas.json`.
+`pipelines/guards/{footprint,sockets}.ts`. `tests/sprite/{trace,parts,sockets}.test.ts`.
 
-**Done when.** A rebuild reproduces all three committed characters byte for byte (spike 3
-confirmed determinism across processes), each inside 120 KB raw and 35 KB gzip — measured
-64,790 / 81,791 / 114,371 — and the emitted art carries `data-bone` and no `data-x`/`data-y`.
+**Gate on.** `check:sprites`, `check:sockets`, and the figure half of `check:footprint`.
 
-**Defers.** The shell chunk half of `check:footprint` (nothing is bundled yet). Any use of the
-characters — they are files on disk that nothing imports.
+**Done when.** A rebuild reproduces every committed part byte for byte; each figure is inside
+120 KB raw and 35 KB gzip and no single part exceeds the per-part bound — measured 64,100 /
+81,101 / 113,690 raw, largest part 51,711; emitted parts carry `data-bone` and no
+`data-x`/`data-y`; and **`check:sockets` assembles every part with every other part in its slot
+across every sheet and asserts the overlap at each joint**, which is 36 pairings per joint
+today and is the gate that makes the swap claim true rather than hoped for.
+
+**Defers.** Cosmetics — M6. A figure at this point is body parts only.
 
 ### M2 — clips
 
@@ -433,7 +550,7 @@ is pointed and where nothing in the bundle can reach them.
 
 **Gate on.** `check:exchange`, `check:blender`.
 
-**Done when.** A clip opens in Blender as a posed character; an edit lands in
+**Done when.** A clip opens in Blender as a posed figure; an edit lands in
 `motions/authored/`; an untouched round trip is a table of zeros; gate 7's forward-kinematics
 assertion passes (measured worst 1.841×10⁻⁵ against a 0.001 threshold over 19,503 comparisons)
 in 1.72 s; and the guard includes a **real** Blender export rather than only the synthetic
@@ -456,39 +573,68 @@ other, and the seal test fails if anything in `src/kernel/**` reaches outward.
 
 ### M5 — preview loop
 
-**Creates.** `src/render/{place,arena,skeleton-overlay}.ts`, `src/render/art/fighter.svg`.
-`src/shell/{stage,preview,worker,keyboard,debug-panel}.ts` and their CSS. `index.html`,
-`preview.html`. `pipelines/dev/{lifecycle,sidecar}.ts`. `vite.config.ts`,
-`wrangler.local.jsonc`. `tests/shell/*`, `tests/guards/architecture.test.ts`.
+**Creates.** `src/render/{assemble,place,arena,skeleton-overlay}.ts`,
+`src/render/art/fighter.svg`. `src/shell/{stage,preview,worker,keyboard,debug-panel}.ts` and
+their CSS. `index.html`, `preview.html`. `pipelines/dev/{lifecycle,sidecar}.ts`.
+`vite.config.ts`, `wrangler.local.jsonc`. `tests/shell/*`,
+`tests/guards/architecture.test.ts`.
+
+`assemble.ts` is new and is the point of M1: it takes a figure manifest, fetches the parts it
+names, and builds the posable node. Swapping a part is re-fetching one file.
 
 **Gate on.** The shell half of `check:footprint`; `assert-local-only`; the production build.
 
 **Done when.** An edit saved in Blender shows up in the browser with no hand-run command
 (measured 185 ms save → page); the sidecar also serves the study clips out of `out/`, so the
-same file is reviewable in Blender and in the live preview without entering the catalog;
-characters are fetched on demand and no raster and no character SVG reaches the bundle; the
-shell chunk is ≤ 150 KB raw and ≤ 50 KB gzip — measured 44,427 / 9,589 with characters fetched
-and studies excluded, against a 1,497,551 / 408,778 baseline.
+same file is reviewable in Blender and in the live preview without entering the catalog; parts
+are fetched on demand and no raster and no part SVG reaches the bundle; a part can be swapped
+in the preview without a reload; the shell chunk is ≤ 150 KB raw and ≤ 50 KB gzip — measured
+44,427 / 9,589, against a 1,497,551 / 408,778 baseline.
 
 **Defers.** Editing poses in the page. The loop is Blender → disk → page; the sidecar's
 disk-write path exists and is proved but nothing in the page uses it yet.
 
-### M6 — agent surface
+### M6 — wardrobe
 
-**Creates.** `pipelines/render/clip.ts` (contact sheets), `rigs/authored-clip.schema.json`,
-`docs/AUTHORING.md`, and a `--check` plus machine-readable report on every pipeline that lacks
-one.
+Cosmetics as their own production line, because they are authored, budgeted and reviewed
+differently from body parts and because nothing before this milestone can show one.
+
+**Creates.** `cosmetics/<set>/atlas.png` + `cosmetics/<set>/set.json`.
+`pipelines/wardrobe/{build,place}.ts` emitting `cosmetics/<set>/<piece>.svg`.
+`pipelines/guards/wardrobe.ts`. `tests/wardrobe/*`. A cosmetic section in
+`figures/<name>.json`.
+
+A cosmetic declares `{ anchor, layer, height, align?, rotate?, hides? }` — an anchor name and a
+height in rig units, never a pixel offset in the sheet it was drawn on.
+
+**Gate on.** `check:wardrobe`.
+
+**Done when.** One cosmetic set renders correctly on every shipped figure without per-figure
+tuning — the measured failure it replaces is the same piece landing at −18.35, −14.00 and −8.72
+on three bodies; `hides` removes the part underneath rather than painting over it; the guard
+rejects an unknown anchor, an unknown depth slot, a `hides` naming a slot the figure does not
+have, and a cosmetic whose drawn extent does not cover what it claims to hide.
+
+**Defers.** Rigid props. Weapons stay out of scope; `forearm.grip` exists so they can return
+without reshaping anything.
+
+### M7 — agent surface
+
+**Creates.** `pipelines/render/clip.ts` (contact sheets), `pipelines/render/figure.ts` (a
+figure sheet: every part, every cosmetic, assembled and posed),
+`rigs/authored-clip.schema.json`, `rigs/figure.schema.json`, `docs/AUTHORING.md`, and a
+`--check` plus machine-readable report on every pipeline that lacks one.
 
 **Gate on.** No new gate. Every existing gate gains a machine-readable failure report naming
 what changed and by how much.
 
-**Done when.** A clip can be authored end to end without opening an editor: write JSON against
-the schema, validate, render a contact sheet, look, iterate — and each step prints a report an
-agent can act on.
+**Done when.** A clip *and a figure* can be authored end to end without opening an editor:
+write JSON against the schema, validate, render a sheet, look, iterate — and each step prints a
+report an agent can act on.
 
 **Defers.** Nothing downstream; this is the last feature milestone.
 
-### M7 — cruft gate
+### M8 — cruft gate
 
 **Creates.** `pipelines/guards/cruft.ts`. A final section in `README.md`.
 
@@ -500,23 +646,30 @@ stated, and every tracked path is reachable from something.
 
 **Defers.** Nothing. This is the end.
 
----
-
 ## 4. Order of work
 
 The milestones are already ordered, and the dependencies are real rather than conventional:
 
-1. **M0 before everything.** The rig contract is the input to the tracer (M1), the retarget
-   (M2), the Blender armature (M3) and the renderer (M5). Spike 6 showed it is currently
-   restated in five places; every milestone after M0 removes one of them.
+1. **M0 before everything.** The rig contract is the input to the part builder (M1), the
+   retarget (M2), the Blender armature (M3), the renderer (M5) and every cosmetic (M6). Spikes
+   6 and 7 found it restated in five files, with three different numbers for one place on the
+   forearm; every milestone after M0 removes one of those restatements.
 2. **M1 before M2** only because `check:footprint` is easier to land one budget at a time.
    They are otherwise independent and could be swapped.
 3. **M3 needs M2** — there is nothing to export until clips exist.
 4. **M4 is independent of M1–M3** and could be done at any point after M0. It is placed fourth
    because M5 wants a kernel to drive.
 5. **M5 needs M1, M2, M3 and M4** — it is the first milestone where anything is on a page.
-6. **M6 needs every pipeline to exist** before it can give them all the same surface.
-7. **M7 last**, by definition.
+6. **M6 needs M5.** A cosmetic that cannot be looked at on a figure cannot be judged, and the
+   failure it fixes — a piece landing in three different places on three bodies — is only
+   visible once something assembles and draws one.
+7. **M7 needs every pipeline to exist** before it can give them all the same surface.
+8. **M8 last**, by definition.
+
+The plan grew from eight milestones to nine. M1 changed from "sprite sheets" to "parts and
+figures" and M6 is new, because "every piece of every character swappable with every piece of
+every other character" is a gate (`check:sockets`, `check:wardrobe`) rather than a property
+that emerges from tracing art well.
 
 Within M0, one ordering matters: write `rigs/fighter.rig.json` and `check:rig` *before*
 `src/rig/sample.ts`, so the sampler is written against a validated contract rather than
@@ -557,11 +710,11 @@ new contracts. *delete* — goes away.
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `characters/barst/atlas.json` | rewrite | in place | Gains the per-slot trace profile the 120 KB budget needs (spike 3). |
+| `characters/barst/atlas.json` | rewrite | in place | Gains the per-slot trace profile the budget needs, and its prop bindings become anchor-bound cosmetics. |
 | `characters/barst/atlas.png` | port | in place | Build-time input, untouched. |
-| `characters/kiran/atlas.json` | rewrite | in place | Same: per-slot trace profile alongside its prop bindings. |
+| `characters/kiran/atlas.json` | rewrite | in place | Same. Its six pixel-offset props move to cosmetics/ bound by anchor. |
 | `characters/kiran/atlas.png` | port | in place | Build-time input, untouched. |
-| `characters/yuliya/atlas.json` | rewrite | in place | Same, and this is the character the budget is set by. |
+| `characters/yuliya/atlas.json` | rewrite | in place | Same, and this is the figure the budget is set by. Its nine props are 53% of the sheet. |
 | `characters/yuliya/atlas.png` | port | in place | Build-time input, untouched. |
 
 **`docs`**
@@ -689,19 +842,19 @@ new contracts. *delete* — goes away.
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `barst.svg` | rewrite | `characters/barst/character.svg` | Regenerated at the per-slot knobs; becomes a fetched asset, not a module. |
+| `barst.svg` | rewrite | `characters/barst/parts/<slot>.svg` | Splits into eleven fetched part files. 288,054 bytes today, 64,100 across eleven parts. |
 | `index.ts` | delete | — | Its ?raw imports are the C7 violation: they inline 1.4 MB of art into the shell chunk. |
-| `kiran.svg` | rewrite | `characters/kiran/character.svg` | Same. |
-| `yuliya.svg` | rewrite | `characters/yuliya/character.svg` | Same. 620 KB today, 111.7 KB at the proposed knobs. |
+| `kiran.svg` | rewrite | `characters/kiran/parts/<slot>.svg` | Same. 488,032 bytes today, 81,101 across eleven parts. |
+| `yuliya.svg` | rewrite | `characters/yuliya/parts/<slot>.svg` | Same. 620,401 bytes today, 113,690 across eleven parts; its head is the largest single part at 51,711. |
 
 **`src/svg`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `fighter.svg` | rewrite | `src/render/art/fighter.svg` | Keeps its art and its comment; loses the 11 data-x/data-y offsets C1 forbids. |
+| `fighter.svg` | rewrite | `characters/fighter/parts/<slot>.svg` | Becomes a figure like any other — eleven part files, no data-x/data-y. The readable reference rig stops being a special case, which is the universality claim applied to itself. |
 | `renderer.ts` | rewrite | `src/render/arena.ts` | Same job; parameter properties must go (spike 1) and skins are fetched. |
-| `rig.ts` | rewrite | `src/rig/pose.ts + src/render/place.ts` | Split: the pure bone tree/pose maths a pipeline can import, and the DOM placement it cannot. |
-| `weapons.ts` | delete | — | Weapons are explicitly out of scope. The named attachment point in the rig contract is what survives. |
+| `rig.ts` | rewrite | `src/rig/pose.ts + src/render/assemble.ts` | Split: the pure bone tree and pose maths a pipeline can import, and the DOM assembly that fetches a figure's parts and places them. |
+| `weapons.ts` | delete | — | Weapons are explicitly out of scope. What survives is forearm.grip in the rig contract — the anchor whose value this file hardcoded as 22. |
 
 **`src`**
 
@@ -752,30 +905,28 @@ new contracts. *delete* — goes away.
 
 ## Open questions
 
-Two left. The rest are decided; see [Decided](#decided) below.
+None outstanding. Everything the spikes raised has been decided; see below.
 
-**1. The flat-colour look is a taste decision, not a budget decision.** Per-slot knobs reach
-114,371 bytes with the face intact, but yuliya's skirt and kiran's cloak lose their shading
-gradients. I think it reads as a deliberate flat-colour style. Someone who drew these atlases
-should look at the before/after — particularly the head crops — and either accept it, or say
-that 120 KB is the wrong number and name the one that is. If the answer is "keep the shading",
-the measured face-preserving cost is 140,242 raw / 42,206 gzip for yuliya, and C7 wants
-amending instead of the art.
-
-**2. `length` is ambiguous for branching bones, and the arm IK reads it.** In the draft
-`pelvis` gets `length: 6` from its offset to `torso`, but it also parents both legs at its own
-origin. Either drop `length` for branching bones, or define it as "distance to the bone that
-continues the chain" and name that child.
-
-The live case is the forearm. Its declared tip is `[0,23]`, so it is 23 units long, but
-`weapons.ts` solves the two-handed grip against a hardcoded `22`. That is not obviously a
-typo: the traced characters put the wrist at `y: 18` on a 20-unit forearm, so the *hand* — what
-actually holds a grip — sits nearer 22 than 23. So the rig may need to declare a grip point
-separately from the bone tip rather than the IK being wrong. Weapons are out of scope and
-`weapons.ts` is scheduled for deletion, so nothing is broken today; it needs answering before
-the attachment point is used again.
+The nearest thing to an open question is a risk rather than a decision: **a cosmetic landing in
+the right place is not the same as a cosmetic looking right.** Anchors make placement
+consistent and `hides` stops a part poking through, but whether a collar drawn for a narrow
+neck reads on a broad one is a judgement no guard makes. M6's gate checks that a cosmetic
+covers what it claims to hide; it cannot check that it suits the silhouette. Expect a wardrobe
+to need art per body type eventually, and expect that to be a drawing problem rather than a
+contract problem.
 
 ## Decided
+
+**The flat-colour look is accepted.** Per-slot knobs at head c12/e1.2 and everything else
+c3/e3.0, 1dp coordinates. Figures land at 64,790 / 81,791 / 114,371 bytes with faces intact;
+body shading gradients flatten and that reads as a deliberate style. C7's 120 KB stands.
+
+**Grip points are declared separately from bone tips.** `forearm-front.grip` and
+`forearm-back.grip` are anchors at `[0, 18]` — the value `CANONICAL_WRIST` already holds, where
+a hand closes on a prop. That is a different thing from the bone's `tip` at `[0, 23]`, which is
+the BVH End Site, and from the `22` `weapons.ts` hardcodes for its IK link. Three files, three
+numbers, three concepts that had drifted into unrelated constants. The contract names all
+three; the IK reads the anchor.
 
 **Study clips live in `out/`, generated on every build.** They are derived and not shipped:
 `export:motions` already writes all eleven clips there, so a Blender project can be pointed at
@@ -783,6 +934,12 @@ the attachment point is used again.
 the same files through the dev sidecar, so a study is reviewable on both surfaces without
 entering the catalog C7 measures. This is why `reset` must leave `out/` alone — see the bug
 fixed below.
+
+**A figure is a manifest, not a document.** `figures/<name>.json` names which part fills each
+slot, which cosmetics are worn and which rig it targets. The art it names may come from any
+number of sheets. This is the change that makes everything swappable, and it is why M1 emits
+`characters/<id>/parts/<slot>.svg` rather than one document per character. Measured cost of
+the split: about 1% smaller raw, about 4% worse gzip.
 
 **`docs/SWORD-MOTION-REFERENCE.md` is gone.** Its live content — the "motion comes from a
 recording or it does not ship" doctrine, and the Touché and SFU Kendo candidate sources — is a
@@ -835,6 +992,17 @@ state). That split is what M0 wants anyway, so it is done early rather than twic
   construction and five runs agreed, but floating-point summation order across architectures is
   the classic way that promise breaks. Worth one check on a second machine before relying on
   it.
+- **`check:sockets` is quadratic in the number of sheets.** Three sheets is 36 pairings per
+  joint and runs instantly. Ten sheets is 400 per joint. The guard will need to compare each
+  part against the declared socket bounds rather than against every other part, with the
+  all-pairs sweep kept as a slower full check. I have not written either.
+- **yuliya clears the gzip budget by 159 bytes as eleven separate files.** Splitting costs ~4%
+  gzip because each file compresses alone, and that is the whole remaining margin. A tenth
+  cosmetic or a busier sheet crosses it. Either the budget counts a figure's parts compressed
+  together as they would be over one connection, or 35 KB is the wrong number.
+- **Cosmetic fit is unproven beyond placement.** I showed one piece landing identically on
+  three bodies. I did not show that a cosmetic drawn for one silhouette reads on another, and
+  no guard in the plan checks it.
 - **I have not run the whole `verify` chain end to end in the proposed shape**, only each gate
   against today's code. The interactions — particularly `check:footprint` reading a catalog
   that `check:motions` has just rebuilt — are planned, not measured.
