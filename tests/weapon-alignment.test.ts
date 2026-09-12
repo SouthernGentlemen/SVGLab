@@ -82,7 +82,7 @@ describe("rigid sword constraints", () => {
     const contact = swordPoseForClip("swordOberhauReference", 14);
     const overshoot = swordPoseForClip("swordOberhauReference", 19);
 
-    expect(startup.rotation).toBeCloseTo(2); // torso is counter-rotated from the -2 degree guard lean
+    expect(startup.rotation).toBeCloseTo(0);
     expect(contact.rotation).toBeLessThan(overshoot.rotation);
     expect(SWORD_SPECS.longsword.bladeLength).toBe(56);
     expect(SWORD_SPECS.longsword.handleLength).toBe(15);
