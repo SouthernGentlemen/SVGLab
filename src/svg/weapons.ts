@@ -42,7 +42,7 @@ export interface ArmSolution {
 export const SWORD_SPECS: Readonly<Record<SwordId, SwordSpec>> = {
   longsword: { bladeLength: 56, handleLength: 15, upperGripY: 4, lowerGripY: 12 },
   katana: { bladeLength: 57, handleLength: 14, upperGripY: 4, lowerGripY: 11 },
-  greatsword: { bladeLength: 70, handleLength: 18, upperGripY: 5, lowerGripY: 15 },
+  greatsword: { bladeLength: 70, handleLength: 18, upperGripY: 5, lowerGripY: 13 },
 };
 
 interface SwordKeyframe {
