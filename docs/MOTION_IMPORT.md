@@ -51,6 +51,10 @@ whether contact succeeds.
 
 ## Sword material
 
+The doctrine this section follows — what may drive a sword pose, what may not, and which
+recorded sources are worth vendoring next — is in
+[the sword motion reference](SWORD-MOTION-REFERENCE.md).
+
 `slash` (content label 14) is the only armed-combat content in either published Bandai Namco
 dataset. Dataset 2 holds locomotion, turning, waving, and raise-up material only, and dataset 1
 carries slash in two takes, both in the `normal` style, so there are no sword style variants to

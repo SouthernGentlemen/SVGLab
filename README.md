@@ -55,7 +55,9 @@ including four two-handed sword motions, one of which drives a second authored m
 still owns fighter movement, move phases, and contact timing. See
 [the motion import guide](docs/MOTION_IMPORT.md), including the CC BY-NC terms that apply to
 the included Bandai Namco source subset and the round trip that carries clips out to an
-animation tool and hand edits back in.
+animation tool and hand edits back in, and
+[the sword motion reference](docs/SWORD-MOTION-REFERENCE.md) for what may and may not drive a
+sword pose.
 
 ## Useful commands
 
