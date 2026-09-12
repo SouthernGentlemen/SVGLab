@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { ClipName } from "../src/animation/clips";
-import { SWORD_REFERENCE_SEQUENCES } from "../src/animation/sword-reference";
 import {
   SWORD_SPECS,
+  armHandPoint,
   solveTwoBoneArm,
   swordGripTargets,
-  swordPoseForClip,
+  swordGuardPose,
+  swordPoseFromGripPoints,
 } from "../src/svg/weapons";
 import type { SwordId } from "../src/svg/weapons";
 
@@ -17,10 +17,14 @@ function rotate(point: { x: number; y: number }, degrees: number) {
   };
 }
 
+function dot(a: { x: number; y: number }, b: { x: number; y: number }) {
+  return a.x * b.x + a.y * b.y;
+}
+
 describe("rigid sword constraints", () => {
-  it("keeps the canonical guard sword pointed up and in place independent of torso lean", () => {
+  it("keeps generic guard pointed up and in place independent of torso lean", () => {
     const torsoRotation = 17;
-    const pose = swordPoseForClip("swordGuardReference", 30, torsoRotation);
+    const pose = swordGuardPose(torsoRotation);
     const fighterSpace = rotate(pose, torsoRotation);
 
     expect(pose.rotation + torsoRotation).toBeCloseTo(0);
@@ -28,100 +32,88 @@ describe("rigid sword constraints", () => {
     expect(fighterSpace.y).toBeCloseTo(-8);
   });
 
-  it("keeps each sword's grip spacing fixed", () => {
+  it("keeps each sword's fixed grip points on its handle", () => {
     for (const [id, spec] of Object.entries(SWORD_SPECS)) {
       const targets = swordGripTargets(id as SwordId, { x: 5, y: -7, rotation: 63 });
       const spacing = Math.hypot(
         targets.lower.x - targets.upper.x,
         targets.lower.y - targets.upper.y,
       );
+      expect(spec.upperGripY).toBeGreaterThan(0);
+      expect(spec.lowerGripY).toBeGreaterThan(spec.upperGripY);
+      expect(spec.lowerGripY).toBeLessThan(spec.handleLength);
       expect(spacing).toBeCloseTo(spec.lowerGripY - spec.upperGripY);
     }
   });
 
-  it("solves the arm onto a fixed hand target without changing link lengths", () => {
+  it("reconstructs the blade away from both captured hands instead of through either hand", () => {
+    const capturedGuardHand = { x: 10, y: 2 };
+    const capturedPommelHand = { x: 2, y: 2 };
+    const pose = swordPoseFromGripPoints("longsword", capturedGuardHand, capturedPommelHand);
+    expect(pose).not.toBeNull();
+
+    const fixed = swordGripTargets("longsword", pose!);
+    const handleDirection = {
+      x: fixed.lower.x - fixed.upper.x,
+      y: fixed.lower.y - fixed.upper.y,
+    };
+    const capturedDirection = {
+      x: capturedPommelHand.x - capturedGuardHand.x,
+      y: capturedPommelHand.y - capturedGuardHand.y,
+    };
+    expect(dot(handleDirection, capturedDirection)).toBeGreaterThan(0);
+
+    const bladeTipOffset = rotate({ x: 0, y: -SWORD_SPECS.longsword.bladeLength }, pose!.rotation);
+    expect(dot(bladeTipOffset, handleDirection)).toBeLessThan(0);
+
+    const fixedMidpoint = {
+      x: (fixed.upper.x + fixed.lower.x) / 2,
+      y: (fixed.upper.y + fixed.lower.y) / 2,
+    };
+    expect(fixedMidpoint.x).toBeCloseTo((capturedGuardHand.x + capturedPommelHand.x) / 2);
+    expect(fixedMidpoint.y).toBeCloseTo((capturedGuardHand.y + capturedPommelHand.y) / 2);
+  });
+
+  it("preserves captured guard/pommel ordering for a vertical two-hand grip", () => {
+    const pose = swordPoseFromGripPoints("longsword", { x: 0, y: 4 }, { x: 0, y: 12 });
+    expect(pose).not.toBeNull();
+    expect(pose!.rotation).toBeCloseTo(0);
+    const grips = swordGripTargets("longsword", pose!);
+    expect(grips.upper).toEqual({ x: 0, y: 4 });
+    expect(grips.lower).toEqual({ x: 0, y: 12 });
+  });
+
+  it("returns the original hand endpoint from forward kinematics", () => {
     const shoulder = { x: 11, y: -22 };
     const target = { x: 2, y: 8 };
     const solution = solveTwoBoneArm(shoulder, target, 21, 22, -1);
+    const reconstructed = armHandPoint(
+      shoulder,
+      solution.upperRotation,
+      solution.lowerRotation,
+      21,
+      22,
+    );
 
     expect(solution.clamped).toBe(false);
-    expect(solution.hand).toEqual(target);
+    expect(reconstructed.x).toBeCloseTo(target.x);
+    expect(reconstructed.y).toBeCloseTo(target.y);
     expect(Math.hypot(solution.elbow.x - shoulder.x, solution.elbow.y - shoulder.y)).toBeCloseTo(21);
     expect(Math.hypot(target.x - solution.elbow.x, target.y - solution.elbow.y)).toBeCloseTo(22);
   });
 
-  it("authors the primary cut as blade braking with continued body follow-through", () => {
-    const frames = SWORD_REFERENCE_SEQUENCES.swordOberhauReference.frames;
-    expect(frames.map((entry) => entry.label)).toEqual([
-      "guard",
-      "coil",
-      "loaded",
-      "release",
-      "drive",
-      "cut",
-      "impact",
-      "longpoint",
-      "body follows",
-      "braked finish",
-      "settle",
-      "withdraw",
-      "re-chamber",
-      "guard",
-    ]);
-
-    const impact = frames.find((entry) => entry.label === "impact")!;
-    const longpoint = frames.find((entry) => entry.label === "longpoint")!;
-    const bodyFollows = frames.find((entry) => entry.label === "body follows")!;
-    const braked = frames.find((entry) => entry.label === "braked finish")!;
-
-    expect(longpoint.sword.angle).toBeGreaterThan(impact.sword.angle);
-    expect(bodyFollows.sword.angle - longpoint.sword.angle).toBeLessThan(10);
-    expect(braked.sword.angle - bodyFollows.sword.angle).toBeLessThan(5);
-    expect(bodyFollows.bones.torso?.rotation ?? 0).toBeGreaterThan(longpoint.bones.torso?.rotation ?? 0);
-    expect(bodyFollows.bones.pelvis?.x ?? 0).toBeGreaterThan(longpoint.bones.pelvis?.x ?? 0);
-    expect(Math.max(...frames.map((entry) => entry.sword.angle))).toBeLessThanOrEqual(112);
-    expect(frames.at(-1)?.sword).toEqual(frames[0].sword);
-  });
-
-  it("keeps the rigid sword compact through impact and controlled recovery", () => {
-    const startup = swordPoseForClip("swordOberhauReference", 0);
-    const contact = swordPoseForClip("swordOberhauReference", 14);
-    const finish = swordPoseForClip("swordOberhauReference", 21);
-    const recovery = swordPoseForClip("swordOberhauReference", 29);
-
-    expect(startup.rotation).toBeCloseTo(0);
-    expect(contact.rotation).toBeLessThan(finish.rotation);
-    expect(finish.rotation).toBeLessThanOrEqual(112);
-    expect(recovery.rotation).toBeLessThan(finish.rotation);
-    expect(SWORD_SPECS.longsword.bladeLength).toBe(56);
-    expect(SWORD_SPECS.longsword.handleLength).toBe(15);
-  });
-
-  it("keeps both grips reachable across every sword preview frame and hard torso lean", () => {
-    const clips: readonly [ClipName, number][] = [
-      ["bnrCrouchNormal", 18],
-      ["bnrWalkNormal", 60],
-      ["bnrRunNormal", 46],
-      ["bnrDashNormal", 38],
-      ["swordGuardReference", 60],
-      ["swordOberhauReference", 42],
-      ["swordOberhauStudyReference", 84],
-      ["bnrSlashStudyNormal", 802],
-    ];
-    const torsoRotations = [-45, -30, -15, 0, 15, 30, 45];
+  it("keeps fixed reconstructed grips reachable for every sword size", () => {
+    const guardHand = { x: -4, y: -4 };
+    const pommelHand = { x: 3, y: 2 };
 
     for (const id of Object.keys(SWORD_SPECS) as SwordId[]) {
-      for (const [clip, duration] of clips) {
-        for (let frame = 0; frame <= duration; frame += 1) {
-          for (const torsoRotation of torsoRotations) {
-            const grips = swordGripTargets(id, swordPoseForClip(clip, frame, torsoRotation));
-            const front = solveTwoBoneArm({ x: 11, y: -22 }, grips.upper, 21, 22, -1);
-            const back = solveTwoBoneArm({ x: -11, y: -22 }, grips.lower, 21, 22, 1);
-            expect(front.clamped, `${id} ${clip} frame ${frame} front`).toBe(false);
-            expect(back.clamped, `${id} ${clip} frame ${frame} back`).toBe(false);
-          }
-        }
-      }
+      const pose = swordPoseFromGripPoints(id, guardHand, pommelHand);
+      expect(pose).not.toBeNull();
+      const grips = swordGripTargets(id, pose!);
+      const back = solveTwoBoneArm({ x: -11, y: -22 }, grips.upper, 21, 22, 1);
+      const front = solveTwoBoneArm({ x: 11, y: -22 }, grips.lower, 21, 22, -1);
+      expect(back.clamped, `${id} guard-side hand`).toBe(false);
+      expect(front.clamped, `${id} pommel-side hand`).toBe(false);
     }
   });
 });
