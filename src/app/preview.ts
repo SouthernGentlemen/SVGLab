@@ -15,7 +15,7 @@ import { sampleClip } from "../animation/sample";
 import type { AnimationClip } from "../animation/types";
 import { SKINS } from "../svg/characters";
 import type { CharacterSkin } from "../svg/characters";
-import { applyPose, buildFighterNode, placeFighter } from "../svg/rig";
+import { appendAll, applyPose, buildFighterNode, placeFighter } from "../svg/rig";
 import type { FighterNode } from "../svg/rig";
 import { SWORDS, applySwordConstraint, equipSword, swordName } from "../svg/weapons";
 import type { SwordId } from "../svg/weapons";
@@ -142,8 +142,8 @@ function foregroundSwordArms(node: FighterNode, clip: ClipName): void {
 
   // Generic locomotion normally sends one arm behind the body. A two-handed weapon cannot
   // allow that reparenting: both constrained arms stay in torso space and the face paints last.
-  if (facing() === 1) torso.append(front, back, head);
-  else torso.append(back, front, head);
+  if (facing() === 1) appendAll(torso, front, back, head);
+  else appendAll(torso, back, front, head);
 }
 
 function placePreviewFighters(torsoRotation: number): void {

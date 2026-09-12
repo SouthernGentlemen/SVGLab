@@ -119,6 +119,18 @@ export function fighterPlacement(x: number, y: number, scale: number, facing: Vi
  * guards both the preview gallery and the fight renderer instead of inventing a second model
  * registry or a test-only interpretation of what a fighter is.
  */
+/**
+ * `parent.append(a, b, c)` in a form this project's type environment can express.
+ *
+ * `@cloudflare/workers-types` merges HTMLRewriter's `Element` into the DOM's, and its own
+ * one-argument `append` hides the variadic overload — the same collision `main.ts` documents
+ * for `HTMLSelectElement.remove`. `appendChild` is untouched by it, so ordered appends go one
+ * node at a time and mean exactly what they say.
+ */
+export function appendAll(parent: SVGElement, ...nodes: readonly SVGElement[]): void {
+  for (const node of nodes) parent.appendChild(node);
+}
+
 export function inspectFighterModel(model: string): FighterModelFacts {
   if (!/\bdata-model\s*=\s*(["'])fighter\1/.test(model)) {
     throw new Error("Authored fighter SVG has no data-model='fighter' group");

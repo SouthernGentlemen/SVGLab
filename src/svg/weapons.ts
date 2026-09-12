@@ -1,4 +1,5 @@
 import { clipOrigin } from "../animation/clips";
+import { appendAll } from "./rig";
 import type { ClipName } from "../animation/clips";
 import type { FighterNode } from "./rig";
 
@@ -165,7 +166,7 @@ function grip(width: number, guardWidth: number, handleLength: number): SVGGElem
   pommel.setAttribute("r", "2.1");
   pommel.setAttribute("fill", "#c99a55");
 
-  group.append(guard, handle, pommel);
+  appendAll(group, guard, handle, pommel);
   return group;
 }
 
@@ -176,19 +177,22 @@ function buildSword(id: SwordId): SVGGElement {
   group.setAttribute("pointer-events", "none");
 
   if (id === "longsword") {
-    group.append(
+    appendAll(
+      group,
       bladePath("M-2 0 L-1.5 -48 L0 -56 L1.5 -48 L2 0 Z"),
       detailPath("M0 -3 L0 -48"),
       grip(4.5, 17, spec.handleLength),
     );
   } else if (id === "katana") {
-    group.append(
+    appendAll(
+      group,
       bladePath("M-1.8 0 C-1 -18 0 -38 6 -53 L8 -57 L6 -51 C2 -35 1 -17 1.7 0 Z"),
       detailPath("M0 -3 C0 -21 1.5 -38 6 -51"),
       grip(4, 12, spec.handleLength),
     );
   } else {
-    group.append(
+    appendAll(
+      group,
       bladePath("M-3.2 0 L-2.7 -55 L0 -70 L2.7 -55 L3.2 0 Z"),
       detailPath("M0 -4 L0 -59"),
       grip(5.5, 22, spec.handleLength),
@@ -357,7 +361,7 @@ export function applySwordConstraint(
     throw new Error("Fighter model is missing upper-body bones for sword constraint");
   }
 
-  if (sword.parentElement !== torso) torso.insertBefore(sword, torso.firstChild);
+  if (sword.parentNode !== torso) torso.insertBefore(sword, torso.firstChild);
   const pose = swordPoseForClip(clip, frame, torsoRotation);
   sword.setAttribute("transform", `translate(${pose.x.toFixed(3)} ${pose.y.toFixed(3)}) rotate(${pose.rotation.toFixed(3)})`);
 
