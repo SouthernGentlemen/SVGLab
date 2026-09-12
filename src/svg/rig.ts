@@ -48,6 +48,9 @@ const ARM_LAYER_PROFILES = {
   bnrSwordCutNormal: "punch",
   bnrSlashStudyNormal: "punch",
   bnrPunchStudyNormal: "punch",
+  swordGuardReference: "both-front",
+  swordOberhauReference: "punch",
+  swordOberhauStudyReference: "punch",
 } as const satisfies Record<ClipName, ArmLayerProfile>;
 
 export function armLayerProfile(clip: ClipName): ArmLayerProfile {
