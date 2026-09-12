@@ -5,6 +5,7 @@ import {
   swordGripTargets,
   swordPoseForClip,
 } from "../src/svg/weapons";
+import type { ClipName } from "../src/animation/clips";
 import type { SwordId } from "../src/svg/weapons";
 
 describe("rigid sword constraints", () => {
@@ -42,5 +43,33 @@ describe("rigid sword constraints", () => {
     expect(contact.rotation).toBeGreaterThan(startup.rotation);
     expect(SWORD_SPECS.longsword.bladeLength).toBe(56);
     expect(SWORD_SPECS.longsword.handleLength).toBe(15);
+  });
+
+  it("keeps both grips reachable across every sword preview frame and hard torso lean", () => {
+    const clips: readonly [ClipName, number][] = [
+      ["bnrCrouchNormal", 18],
+      ["bnrWalkNormal", 60],
+      ["bnrRunNormal", 46],
+      ["bnrDashNormal", 38],
+      ["bnrSwordGuardNormal", 118],
+      ["bnrSwordSlashNormal", 30],
+      ["bnrSwordCutNormal", 124],
+      ["bnrSlashStudyNormal", 802],
+    ];
+    const torsoRotations = [-45, -30, -15, 0, 15, 30, 45];
+
+    for (const id of Object.keys(SWORD_SPECS) as SwordId[]) {
+      for (const [clip, duration] of clips) {
+        for (let frame = 0; frame <= duration; frame += 1) {
+          for (const torsoRotation of torsoRotations) {
+            const grips = swordGripTargets(id, swordPoseForClip(clip, frame, torsoRotation));
+            const front = solveTwoBoneArm({ x: 11, y: -22 }, grips.upper, 21, 22, -1);
+            const back = solveTwoBoneArm({ x: -11, y: -22 }, grips.lower, 21, 22, 1);
+            expect(front.clamped, `${id} ${clip} frame ${frame} front`).toBe(false);
+            expect(back.clamped, `${id} ${clip} frame ${frame} back`).toBe(false);
+          }
+        }
+      }
+    }
   });
 });
