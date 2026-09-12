@@ -112,14 +112,6 @@ export function fighterPlacement(x: number, y: number, scale: number, facing: Vi
 }
 
 /**
- * Reads the small structural contract the rig requires without needing the DOM.
- *
- * Keeping this pure lets tests validate every generated skin in Node, while buildFighterNode
- * still performs the browser's XML parse before anything is drawn. The same check therefore
- * guards both the preview gallery and the fight renderer instead of inventing a second model
- * registry or a test-only interpretation of what a fighter is.
- */
-/**
  * `parent.append(a, b, c)` in a form this project's type environment can express.
  *
  * `@cloudflare/workers-types` merges HTMLRewriter's `Element` into the DOM's, and its own
@@ -131,6 +123,14 @@ export function appendAll(parent: SVGElement, ...nodes: readonly SVGElement[]): 
   for (const node of nodes) parent.appendChild(node);
 }
 
+/**
+ * Reads the small structural contract the rig requires without needing the DOM.
+ *
+ * Keeping this pure lets tests validate every generated skin in Node, while buildFighterNode
+ * still performs the browser's XML parse before anything is drawn. The same check therefore
+ * guards both the preview gallery and the fight renderer instead of inventing a second model
+ * registry or a test-only interpretation of what a fighter is.
+ */
 export function inspectFighterModel(model: string): FighterModelFacts {
   if (!/\bdata-model\s*=\s*(["'])fighter\1/.test(model)) {
     throw new Error("Authored fighter SVG has no data-model='fighter' group");

@@ -54,42 +54,9 @@ One `Simulation.step()` accepts frame inputs, stores them, resolves commands, ad
 
 No directory was copied wholesale. The AABB behavior is the only implementation intentionally kept near-source; all other code is reduced or new.
 
-## 8. Recommended architecture
+---
 
-```text
-src/input       browser intent only
-src/combat      deterministic, DOM-free authority
-src/animation   state-to-clip selection and sparse pose interpolation
-src/svg         authored model plus presentation renderer
-src/debug       read-only instrumentation
-src/app         lifecycle glue, pause/reset/step controls
-src/worker.ts   local static-asset adapter only
-```
-
-The import direction is one-way. Combat knows nothing about SVG or Cloudflare. The animation layer reads combat state; the renderer reads both; the app coordinates them.
-
-## 9. `npm run dev` lifecycle
-
-1. Read the recorded Wrangler PID, verify its command belongs to this repository, and terminate only that process group.
-2. Remove `dist/`, `.wrangler/`, and `.runtime/{cloudflare,cache}`.
-3. Run the local-only invariant check.
-4. Rebuild the Vite client.
-5. Launch `wrangler dev --local` bound to loopback with its persistence path under disposable `.runtime/`.
-
-The lifecycle never deletes `src/`, `docs/`, tests, authored SVG, or Git state.
-
-## 10. First minimal vertical slice
-
-The proving slice is:
-
-```text
-fighter input → standing strike → startup → active hitbox
-→ dummy hurtbox intersection → one hit → damage + hitstop + hitstun + knockback
-→ recovery → reset
-```
-
-The focus-first arena keeps the fight full size and exposes the authoritative tick, move frame/phase, both fighter states, health, velocity, facing, active boxes, animation clip/frame, bone pivots, and recent combat events through overlays. Tests prove phase boundaries, facing-relative boxes, once-per-move contact, invulnerability, reaction recovery, crouch geometry, jump physics, and reset.
-
-## Explicit deferrals
-
-Blocking, throws, projectiles, cancels, command motions, AI, recording, rollback, networking, multiple fighters, and content schemas are intentionally deferred. They are experiment candidates, not hidden dependencies of the first slice.
+This is a provenance record and it stops here. What SVGLab *is* — its layout, its contracts,
+its gates and its plan — is `AGENTS.md`, not this file. The architecture sketch, dev lifecycle
+and first-slice definition that used to follow were written before that contract existed and
+had begun to contradict it.

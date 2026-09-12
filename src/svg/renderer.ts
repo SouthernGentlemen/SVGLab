@@ -1,4 +1,4 @@
-import { animationSnapshot } from "../animation/sample";
+import { animationSnapshot } from "../animation/snapshot";
 import { SCALE } from "../combat/constants";
 import { debugBoxes } from "../combat/collision/boxes";
 import type { Aabb, FighterDefinition, FrameReport, SimulationState } from "../combat/types";

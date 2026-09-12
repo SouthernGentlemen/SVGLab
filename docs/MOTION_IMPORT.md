@@ -51,9 +51,13 @@ whether contact succeeds.
 
 ## Sword material
 
-The doctrine this section follows — what may drive a sword pose, what may not, and which
-recorded sources are worth vendoring next — is in
-[the sword motion reference](SWORD-MOTION-REFERENCE.md).
+**Motion comes from a recording or it does not ship.** An earlier hand-authored swing sequence
+produced exactly the failure this lab exists to expose: plausible-looking keyframes that did not
+reproduce a real swing, with bad recovery arcs and ambiguous hand placement. Do not hand-author
+an attack trajectory, do not stretch limb or blade geometry to reach a pose, do not infer
+follow-through from a decorative arc, and do not call an inferred weapon axis "captured sword
+motion" when the source only recorded the body. AI-generated sprite sheets and stick-figure
+animation assets are ideation, not joint data: limb lengths drift and grips move between frames.
 
 `slash` (content label 14) is the only armed-combat content in either published Bandai Namco
 dataset. Dataset 2 holds locomotion, turning, waving, and raise-up material only, and dataset 1
@@ -86,6 +90,19 @@ records that mapping and the build fails if it drifts.
 The loop seam is a search result, not a guess. Scanning every window in the two stretches
 between cuts for a seam under the manifest's 8 degree tolerance leaves 469 candidates;
 frames 250–309 is the longest, so the guard loop is the full two seconds of settled stance.
+
+### Sources worth vendoring next
+
+Neither capture holds a prop, so the blade is reconstructed from the body rather than recorded.
+These record sword motion directly and are the preferred candidates for the next import. Keep
+the original file and its licence beside it, add a manifest entry, and generate from that source.
+
+- **Touché** (University of Bath / Ninja Theory) — <https://researchdata.bath.ac.uk/754/>.
+  Vicon Bonita, ~26,000 frames at 30 fps, 24 joints, and **the position of both sword tips**.
+  `animation_data.zip` is CC BY 4.0. The only candidate that records the weapon itself.
+- **SFU Motion Capture Database — Kendo** — <https://mocap.cs.sfu.ca/>.
+  `0015_BasicKendo001.bvh`, `0015_Kirikaeshi001.bvh`, `0015_KendoKata001.bvh`. Free for
+  research; not for commercial products or resale.
 
 ## The sword slash move
 

@@ -1,10 +1,13 @@
 /**
  * Clip arithmetic shared by every motion script.
  *
- * `src/animation/sample.ts` is what the lab plays, so a script that writes a clip out for an
- * external tool has to interpolate the same way or the tool shows something the lab never
- * renders. `samplePose` mirrors it, and a test samples every shipped clip through both.
+ * The sampler itself is not here. `src/animation/sample.ts` is what the lab plays, so a script
+ * that writes a clip out for an external tool interpolates through that exact function rather
+ * than a copy of it — node runs the TypeScript directly. The copy that used to live here was
+ * linear-only and silently disagreed with the runtime by 8.6 degrees on a smoothstep clip,
+ * which is the failure a parity test is supposed to prevent and cannot.
  */
+export { sampleClip as samplePose } from "../../src/animation/sample.ts";
 
 export const round = (value) => Math.round(value * 1000) / 1000;
 
@@ -34,45 +37,6 @@ export function simplify(values, tolerance) {
   };
   visit(0, values.length - 1);
   return [...keep].sort((a, b) => a - b);
-}
-
-function clipFrame(clip, frame) {
-  if (clip.duration <= 0) return 0;
-  if (clip.loop) return ((frame % clip.duration) + clip.duration) % clip.duration;
-  return Math.max(0, Math.min(frame, clip.duration));
-}
-
-/** Sparse per-property linear interpolation, matching src/animation/sample.ts. */
-export function samplePose(clip, frame) {
-  const at = clipFrame(clip, frame);
-  const bones = new Set();
-  for (const keyframe of clip.keyframes) for (const bone of Object.keys(keyframe.bones)) bones.add(bone);
-  const pose = {};
-
-  for (const boneName of bones) {
-    const bone = {};
-    for (const property of PROPERTIES) {
-      let beforeFrame = 0;
-      let beforeValue = 0;
-      let afterFrame = -1;
-      let afterValue = 0;
-      for (const keyframe of clip.keyframes) {
-        const value = keyframe.bones[boneName]?.[property];
-        if (value === undefined) continue;
-        if (keyframe.frame <= at && keyframe.frame >= beforeFrame) {
-          beforeFrame = keyframe.frame;
-          beforeValue = value;
-        } else if (keyframe.frame > at && (afterFrame < 0 || keyframe.frame < afterFrame)) {
-          afterFrame = keyframe.frame;
-          afterValue = value;
-        }
-      }
-      if (afterFrame < 0 || afterFrame === beforeFrame) bone[property] = beforeValue;
-      else bone[property] = beforeValue + (afterValue - beforeValue) * ((at - beforeFrame) / (afterFrame - beforeFrame));
-    }
-    pose[boneName] = bone;
-  }
-  return pose;
 }
 
 /**

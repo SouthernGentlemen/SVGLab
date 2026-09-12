@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -65,6 +67,28 @@ describe("architecture guardrails", () => {
       if (path.endsWith(".svg")) {
         expect(source, `${path} contains a raster <image>`).not.toMatch(/<image\b/);
       }
+    }
+  });
+
+  it("never lets reset delete out/, where a Blender project is pointed", () => {
+    // AGENTS.md: "out/ untracked exchange output; never wiped by reset" and "Never authored
+    // source, never a .blend someone is editing." reset() used to list out/ among its targets,
+    // so npm run dev destroyed an in-progress edit on every run.
+    const sandbox = mkdtempSync(join(tmpdir(), "svglab-reset-"));
+    try {
+      mkdirSync(join(sandbox, "scripts"), { recursive: true });
+      copyFileSync(join(root, "scripts", "lifecycle.mjs"), join(sandbox, "scripts", "lifecycle.mjs"));
+      mkdirSync(join(sandbox, "out", "blender"), { recursive: true });
+      mkdirSync(join(sandbox, "dist"), { recursive: true });
+      writeFileSync(join(sandbox, "out", "blender", "in-progress.blend"), "someone is editing this");
+      writeFileSync(join(sandbox, "dist", "bundle.js"), "rebuilt every time");
+
+      execFileSync(process.execPath, [join(sandbox, "scripts", "lifecycle.mjs"), "reset"], { stdio: "pipe" });
+
+      expect(existsSync(join(sandbox, "out", "blender", "in-progress.blend"))).toBe(true);
+      expect(existsSync(join(sandbox, "dist"))).toBe(false);
+    } finally {
+      rmSync(sandbox, { recursive: true, force: true });
     }
   });
 });

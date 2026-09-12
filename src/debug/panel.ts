@@ -1,4 +1,4 @@
-import type { AnimationSnapshot } from "../animation/sample";
+import type { AnimationSnapshot } from "../animation/snapshot";
 import { activeMove, attackPhase } from "../combat/state/machine";
 import { toPixels } from "../combat/constants";
 import type { CombatEvent, FighterDefinition, SimulationState } from "../combat/types";
