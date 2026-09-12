@@ -50,7 +50,7 @@ describe("rigid sword constraints", () => {
     expect(Math.hypot(target.x - solution.elbow.x, target.y - solution.elbow.y)).toBeCloseTo(22);
   });
 
-  it("authors the primary cut as a committed full-body strike with overshoot and recovery", () => {
+  it("authors the primary cut as a committed strike that carries momentum through recovery", () => {
     const frames = SWORD_REFERENCE_SEQUENCES.swordOberhauReference.frames;
     expect(frames.map((entry) => entry.label)).toEqual([
       "guard",
@@ -61,8 +61,8 @@ describe("rigid sword constraints", () => {
       "impact / longpoint",
       "follow through",
       "overshoot",
-      "settle",
-      "recover",
+      "low finish",
+      "circle recover",
       "return",
       "guard",
     ]);
@@ -70,20 +70,32 @@ describe("rigid sword constraints", () => {
     const impact = frames.find((entry) => entry.label === "impact / longpoint")!;
     const followThrough = frames.find((entry) => entry.label === "follow through")!;
     const overshoot = frames.find((entry) => entry.label === "overshoot")!;
+    const lowFinish = frames.find((entry) => entry.label === "low finish")!;
+    const circleRecover = frames.find((entry) => entry.label === "circle recover")!;
+
     expect(followThrough.sword.angle).toBeGreaterThan(impact.sword.angle);
     expect(overshoot.sword.angle).toBeGreaterThan(followThrough.sword.angle);
+    expect(lowFinish.sword.angle).toBeGreaterThan(overshoot.sword.angle);
+    expect(circleRecover.sword.angle).toBeGreaterThan(lowFinish.sword.angle);
     expect(overshoot.bones.torso?.rotation ?? 0).toBeGreaterThan(impact.bones.torso?.rotation ?? 0);
     expect(overshoot.bones.pelvis?.x ?? 0).toBeGreaterThan(impact.bones.pelvis?.x ?? 0);
-    expect(frames.at(-1)?.sword).toEqual(frames[0].sword);
+
+    const first = frames[0].sword;
+    const last = frames.at(-1)!.sword;
+    expect(last.x).toBe(first.x);
+    expect(last.y).toBe(first.y);
+    expect(last.angle % 360).toBe(first.angle % 360);
   });
 
-  it("rotates the whole rigid sword through impact and follow-through without resizing it", () => {
+  it("rotates the whole rigid sword through impact, low finish, and circular recovery", () => {
     const startup = swordPoseForClip("swordOberhauReference", 0);
     const contact = swordPoseForClip("swordOberhauReference", 14);
     const overshoot = swordPoseForClip("swordOberhauReference", 19);
+    const recovery = swordPoseForClip("swordOberhauReference", 28);
 
     expect(startup.rotation).toBeCloseTo(0);
     expect(contact.rotation).toBeLessThan(overshoot.rotation);
+    expect(overshoot.rotation).toBeLessThan(recovery.rotation);
     expect(SWORD_SPECS.longsword.bladeLength).toBe(56);
     expect(SWORD_SPECS.longsword.handleLength).toBe(15);
   });
