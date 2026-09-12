@@ -41,13 +41,19 @@ export interface ArmSolution {
   readonly clamped: boolean;
 }
 
+export interface ArmReach {
+  readonly shoulder: Point;
+  readonly upperLength: number;
+  readonly lowerLength: number;
+}
+
 export const SWORD_SPECS: Readonly<Record<SwordId, SwordSpec>> = {
   longsword: { bladeLength: 56, handleLength: 15, upperGripY: 4, lowerGripY: 12 },
   katana: { bladeLength: 57, handleLength: 14, upperGripY: 4, lowerGripY: 11 },
   greatsword: { bladeLength: 70, handleLength: 18, upperGripY: 5, lowerGripY: 13 },
 };
 
-/** These clips all come from the same real two-handed Bandai Namco slash capture. */
+/** These clips all come from the same real Bandai Namco slash capture. */
 const CAPTURED_SWORD_CLIPS = new Set<ClipName>([
   "bnrSwordGuardNormal",
   "bnrSwordSlashNormal",
@@ -152,12 +158,10 @@ function rotateLocal(point: Point, rotation: number): Point {
 }
 
 /**
- * Reconstruct one fixed-size sword from the two captured grip locations.
+ * Reconstruct one fixed-size sword from the two captured hand endpoints.
  *
- * The points only define the handle axis and its center. They never resize the weapon. The
- * guard-side hand is the one that leads the projected capture in +X; the other hand stays
- * toward the pommel. Local -Y then extends the blade forward through the guard, never through
- * either hand.
+ * The captured points determine the handle axis and its ideal center only; they never resize
+ * the weapon. Local -Y extends the blade forward through the guard and away from both hands.
  */
 export function swordPoseFromGripPoints(
   id: SwordId,
@@ -179,7 +183,6 @@ export function swordPoseFromGripPoints(
   return {
     x: midpoint.x - axis.x * gripCenterY,
     y: midpoint.y - axis.y * gripCenterY,
-    // Local +Y follows guard -> pommel, so local -Y (the blade) points out past the guard hand.
     rotation: Math.atan2(-axis.x, axis.y) * DEG,
   };
 }
@@ -198,6 +201,55 @@ export function swordGripTargets(id: SwordId, pose: SwordPose): { upper: Point; 
     upper: { x: pose.x + upper.x, y: pose.y + upper.y },
     lower: { x: pose.x + lower.x, y: pose.y + lower.y },
   };
+}
+
+function projectIntoReach(origin: Point, center: Point, radius: number): Point {
+  const dx = origin.x - center.x;
+  const dy = origin.y - center.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance <= radius || distance === 0) return origin;
+  return {
+    x: center.x + (dx / distance) * radius,
+    y: center.y + (dy / distance) * radius,
+  };
+}
+
+/**
+ * Preserve the captured blade angle while retargeting its translation to this rig's proportions.
+ *
+ * The captured performer and SVGLab do not share shoulder width, arm length or hand spacing.
+ * A fixed handle can therefore put one reconstructed grip just outside the two-link arm reach.
+ * Each fixed grip defines a disk of valid sword origins; alternating projection moves the whole
+ * rigid weapon to the closest reachable intersection without changing angle or dimensions.
+ */
+export function fitSwordPoseToArmReach(
+  id: SwordId,
+  pose: SwordPose,
+  guardArm: ArmReach,
+  pommelArm: ArmReach,
+): SwordPose {
+  const spec = SWORD_SPECS[id];
+  const guardOffset = rotateLocal({ x: 0, y: spec.upperGripY }, pose.rotation);
+  const pommelOffset = rotateLocal({ x: 0, y: spec.lowerGripY }, pose.rotation);
+  const guardCenter = {
+    x: guardArm.shoulder.x - guardOffset.x,
+    y: guardArm.shoulder.y - guardOffset.y,
+  };
+  const pommelCenter = {
+    x: pommelArm.shoulder.x - pommelOffset.x,
+    y: pommelArm.shoulder.y - pommelOffset.y,
+  };
+  const guardRadius = guardArm.upperLength + guardArm.lowerLength - 0.001;
+  const pommelRadius = pommelArm.upperLength + pommelArm.lowerLength - 0.001;
+
+  let origin: Point = { x: pose.x, y: pose.y };
+  for (let iteration = 0; iteration < 16; iteration += 1) {
+    const before = origin;
+    origin = projectIntoReach(origin, guardCenter, guardRadius);
+    origin = projectIntoReach(origin, pommelCenter, pommelRadius);
+    if (Math.hypot(origin.x - before.x, origin.y - before.y) < 0.0001) break;
+  }
+  return { x: origin.x, y: origin.y, rotation: pose.rotation };
 }
 
 /** Forward-kinematics endpoint for the same two-link arm convention used by the SVG rig. */
@@ -260,15 +312,28 @@ function baseNumber(node: Element, name: "x" | "y"): number {
   return Number(node.getAttribute(`data-${name}`) ?? 0);
 }
 
+function armReach(upper: SVGGElement, lower: SVGGElement): ArmReach {
+  return {
+    shoulder: { x: baseNumber(upper, "x"), y: baseNumber(upper, "y") },
+    upperLength: Math.abs(baseNumber(lower, "y")) || 21,
+    lowerLength: 22,
+  };
+}
+
 function rotationNumber(node: Element): number {
   const match = /rotate\(([-+\d.eE]+)\)/.exec(node.getAttribute("transform") ?? "");
   return match ? Number(match[1]) : 0;
 }
 
 function capturedHand(upper: SVGGElement, lower: SVGGElement): Point {
-  const shoulder = { x: baseNumber(upper, "x"), y: baseNumber(upper, "y") };
-  const upperLength = Math.abs(baseNumber(lower, "y")) || 21;
-  return armHandPoint(shoulder, rotationNumber(upper), rotationNumber(lower), upperLength, 22);
+  const reach = armReach(upper, lower);
+  return armHandPoint(
+    reach.shoulder,
+    rotationNumber(upper),
+    rotationNumber(lower),
+    reach.upperLength,
+    reach.lowerLength,
+  );
 }
 
 function setBoneRotation(bone: SVGGElement, rotation: number): void {
@@ -284,9 +349,15 @@ function constrainArm(
   target: Point,
   bend: -1 | 1,
 ): void {
-  const shoulder = { x: baseNumber(upper, "x"), y: baseNumber(upper, "y") };
-  const upperLength = Math.abs(baseNumber(lower, "y")) || 21;
-  const solution = solveTwoBoneArm(shoulder, target, upperLength, 22, bend);
+  const reach = armReach(upper, lower);
+  const solution = solveTwoBoneArm(
+    reach.shoulder,
+    target,
+    reach.upperLength,
+    reach.lowerLength,
+    bend,
+  );
+  if (solution.clamped) throw new Error("Rigid sword grip is outside fixed arm reach");
   setBoneRotation(upper, solution.upperRotation);
   setBoneRotation(lower, solution.lowerRotation);
 }
@@ -308,9 +379,9 @@ export function equipSword(node: FighterNode, id: SwordId | null): void {
 /**
  * Apply the rigid weapon after the captured body clip has been sampled.
  *
- * Sword-specific capture uses the recorded two-hand pose to reconstruct a rigid handle line,
- * then fits both arms back onto the selected sword's fixed grip points. Generic locomotion uses
- * an upright guard because those source clips were never holding a sword.
+ * Sword capture supplies the body motion and handle axis. The fixed weapon is translated only
+ * as much as required to fit both fixed-length SVGLab arms, then both joints are solved to the
+ * handle. Generic locomotion uses an upright guard because those sources were not sword clips.
  */
 export function applySwordConstraint(
   node: FighterNode,
@@ -335,18 +406,19 @@ export function applySwordConstraint(
 
   if (sword.parentElement !== torso) torso.insertBefore(sword, torso.firstChild);
 
-  // The retarget manifest maps source L -> arm-front and source R -> arm-back. In the projected
-  // slash capture, source L/front is the hand nearest the guard: that orientation carries the
-  // blade toward +X through the contact window. Capture both endpoints before IK overwrites them.
-  const pose = CAPTURED_SWORD_CLIPS.has(clip)
+  const frontReach = armReach(frontArm, frontForearm);
+  const backReach = armReach(backArm, backForearm);
+  let pose = CAPTURED_SWORD_CLIPS.has(clip)
     ? swordPoseFromGripPoints(id, capturedHand(frontArm, frontForearm), capturedHand(backArm, backForearm))
       ?? swordGuardPose(torsoRotation)
     : swordGuardPose(torsoRotation);
+  if (CAPTURED_SWORD_CLIPS.has(clip)) {
+    pose = fitSwordPoseToArmReach(id, pose, frontReach, backReach);
+  }
 
   sword.setAttribute("transform", `translate(${pose.x.toFixed(3)} ${pose.y.toFixed(3)}) rotate(${pose.rotation.toFixed(3)})`);
 
   const grips = swordGripTargets(id, pose);
-  // Source L/front stays on the guard-side grip; source R/back stays toward the pommel.
   constrainArm(frontArm, frontForearm, grips.upper, -1);
   constrainArm(backArm, backForearm, grips.lower, 1);
 }
