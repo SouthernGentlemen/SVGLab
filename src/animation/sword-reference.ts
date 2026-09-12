@@ -73,13 +73,13 @@ const GUARD_FRAMES: readonly SwordReferenceFrame[] = [
 ];
 
 /**
- * A committed descending cut, not a weapon-only swipe.
+ * A committed descending cut with an actual body consequence.
  *
- * The body first coils away from the target, then the rear side drives the pelvis and torso
- * through contact. Momentum continues after the blade crosses longpoint: the chest, hips and
- * stance overshoot before the fighter can gather the sword and return to guard. The asymmetric
- * recovery is intentional; immediately snapping back to frame zero makes the strike read like
- * the sword merely tapped something.
+ * The fighter coils away from the target, compresses the rear side, then drives pelvis and
+ * chest through the cut. Contact is only the midpoint: the sword, shoulders and hips continue
+ * into a low finish. Recovery follows the blade's remaining momentum in a circle around the
+ * body instead of reversing the attack path like a rewound clip. Only after that circle does
+ * the stance unwind and return to the upright guard.
  */
 const OBERHAU_FRAMES: readonly SwordReferenceFrame[] = [
   {
@@ -92,66 +92,66 @@ const OBERHAU_FRAMES: readonly SwordReferenceFrame[] = [
     frame: 4,
     label: "coil",
     sword: { x: -1, y: -18, angle: -10 },
-    bones: body(-3, 2, -18, 12, -5, 36, 32, 28),
+    bones: body(-4, 2, -20, 12, -3, 38, 34, 28),
   },
   {
     frame: 8,
     label: "loaded",
-    sword: { x: -2, y: -22, angle: -12 },
-    bones: body(-4, 2, -24, 15, 2, 42, 38, 30),
+    sword: { x: -3, y: -23, angle: -15 },
+    bones: body(-5, 3, -28, 16, 4, 46, 42, 32),
   },
   {
     frame: 10,
     label: "release",
-    sword: { x: 2, y: -18, angle: 15 },
-    bones: body(0, 0, -8, 6, -10, 30, 28, 20),
+    sword: { x: 1, y: -19, angle: 12 },
+    bones: body(0, 1, -12, 8, -10, 32, 30, 22),
   },
   {
     frame: 12,
     label: "drive",
-    sword: { x: 8, y: -13, angle: 50 },
-    bones: body(5, -1, 12, -8, -26, 20, 16, 25),
+    sword: { x: 8, y: -13, angle: 48 },
+    bones: body(7, 0, 12, -10, -28, 18, 14, 28),
   },
   {
     frame: 14,
     label: "impact / longpoint",
-    sword: { x: 15, y: -6, angle: 88 },
-    bones: body(10, -1, 28, -18, -38, 16, 5, 32),
+    sword: { x: 16, y: -6, angle: 86 },
+    bones: body(13, -1, 30, -20, -42, 14, 2, 36),
   },
   {
     frame: 16,
     label: "follow through",
-    sword: { x: 20, y: 2, angle: 122 },
-    bones: body(14, 1, 42, -26, -46, 14, -6, 40),
+    sword: { x: 21, y: 2, angle: 120 },
+    bones: body(18, 1, 46, -30, -52, 12, -10, 46),
   },
   {
     frame: 19,
     label: "overshoot",
-    sword: { x: 18, y: 8, angle: 148 },
-    bones: body(16, 3, 48, -30, -50, 18, -12, 44),
+    sword: { x: 20, y: 10, angle: 152 },
+    bones: body(22, 4, 56, -34, -56, 16, -18, 52),
   },
   {
     frame: 23,
-    label: "settle",
-    sword: { x: 14, y: 6, angle: 126 },
-    bones: body(14, 3, 32, -20, -42, 22, -4, 38),
+    label: "low finish",
+    sword: { x: 14, y: 15, angle: 178 },
+    bones: body(23, 5, 50, -30, -50, 22, -12, 46),
   },
   {
     frame: 28,
-    label: "recover",
-    sword: { x: 10, y: 1, angle: 84 },
-    bones: body(9, 2, 18, -10, -30, 24, 10, 28),
+    label: "circle recover",
+    sword: { x: 6, y: 12, angle: 220 },
+    bones: body(20, 4, 34, -20, -40, 26, 0, 36),
   },
   {
     frame: 34,
     label: "return",
-    sword: { x: 5, y: -5, angle: 25 },
-    bones: body(4, 1, 6, -4, -22, 26, 18, 22),
+    sword: { x: -1, y: 2, angle: 300 },
+    bones: body(12, 2, 14, -8, -28, 28, 12, 28),
   },
   {
     frame: 40,
     label: "guard",
-    sword: { x: 4, y: -8, angle: 0 },
+    sword: { x: 4, y: -8, angle: 360 },
     bones: body(0, 0, -2, 2, -15, 28, 22, 18),
   },
 ];
@@ -170,7 +170,7 @@ export const SWORD_REFERENCE_SEQUENCES = {
   swordOberhauReference: {
     duration: 40,
     loop: false,
-    note: "SVGLab committed descending cut: coil, drive, impact, full-body follow-through, overshoot, and asymmetric recovery.",
+    note: "SVGLab committed descending cut: coil, drive, impact, continued body rotation, low finish, circular recovery, and guard reset.",
     frames: OBERHAU_FRAMES,
   },
   swordOberhauStudyReference: {
