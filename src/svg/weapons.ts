@@ -155,9 +155,9 @@ function rotateLocal(point: Point, rotation: number): Point {
  * Reconstruct one fixed-size sword from the two captured grip locations.
  *
  * The points only define the handle axis and its center. They never resize the weapon. The
- * guard-side hand is the source right hand (`arm-back` after retargeting); the source left hand
- * (`arm-front`) sits toward the pommel. This ordering is what keeps both captured hands on the
- * handle instead of accidentally extending the blade through one of them.
+ * guard-side hand is the one that leads the projected capture in +X; the other hand stays
+ * toward the pommel. Local -Y then extends the blade forward through the guard, never through
+ * either hand.
  */
 export function swordPoseFromGripPoints(
   id: SwordId,
@@ -335,18 +335,18 @@ export function applySwordConstraint(
 
   if (sword.parentElement !== torso) torso.insertBefore(sword, torso.firstChild);
 
-  // The retarget manifest maps source L -> arm-front and source R -> arm-back. In this
-  // two-handed slash capture the source right hand is nearest the guard and the left hand is
-  // nearest the pommel. Capture the endpoints before IK overwrites either arm.
+  // The retarget manifest maps source L -> arm-front and source R -> arm-back. In the projected
+  // slash capture, source L/front is the hand nearest the guard: that orientation carries the
+  // blade toward +X through the contact window. Capture both endpoints before IK overwrites them.
   const pose = CAPTURED_SWORD_CLIPS.has(clip)
-    ? swordPoseFromGripPoints(id, capturedHand(backArm, backForearm), capturedHand(frontArm, frontForearm))
+    ? swordPoseFromGripPoints(id, capturedHand(frontArm, frontForearm), capturedHand(backArm, backForearm))
       ?? swordGuardPose(torsoRotation)
     : swordGuardPose(torsoRotation);
 
   sword.setAttribute("transform", `translate(${pose.x.toFixed(3)} ${pose.y.toFixed(3)}) rotate(${pose.rotation.toFixed(3)})`);
 
   const grips = swordGripTargets(id, pose);
-  // Source R/back stays on the guard-side grip; source L/front stays toward the pommel.
-  constrainArm(backArm, backForearm, grips.upper, 1);
-  constrainArm(frontArm, frontForearm, grips.lower, -1);
+  // Source L/front stays on the guard-side grip; source R/back stays toward the pommel.
+  constrainArm(frontArm, frontForearm, grips.upper, -1);
+  constrainArm(backArm, backForearm, grips.lower, 1);
 }
