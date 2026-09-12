@@ -22,6 +22,12 @@ import type { SwordId } from "../svg/weapons";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const FRAME_MS = 1000 / 60;
+const AUTHORED_SWORD_CLIPS = new Set<ClipName>([
+  "bnrSwordGuardNormal",
+  "bnrSwordSlashNormal",
+  "bnrSwordCutNormal",
+  "bnrSlashStudyNormal",
+]);
 
 function required<T extends Element>(selector: string): T {
   const node = document.querySelector<T>(selector);
@@ -126,8 +132,8 @@ function applyEquipment(): void {
   for (const entry of gallery) equipSword(entry.node, sword);
 }
 
-function foregroundSwordArms(node: FighterNode): void {
-  if (currentWeapon() !== "sword") return;
+function foregroundSwordArms(node: FighterNode, clip: ClipName): void {
+  if (currentWeapon() !== "sword" || AUTHORED_SWORD_CLIPS.has(clip)) return;
   const torso = node.bones.get("torso");
   const head = node.bones.get("head");
   const front = node.bones.get("arm-front");
@@ -143,11 +149,11 @@ function foregroundSwordArms(node: FighterNode): void {
 function placePreviewFighters(torsoRotation: number): void {
   const clip = currentClipName();
   placeFighter(singleNode, 180, 260, 2.2, facing(), clip);
-  foregroundSwordArms(singleNode);
+  foregroundSwordArms(singleNode, clip);
   applySwordConstraint(singleNode, clip, frame, torsoRotation);
   for (const entry of gallery) {
     placeFighter(entry.node, 120, 224, 1.55, facing(), clip);
-    foregroundSwordArms(entry.node);
+    foregroundSwordArms(entry.node, clip);
     applySwordConstraint(entry.node, clip, frame, torsoRotation);
   }
 }
@@ -438,7 +444,7 @@ window.addEventListener("keydown", (event) => {
 
   if (event.code === "Space") togglePlayback();
   else if (event.code === "BracketLeft") setClipByOffset(-1);
-  else if (event.code === "BracketRight") setClipByOffset(1);
+  else if (event.code === "BracketRight") setClipByOffset(1));
   else if (event.code === "KeyW") setWeaponByOffset(1);
   else if (event.code === "KeyQ") setSwordByOffset(1);
   else if (event.code === "Period") stepOneFrame();
