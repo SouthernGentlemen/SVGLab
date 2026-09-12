@@ -17,7 +17,7 @@ import { SKINS } from "../svg/characters";
 import type { CharacterSkin } from "../svg/characters";
 import { applyPose, buildFighterNode, placeFighter } from "../svg/rig";
 import type { FighterNode } from "../svg/rig";
-import { SWORDS, equipSword, swordName, updateSwordPose } from "../svg/weapons";
+import { SWORDS, applySwordConstraint, equipSword, swordName } from "../svg/weapons";
 import type { SwordId } from "../svg/weapons";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -126,13 +126,29 @@ function applyEquipment(): void {
   for (const entry of gallery) equipSword(entry.node, sword);
 }
 
-function placePreviewFighters(): void {
+function foregroundSwordArms(node: FighterNode): void {
+  if (currentWeapon() !== "sword") return;
+  const torso = node.bones.get("torso");
+  const head = node.bones.get("head");
+  const front = node.bones.get("arm-front");
+  const back = node.bones.get("arm-back");
+  if (!torso || !head || !front || !back) throw new Error("Fighter model is missing sword layering bones");
+
+  // Generic locomotion normally sends one arm behind the body. A two-handed weapon cannot
+  // allow that reparenting: both constrained arms stay in torso space and the face paints last.
+  if (facing() === 1) torso.append(front, back, head);
+  else torso.append(back, front, head);
+}
+
+function placePreviewFighters(torsoRotation: number): void {
   const clip = currentClipName();
   placeFighter(singleNode, 180, 260, 2.2, facing(), clip);
-  updateSwordPose(singleNode);
+  foregroundSwordArms(singleNode);
+  applySwordConstraint(singleNode, clip, frame, torsoRotation);
   for (const entry of gallery) {
     placeFighter(entry.node, 120, 224, 1.55, facing(), clip);
-    updateSwordPose(entry.node);
+    foregroundSwordArms(entry.node);
+    applySwordConstraint(entry.node, clip, frame, torsoRotation);
   }
 }
 
@@ -238,6 +254,11 @@ function rebuildSingle(): void {
   stageTitle.textContent = `${entry.name} · ${equipmentLabel()}`;
 }
 
+function rebuildPreviewRigs(): void {
+  buildGallery();
+  rebuildSingle();
+}
+
 function setRigOverlay(show: boolean): void {
   singleSvg.classList.toggle("show-rig", show);
   for (const entry of gallery) entry.svg.classList.toggle("show-rig", show);
@@ -273,7 +294,7 @@ function setWeaponByOffset(offset: number): void {
   weaponSelect.value = WEAPONS[nextIndex].id;
   refreshSwordAvailability();
   refreshClipOptions();
-  applyEquipment();
+  rebuildPreviewRigs();
   resetPlayback();
   render();
 }
@@ -340,6 +361,8 @@ function render(): void {
     entry.facts.classList.toggle("has-warning", missingBones(entry.node, clip).length > 0);
   }
 
+  placePreviewFighters(pose.torso?.rotation ?? 0);
+
   const lastFrame = previewLastFrame(clip);
   scrub.max = String(lastFrame);
   scrub.value = String(Math.min(frame, lastFrame));
@@ -351,7 +374,6 @@ function render(): void {
   replayButton.classList.remove("replay-ready");
 
   renderFacts(clip);
-  placePreviewFighters();
   setRigOverlay(rigToggle.checked);
   setCompare(compareToggle.checked);
 }
@@ -383,7 +405,7 @@ skinSelect.addEventListener("change", () => {
 weaponSelect.addEventListener("change", () => {
   refreshSwordAvailability();
   refreshClipOptions();
-  applyEquipment();
+  rebuildPreviewRigs();
   resetPlayback();
   render();
 });
