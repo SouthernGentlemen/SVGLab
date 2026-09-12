@@ -50,7 +50,7 @@ describe("rigid sword constraints", () => {
     expect(Math.hypot(target.x - solution.elbow.x, target.y - solution.elbow.y)).toBeCloseTo(22);
   });
 
-  it("authors the primary cut as a committed strike that carries momentum through recovery", () => {
+  it("authors the primary cut as blade braking with continued body follow-through", () => {
     const frames = SWORD_REFERENCE_SEQUENCES.swordOberhauReference.frames;
     expect(frames.map((entry) => entry.label)).toEqual([
       "guard",
@@ -58,44 +58,41 @@ describe("rigid sword constraints", () => {
       "loaded",
       "release",
       "drive",
-      "impact / longpoint",
-      "follow through",
-      "overshoot",
-      "low finish",
-      "circle recover",
-      "return",
+      "cut",
+      "impact",
+      "longpoint",
+      "body follows",
+      "braked finish",
+      "settle",
+      "withdraw",
+      "re-chamber",
       "guard",
     ]);
 
-    const impact = frames.find((entry) => entry.label === "impact / longpoint")!;
-    const followThrough = frames.find((entry) => entry.label === "follow through")!;
-    const overshoot = frames.find((entry) => entry.label === "overshoot")!;
-    const lowFinish = frames.find((entry) => entry.label === "low finish")!;
-    const circleRecover = frames.find((entry) => entry.label === "circle recover")!;
+    const impact = frames.find((entry) => entry.label === "impact")!;
+    const longpoint = frames.find((entry) => entry.label === "longpoint")!;
+    const bodyFollows = frames.find((entry) => entry.label === "body follows")!;
+    const braked = frames.find((entry) => entry.label === "braked finish")!;
 
-    expect(followThrough.sword.angle).toBeGreaterThan(impact.sword.angle);
-    expect(overshoot.sword.angle).toBeGreaterThan(followThrough.sword.angle);
-    expect(lowFinish.sword.angle).toBeGreaterThan(overshoot.sword.angle);
-    expect(circleRecover.sword.angle).toBeGreaterThan(lowFinish.sword.angle);
-    expect(overshoot.bones.torso?.rotation ?? 0).toBeGreaterThan(impact.bones.torso?.rotation ?? 0);
-    expect(overshoot.bones.pelvis?.x ?? 0).toBeGreaterThan(impact.bones.pelvis?.x ?? 0);
-
-    const first = frames[0].sword;
-    const last = frames.at(-1)!.sword;
-    expect(last.x).toBe(first.x);
-    expect(last.y).toBe(first.y);
-    expect(last.angle % 360).toBe(first.angle % 360);
+    expect(longpoint.sword.angle).toBeGreaterThan(impact.sword.angle);
+    expect(bodyFollows.sword.angle - longpoint.sword.angle).toBeLessThan(10);
+    expect(braked.sword.angle - bodyFollows.sword.angle).toBeLessThan(5);
+    expect(bodyFollows.bones.torso?.rotation ?? 0).toBeGreaterThan(longpoint.bones.torso?.rotation ?? 0);
+    expect(bodyFollows.bones.pelvis?.x ?? 0).toBeGreaterThan(longpoint.bones.pelvis?.x ?? 0);
+    expect(Math.max(...frames.map((entry) => entry.sword.angle))).toBeLessThanOrEqual(112);
+    expect(frames.at(-1)?.sword).toEqual(frames[0].sword);
   });
 
-  it("rotates the whole rigid sword through impact, low finish, and circular recovery", () => {
+  it("keeps the rigid sword compact through impact and controlled recovery", () => {
     const startup = swordPoseForClip("swordOberhauReference", 0);
     const contact = swordPoseForClip("swordOberhauReference", 14);
-    const overshoot = swordPoseForClip("swordOberhauReference", 19);
-    const recovery = swordPoseForClip("swordOberhauReference", 28);
+    const finish = swordPoseForClip("swordOberhauReference", 21);
+    const recovery = swordPoseForClip("swordOberhauReference", 29);
 
     expect(startup.rotation).toBeCloseTo(0);
-    expect(contact.rotation).toBeLessThan(overshoot.rotation);
-    expect(overshoot.rotation).toBeLessThan(recovery.rotation);
+    expect(contact.rotation).toBeLessThan(finish.rotation);
+    expect(finish.rotation).toBeLessThanOrEqual(112);
+    expect(recovery.rotation).toBeLessThan(finish.rotation);
     expect(SWORD_SPECS.longsword.bladeLength).toBe(56);
     expect(SWORD_SPECS.longsword.handleLength).toBe(15);
   });
@@ -107,8 +104,8 @@ describe("rigid sword constraints", () => {
       ["bnrRunNormal", 46],
       ["bnrDashNormal", 38],
       ["swordGuardReference", 60],
-      ["swordOberhauReference", 40],
-      ["swordOberhauStudyReference", 80],
+      ["swordOberhauReference", 42],
+      ["swordOberhauStudyReference", 84],
       ["bnrSlashStudyNormal", 802],
     ];
     const torsoRotations = [-45, -30, -15, 0, 15, 30, 45];
