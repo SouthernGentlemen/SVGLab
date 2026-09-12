@@ -35,14 +35,15 @@ export const UNARMED_MOVESET = {
   },
 } as const satisfies AnimationMoveSet;
 
+/** Sword presentation stays on captured motion. Weapon geometry is reconstructed from the captured two-hand grip. */
 export const SWORD_MOVESET = {
   id: "sword",
   name: "Sword",
   clips: {
-    neutral: "swordGuardReference",
-    primary: "swordOberhauReference",
-    study: "swordOberhauStudyReference",
-    sourceCapture: "bnrSlashStudyNormal",
+    neutral: "bnrSwordGuardNormal",
+    primary: "bnrSwordSlashNormal",
+    secondary: "bnrSwordCutNormal",
+    study: "bnrSlashStudyNormal",
   },
 } as const satisfies AnimationMoveSet;
 
