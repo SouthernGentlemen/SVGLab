@@ -36,18 +36,18 @@ describe("character preview rig contract", () => {
     expect(legDepth(-1)).toEqual({ far: "leg-back", near: "leg-front" });
   });
 
-  it("selects motion-aware arm layering for every Bandai Namco clip family", () => {
+  it("selects motion-aware arm layering for imported and authored clip families", () => {
     for (const clip of ["bnrWalkNormal", "bnrRunNormal", "bnrDashNormal"] as const) {
       expect(armLayerProfile(clip)).toBe("locomotion");
     }
     expect(armLayerProfile("bnrIdleNormal")).toBe("both-front");
     for (const clip of
       ["bnrStrikeNormal", "bnrSwordSlashNormal", "bnrSwordCutNormal", "bnrSlashStudyNormal",
-        "bnrPunchStudyNormal"] as const) {
+        "bnrPunchStudyNormal", "swordOberhauReference", "swordOberhauStudyReference"] as const) {
       expect(armLayerProfile(clip)).toBe("punch");
     }
-    // The guard never lifts the blade across the head, so the arms stay anatomically layered.
     expect(armLayerProfile("bnrSwordGuardNormal")).toBe("both-front");
+    expect(armLayerProfile("swordGuardReference")).toBe("both-front");
     expect(armLayerProfile("bnrCrouchNormal")).toBe("anatomical");
 
     expect(armLayerPlan(1, "bnrWalkNormal")).toEqual({
@@ -56,10 +56,10 @@ describe("character preview rig contract", () => {
     expect(armLayerPlan(-1, "bnrWalkNormal")).toEqual({
       underLowerBody: "arm-back", behindTorso: null, foreground: ["arm-front"], head: "above-arms",
     });
-    expect(armLayerPlan(1, "bnrStrikeNormal")).toEqual({
+    expect(armLayerPlan(1, "swordOberhauReference")).toEqual({
       underLowerBody: null, behindTorso: null, foreground: ["arm-front", "arm-back"], head: "below-arms",
     });
-    expect(armLayerPlan(-1, "bnrStrikeNormal")).toEqual({
+    expect(armLayerPlan(-1, "swordOberhauReference")).toEqual({
       underLowerBody: null, behindTorso: null, foreground: ["arm-back", "arm-front"], head: "below-arms",
     });
   });
