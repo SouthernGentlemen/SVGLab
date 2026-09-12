@@ -39,10 +39,10 @@ export const SWORD_MOVESET = {
   id: "sword",
   name: "Sword",
   clips: {
-    neutral: "bnrSwordGuardNormal",
-    primary: "bnrSwordSlashNormal",
-    secondary: "bnrSwordCutNormal",
-    study: "bnrSlashStudyNormal",
+    neutral: "swordGuardReference",
+    primary: "swordOberhauReference",
+    study: "swordOberhauStudyReference",
+    sourceCapture: "bnrSlashStudyNormal",
   },
 } as const satisfies AnimationMoveSet;
 
