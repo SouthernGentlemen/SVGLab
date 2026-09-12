@@ -17,7 +17,7 @@ import { SKINS } from "../svg/characters";
 import type { CharacterSkin } from "../svg/characters";
 import { applyPose, buildFighterNode, placeFighter } from "../svg/rig";
 import type { FighterNode } from "../svg/rig";
-import { SWORDS, equipSword, swordName } from "../svg/weapons";
+import { SWORDS, equipSword, swordName, updateSwordPose } from "../svg/weapons";
 import type { SwordId } from "../svg/weapons";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -129,7 +129,11 @@ function applyEquipment(): void {
 function placePreviewFighters(): void {
   const clip = currentClipName();
   placeFighter(singleNode, 180, 260, 2.2, facing(), clip);
-  for (const entry of gallery) placeFighter(entry.node, 120, 224, 1.55, facing(), clip);
+  updateSwordPose(singleNode);
+  for (const entry of gallery) {
+    placeFighter(entry.node, 120, 224, 1.55, facing(), clip);
+    updateSwordPose(entry.node);
+  }
 }
 
 function populateSelects(): void {
