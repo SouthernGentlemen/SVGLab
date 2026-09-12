@@ -43,6 +43,10 @@ pivots land in the right places, and the combat kernel — which must never lear
 looks like — learns nothing. A skin is eleven bones with different art on them. Switch one
 mid-fight from the debug overlay and the simulation cannot tell.
 
+Those eleven bones also use identical rest offsets in every file: all skins share the same
+hips, knees, shoulders, elbows, neck, and overall height. The build scales each cut body part
+to fit that canonical rig while preserving the source part's aspect ratio and silhouette.
+
 ## The atlas layout
 
 The cutter finds islands of opaque pixels and names them by where they sit. There is no
@@ -73,8 +77,6 @@ character with no costume builds from the PNG alone.
 ```jsonc
 {
   "name": "Yuliya",
-  "height": 104,                        // authored height, same units as fighter.svg
-  "proportions": { "shoulderInset": 0, "hipSpread": 0.16 },
   "pivots": { "head": [0.5, 1.0] },     // where a joint really is, as a fraction of the part
   "props": [                            // costume islands, bound to a bone
     { "slot": "prop_07", "bone": "torso", "x": -14, "y": 34 },
@@ -84,11 +86,11 @@ character with no costume builds from the PNG alone.
 }
 ```
 
-**`proportions`** are fractions rather than pixels, so they carry across characters of
-different build without retuning. `shoulderInset` and `shoulderDrop` place the shoulder inside
-the torso, `hipSpread` separates the legs, `neckSink` and `waistSink` set how far the head
-sinks into the torso and the torso into the hips, and `jointOverlap` is how much of each
-segment its child covers — the overlap is what keeps a bent elbow from opening a seam.
+**Proportions are not a sidecar option.** They live once in
+`scripts/atlas/skeleton.mjs`: a 104-unit canonical rig plus standard display heights for the
+cut parts. Allowing a skin to move its own shoulders or lengthen its own thighs makes shared
+animation cease to be shared. If the common body needs improvement, tune that one rig and
+visually check every skin and both facings.
 
 **`pivots`** override the joint for a part whose bounding box lies about it: a hood hangs well
 below the neck it pivots on. Most parts need nothing here.
@@ -98,8 +100,8 @@ because that is the frame you are looking at when lining a cape up against a tor
 scales them along with the art. `under` paints the piece behind the bone's own art.
 
 There is no draw-order control and there does not need to be one. Paint order is document
-order, the torso group is written after both legs, and a skirt bound to the torso therefore
-covers the legs by construction.
+order: the torso covers the legs, while both arms draw above torso art so a coat or breastplate
+cannot swallow them. The back arm remains behind the head and front arm to preserve depth.
 
 ## What the tracer is doing
 
@@ -132,9 +134,9 @@ that changes a file means the art changed.
 2. `node scripts/build-characters.mjs <id> --preview /tmp/preview`, then open the preview. The
    generated SVG itself stacks every bone on the origin — `data-x`/`data-y` are inert until
    `rig.ts` turns them into transforms — so the preview is what you judge.
-3. Write `atlas.json` for whatever the preview gets wrong: costume pieces first, then
-   proportions. Give it a `pose`; a pivot a few pixels out is invisible on a neutral stand and
-   obvious on a bent elbow.
+3. Write `atlas.json` for costume pieces and genuine crop-specific pivot corrections. Give it
+   a `pose`; a pivot a few pixels out is invisible on a neutral stand and obvious on a bent
+   elbow. Do not introduce skin-specific proportions.
 4. Add it to `SKINS` in `src/svg/characters/index.ts` and to `IDS` in
    `tests/characters.test.ts`.
 5. `npm run verify`.

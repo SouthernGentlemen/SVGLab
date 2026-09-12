@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { CLIPS } from "../src/animation/clips";
 import { SKINS } from "../src/svg/characters";
-import { inspectFighterModel } from "../src/svg/rig";
+import { fighterPlacement, inspectFighterModel } from "../src/svg/rig";
+
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 function clipBones(): Map<string, Set<string>> {
   return new Map(Object.entries(CLIPS).map(([name, clip]) => {
@@ -14,6 +19,17 @@ function clipBones(): Map<string, Set<string>> {
 }
 
 describe("character preview rig contract", () => {
+  it("mirrors the complete rig at the placement boundary", () => {
+    expect(fighterPlacement(120, 224, 1.55, 1)).toBe("translate(120 224) scale(1.55 1.55)");
+    expect(fighterPlacement(120, 224, 1.55, -1)).toBe("translate(120 224) scale(-1.55 1.55)");
+  });
+
+  it("exposes both facings in the visual clip preview", () => {
+    const html = readFileSync(join(root, "preview.html"), "utf8");
+    expect(html).toContain('id="face-left"');
+    expect(html).toContain('<kbd>F</kbd> facing');
+  });
+
   it("every SKINS entry resolves to a fighter model the rig accepts", () => {
     expect(new Set(SKINS.map((entry) => entry.id)).size).toBe(SKINS.length);
 

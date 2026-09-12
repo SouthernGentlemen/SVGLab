@@ -3,7 +3,7 @@ import { SCALE } from "../combat/constants";
 import { debugBoxes } from "../combat/collision/boxes";
 import type { Aabb, FighterDefinition, FrameReport, SimulationState } from "../combat/types";
 import { AUTHORED_SKIN } from "./characters";
-import { applyPose, buildFighterNode } from "./rig";
+import { applyPose, buildFighterNode, placeFighter } from "./rig";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const STAGE_CENTER_X = 640;
@@ -73,10 +73,7 @@ export class ArenaRenderer {
       const animation = animationSnapshot(fighter);
       const node = this.fighters[index];
       applyPose(node, animation.pose);
-      node.root.setAttribute(
-        "transform",
-        `translate(${screenX(fighter.x)} ${screenY(fighter.y)}) scale(${fighter.facing * VIEW_SCALE} ${VIEW_SCALE})`,
-      );
+      placeFighter(node, screenX(fighter.x), screenY(fighter.y), VIEW_SCALE, fighter.facing);
       node.root.classList.toggle("is-invulnerable", fighter.invulnerable);
       return animation;
     });

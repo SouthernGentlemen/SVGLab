@@ -6,7 +6,7 @@ import { sampleClip } from "../animation/sample";
 import type { AnimationClip } from "../animation/types";
 import { SKINS } from "../svg/characters";
 import type { CharacterSkin } from "../svg/characters";
-import { applyPose, buildFighterNode } from "../svg/rig";
+import { applyPose, buildFighterNode, placeFighter } from "../svg/rig";
 import type { FighterNode } from "../svg/rig";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -36,6 +36,7 @@ interface GalleryRig {
 const skinSelect = requiredSelect("#skin");
 const clipSelect = requiredSelect("#clip");
 const compareToggle = required<HTMLInputElement>("#compare");
+const facingToggle = required<HTMLInputElement>("#face-left");
 const rigToggle = required<HTMLInputElement>("#show-rig");
 const previousButton = required<HTMLButtonElement>("#previous-clip");
 const playPauseButton = required<HTMLButtonElement>("#play-pause");
@@ -57,6 +58,13 @@ let accumulator = 0;
 let lastTime = performance.now();
 let singleNode: FighterNode;
 const gallery: GalleryRig[] = [];
+
+const facing = () => facingToggle.checked ? -1 : 1;
+
+function placePreviewFighters(): void {
+  placeFighter(singleNode, 180, 260, 2.2, facing());
+  for (const entry of gallery) placeFighter(entry.node, 120, 224, 1.55, facing());
+}
 
 function populateSelects(): void {
   skinSelect.replaceChildren(...SKINS.map((entry) => {
@@ -130,7 +138,7 @@ function buildGallery(): void {
     svg.appendChild(makeFloor(240, 226));
 
     const node = buildFighterNode("player", entry.model);
-    node.root.setAttribute("transform", "translate(120 224) scale(1.55)");
+    placeFighter(node, 120, 224, 1.55, facing());
     svg.appendChild(node.root);
     card.appendChild(header);
     card.appendChild(svg);
@@ -142,7 +150,7 @@ function buildGallery(): void {
 function rebuildSingle(): void {
   const entry = currentSkin();
   singleNode = buildFighterNode("player", entry.model);
-  singleNode.root.setAttribute("transform", "translate(180 260) scale(2.2)");
+  placeFighter(singleNode, 180, 260, 2.2, facing());
   singleLayer.replaceChildren(singleNode.root);
   stageTitle.textContent = entry.name;
 }
@@ -242,6 +250,7 @@ function render(): void {
   replayButton.classList.toggle("replay-ready", held);
 
   renderFacts(clip);
+  placePreviewFighters();
   setRigOverlay(rigToggle.checked);
   setCompare(compareToggle.checked);
 }
@@ -278,6 +287,7 @@ clipSelect.addEventListener("change", () => {
   render();
 });
 compareToggle.addEventListener("change", render);
+facingToggle.addEventListener("change", render);
 rigToggle.addEventListener("change", render);
 previousButton.addEventListener("click", () => setClipByOffset(-1));
 nextButton.addEventListener("click", () => setClipByOffset(1));
@@ -302,6 +312,9 @@ window.addEventListener("keydown", (event) => {
   else if (event.code === "KeyR") replay();
   else if (event.code === "KeyC") {
     compareToggle.checked = !compareToggle.checked;
+    render();
+  } else if (event.code === "KeyF") {
+    facingToggle.checked = !facingToggle.checked;
     render();
   } else if (event.code === "KeyG") {
     rigToggle.checked = !rigToggle.checked;

@@ -39,8 +39,9 @@ The stage is focus-first: controls, frame timing, state, events, and geometry to
 The fighter in `src/svg/fighter.svg` is hand-drawn and deliberately readable. Characters can
 also be *traced*: drop a sheet of loose body parts at `characters/<id>/atlas.png`, run
 `npm run build:characters`, and the build writes `src/svg/characters/<id>.svg` — the same
-eleven-bone document shape, so the same rig reads it and the same clips play on it. Three
-traced characters ship as examples; switch between them mid-fight in the debug overlay.
+eleven-bone document shape with identical joint positions and proportions, so the same rig
+reads it and the same clips play on it. Three traced characters ship as examples; switch
+between them mid-fight in the debug overlay.
 
 The atlases are build-time input only. Everything the stage draws is vector, and a guardrail
 test fails if any raster ever reaches the bundle.

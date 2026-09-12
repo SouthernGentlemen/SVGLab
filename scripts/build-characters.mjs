@@ -94,7 +94,7 @@ function main(argv) {
         writeFileSync(join(previewRoot, `${id}.svg`), poseCharacterSvg(svg, sidecarFor(id).pose));
       }
       console.log(`${id.padEnd(10)} ${character.palette} colours, ${character.props} costume pieces, `
-        + `${character.height}px of atlas art scaled by ${character.scale}`
+        + `${character.height}px canonical rig`
         + (character.unused.length ? `, ${character.unused.length} atlas islands unused` : ""));
     } catch (error) {
       failed = true;

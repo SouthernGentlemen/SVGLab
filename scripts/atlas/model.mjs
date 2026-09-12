@@ -40,27 +40,28 @@ const escapeText = (value) => String(value).replace(/&/g, "&amp;").replace(/</g,
  * Builds one character.
  *
  * @param atlasPath PNG cut to the standard layout.
- * @param options   the atlas sidecar: `trace` overrides, `proportions` overrides, `pivots`
- *                  for parts whose joint is not where the bounding box says, `props` binding
- *                  costume islands to bones, and `height`, the authored height in the same
- *                  units as `src/svg/fighter.svg`.
+ * @param options   the atlas sidecar: `trace` overrides, `pivots` for parts whose joint is
+ *                  not where the bounding box says, and `props` binding costume islands to
+ *                  bones. Proportions are deliberately not configurable per skin.
  */
 export function buildCharacter(atlasPath, options = {}) {
+  if (options.height !== undefined || options.proportions !== undefined) {
+    throw new Error(`${options.name || atlasPath}: height/proportions are shared by the canonical rig, not configurable per skin`);
+  }
   const {
     trace = {},
-    proportions = {},
     pivots = {},
     props = [],
-    height: targetHeight = 104,
     name = "",
   } = options;
 
   const atlas = decodePng(atlasPath);
   const { labels, islands } = findIslands(atlas);
   const slots = assignSlots(islands, { source: name || atlasPath });
-  const { rest, wrist, height, scale } = measureSkeleton(slots, proportions, targetHeight);
+  const { rest, wrist, height, scales } = measureSkeleton(slots);
 
-  const traceIsland = (island, origin) => tracePart(cutIsland(atlas, labels, island), origin, { ...trace, scale });
+  const traceIsland = (island, origin, scale) => tracePart(cutIsland(atlas, labels, island), origin, { ...trace, scale });
+  const scaleForBone = (bone) => scales[SLOT_FOR[bone]];
 
   // A costume island is not a body part: a cape, a skirt or a hood has no joint of its own,
   // it rides a bone that does. The sidecar says which bone and where, and anything it does
@@ -72,7 +73,8 @@ export function buildCharacter(atlasPath, options = {}) {
     const island = slots.get(slot);
     if (!island) throw new Error(`${name}: the atlas has no ${slot} to bind`);
     if (!BONES.includes(prop.bone)) throw new Error(`${name}: ${slot} is bound to unknown bone ${prop.bone}`);
-    const { paths } = traceIsland(island, { x: island.w / 2, y: island.h / 2 });
+    const scale = scaleForBone(prop.bone);
+    const { paths } = traceIsland(island, { x: island.w / 2, y: island.h / 2 }, scale);
     // Offsets are written in atlas pixels, because that is the frame an author is looking at
     // when they line a cape up against a torso. The art around them is emitted at the
     // character's authored size, so the offset has to come along.
@@ -89,7 +91,7 @@ export function buildCharacter(atlasPath, options = {}) {
     const slot = SLOT_FOR[bone];
     const island = slots.get(slot);
     if (!island) throw new Error(`${name}: the atlas has no ${slot} for ${bone}`);
-    const traced = traceIsland(island, partPivot(slot, island, pivots[slot]));
+    const traced = traceIsland(island, partPivot(slot, island, pivots[slot]), scales[slot]);
     palette = Math.max(palette, traced.palette.length);
 
     // A hand has no bone in this skeleton, so it is drawn into the forearm that ends where
@@ -98,7 +100,7 @@ export function buildCharacter(atlasPath, options = {}) {
     const handSlot = HAND_FOR[bone];
     if (handSlot && slots.get(handSlot)) {
       const handIsland = slots.get(handSlot);
-      const { paths } = traceIsland(handIsland, partPivot(handSlot, handIsland, pivots[handSlot]));
+      const { paths } = traceIsland(handIsland, partPivot(handSlot, handIsland, pivots[handSlot]), scales[handSlot]);
       hand = `<g transform="translate(${wrist[bone].x} ${wrist[bone].y})">${renderPaths(paths)}</g>`;
     }
 
@@ -108,7 +110,7 @@ export function buildCharacter(atlasPath, options = {}) {
   const unused = [...slots.keys()].filter((slot) => !Object.values(SLOT_FOR).includes(slot)
     && !Object.values(HAND_FOR).includes(slot) && !bindings.has(slot));
 
-  return { art, rest, height, scale, palette, props: bindings.size, unused, slots };
+  return { art, rest, height, scales, palette, props: bindings.size, unused, slots };
 }
 
 /** Serialises a built character as an authored SVG in `src/svg/fighter.svg`'s own shape. */

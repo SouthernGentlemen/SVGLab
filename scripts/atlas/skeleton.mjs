@@ -7,9 +7,10 @@
  * `data-x`/`data-y` rest offset per bone, and SVG-native coordinates throughout — y down,
  * rotation clockwise-positive. There is no second coordinate frame here and no flip anywhere.
  *
- * Every length below is measured off the art. The handful of numbers that cannot be measured
- * — how far a shoulder sits in from the edge of a torso, how much two segments overlap so a
- * bent joint shows no seam — are `PROPORTIONS`, and they are the only authored values.
+ * Every skin uses one canonical set of joints. Atlas art is fitted to those joints instead of
+ * moving the joints to suit each drawing: that is what makes a clip read as the same movement
+ * on every fighter. The target art heights keep elbows, knees, neck and waist overlapped while
+ * preserving each drawing's width and silhouette.
  */
 
 /** The atlas cuts fifteen parts. SVGLab's skeleton has eleven bones; these are the eleven. */
@@ -46,14 +47,14 @@ export const HAND_FOR = { "forearm-back": "hand_l", "forearm-front": "hand_r" };
 /**
  * Document order inside each bone's group, which is also paint order.
  *
- * `SELF` is where the bone's own art goes. The back limbs are written before the torso draws
- * over them and the front limbs after, which is the whole of the depth cueing: there is no
- * z-index in SVG, only the order things are written down.
+ * `SELF` is where the bone's own art goes. Both arms are written after the torso so neither is
+ * swallowed by a wide coat or breastplate; the back arm remains behind the head and front arm
+ * for depth. There is no z-index in SVG, only the order things are written down.
  */
 export const SELF = Symbol("self");
 export const LAYOUT = {
   pelvis: ["leg-back", "leg-front", SELF, "torso"],
-  torso: ["arm-back", SELF, "head", "arm-front"],
+  torso: [SELF, "arm-back", "head", "arm-front"],
   "leg-back": [SELF, "shin-back"],
   "leg-front": [SELF, "shin-front"],
   "arm-back": [SELF, "forearm-back"],
@@ -67,7 +68,9 @@ export const LAYOUT = {
 
 /** Where a part's pivot sits inside its own bounding box, as a fraction of width and height. */
 const PIVOTS = {
-  head: [0.5, 1],
+  // A face pivots around the neck, not the bottom of its hair crop. Keeping a little art
+  // below the pivot lets the head overlap the collar through turns and mirrored poses.
+  head: [0.5, 0.72],
   torso: [0.5, 1],
   pelvis: [0.5, 0.5],
   arm_upper_l: [0.5, 0], arm_lower_l: [0.5, 0], hand_l: [0.5, 0.1],
@@ -76,20 +79,40 @@ const PIVOTS = {
   leg_upper_r: [0.5, 0], leg_lower_r: [0.5, 0],
 };
 
-/** The joints an atlas cannot tell you about, as fractions so they carry across builds. */
-export const PROPORTIONS = {
-  /** Shoulder inset from the torso's edge, as a fraction of torso width. */
-  shoulderInset: 0.16,
-  /** Shoulder drop below the top of the torso, as a fraction of torso height. */
-  shoulderDrop: 0.17,
-  /** Hip separation from centre, as a fraction of pelvis width. */
-  hipSpread: 0.21,
-  /** How far the head's pivot sinks into the torso, as a fraction of head height. */
-  neckSink: 0.1,
-  /** How far the torso's pivot sinks into the pelvis, as a fraction of pelvis height. */
-  waistSink: 0.22,
-  /** Overlap at elbow, wrist and knee, as a fraction of the parent segment. */
-  jointOverlap: 0.14,
+/**
+ * The shared eleven-joint rest pose, in the same 104-unit frame as `src/svg/fighter.svg`.
+ * This is intentionally literal and readable: animations, debug bones and every skin agree
+ * on these exact pivots instead of merely agreeing on their names.
+ */
+export const CANONICAL_REST = {
+  pelvis: { x: 0, y: -42 },
+  "leg-back": { x: -6, y: 0 },
+  "shin-back": { x: 0, y: 22 },
+  "leg-front": { x: 6, y: 0 },
+  "shin-front": { x: 0, y: 22 },
+  torso: { x: 0, y: -6 },
+  "arm-back": { x: -11, y: -22 },
+  "forearm-back": { x: 0, y: 21 },
+  head: { x: 0, y: -31 },
+  "arm-front": { x: 11, y: -22 },
+  "forearm-front": { x: 0, y: 21 },
+};
+
+/** Display height for each cut atlas part. Width keeps the source aspect ratio. */
+export const CANONICAL_ART_HEIGHT = {
+  head: 36,
+  torso: 28,
+  pelvis: 16,
+  arm_upper_l: 24, arm_lower_l: 20, hand_l: 10,
+  arm_upper_r: 24, arm_lower_r: 20, hand_r: 10,
+  leg_upper_l: 25, leg_lower_l: 20,
+  leg_upper_r: 25, leg_lower_r: 20,
+};
+
+/** Hands overlap the end of the 20-unit forearm art by two units. */
+export const CANONICAL_WRIST = {
+  "forearm-back": { x: 0, y: 18 },
+  "forearm-front": { x: 0, y: 18 },
 };
 
 const round = (n) => Math.round(n * 1000) / 1000;
@@ -100,68 +123,25 @@ export function partPivot(slot, island, override) {
   return { x: island.w * fx, y: island.h * fy };
 }
 
-/**
- * Measures the skeleton.
- *
- * @returns `{ rest, height, scale }` — `rest` is the `data-x`/`data-y` per bone in SVG
- *   coordinates at the authored fighter's scale, `height` the standing height in atlas
- *   pixels, `scale` what the art has to be multiplied by to stand `targetHeight` tall.
- */
-export function measureSkeleton(slots, tuning = {}, targetHeight = 104) {
-  const p = { ...PROPORTIONS, ...tuning };
+/** Fit an atlas to the shared rig while retaining each part's source aspect ratio. */
+export function measureSkeleton(slots) {
   const size = (slot) => {
     const island = slots.get(slot);
     if (!island) throw new Error(`the skeleton needs the ${slot} slot`);
     return island;
   };
 
-  const torso = size("torso");
-  const pelvis = size("pelvis");
-  const head = size("head");
-  const reach = (slot) => size(slot).h * (1 - p.jointOverlap);
+  const scales = {};
+  for (const [slot, targetHeight] of Object.entries(CANONICAL_ART_HEIGHT)) {
+    scales[slot] = round(targetHeight / size(slot).h);
+  }
 
-  // Both feet have to reach the ground, and the two legs are never quite the same length —
-  // the back limb is drawn a little shorter, which is how the art carries depth. The hips
-  // therefore sit at the shorter leg's reach and the longer leg absorbs the difference by
-  // overlapping its own knee further. Taking the taller leg instead leaves the other foot
-  // hanging in the air, and no pose can fix a skeleton that floats.
-  const legLength = (side) => size(`leg_upper_${side}`).h + size(`leg_lower_${side}`).h;
-  const hipHeight = Math.min(legLength("l"), legLength("r")) * (1 - p.jointOverlap);
-  const knee = (side) => size(`leg_upper_${side}`).h * (hipHeight / legLength(side));
-
-  const shoulderY = torso.h * (1 - p.shoulderDrop);
-  const shoulderX = torso.w * (0.5 - p.shoulderInset);
-  const hipX = pelvis.w * p.hipSpread;
-  const height = hipHeight + pelvis.h * (0.5 - p.waistSink) + torso.h + head.h * (1 - p.neckSink);
-  const scale = targetHeight / height;
-
-  // Written in SVG coordinates from here on: up is negative, and a limb hanging from its
-  // parent is a positive y offset.
-  const rest = {
-    pelvis: { x: 0, y: -hipHeight },
-    "leg-back": { x: -hipX, y: 0 },
-    "shin-back": { x: 0, y: knee("l") },
-    "leg-front": { x: hipX, y: 0 },
-    "shin-front": { x: 0, y: knee("r") },
-    torso: { x: 0, y: -pelvis.h * (0.5 - p.waistSink) },
-    "arm-back": { x: -shoulderX, y: -shoulderY },
-    "forearm-back": { x: 0, y: reach("arm_upper_l") },
-    head: { x: 0, y: -(torso.h - head.h * p.neckSink) },
-    "arm-front": { x: shoulderX, y: -shoulderY },
-    "forearm-front": { x: 0, y: reach("arm_upper_r") },
-  };
-
-  /** Where the hand art hangs off its forearm, in the forearm's own frame. */
-  const wrist = {
-    "forearm-back": { x: 0, y: reach("arm_lower_l") },
-    "forearm-front": { x: 0, y: reach("arm_lower_r") },
-  };
-
-  const scaled = (point) => ({ x: round(point.x * scale), y: round(point.y * scale) });
+  const copyPoints = (points) => Object.fromEntries(Object.entries(points)
+    .map(([bone, point]) => [bone, { ...point }]));
   return {
-    rest: Object.fromEntries(Object.entries(rest).map(([bone, point]) => [bone, scaled(point)])),
-    wrist: Object.fromEntries(Object.entries(wrist).map(([bone, point]) => [bone, scaled(point)])),
-    height: round(height),
-    scale: Math.round(scale * 10000) / 10000,
+    rest: copyPoints(CANONICAL_REST),
+    wrist: copyPoints(CANONICAL_WRIST),
+    scales,
+    height: 104,
   };
 }

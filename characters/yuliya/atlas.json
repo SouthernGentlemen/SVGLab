@@ -1,11 +1,5 @@
 {
   "name": "Yuliya",
-  "height": 104,
-  "proportions": {
-    "shoulderInset": 0.0,
-    "shoulderDrop": 0.08,
-    "hipSpread": 0.16
-  },
   "props": [
     {
       "slot": "prop_10",

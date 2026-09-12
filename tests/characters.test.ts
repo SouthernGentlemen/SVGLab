@@ -12,6 +12,11 @@ const IDS = ["barst", "kiran", "yuliya"] as const;
 const authored = readFileSync(join(root, "src", "svg", "fighter.svg"), "utf8");
 const traced = (id: string) => readFileSync(join(root, "src", "svg", "characters", `${id}.svg`), "utf8");
 
+function restPose(svg: string): Map<string, { x: number; y: number }> {
+  return new Map([...svg.matchAll(/<g data-bone="([a-z-]+)" data-x="(-?[\d.]+)" data-y="(-?[\d.]+)">/g)]
+    .map((match) => [match[1], { x: Number(match[2]), y: Number(match[3]) }]));
+}
+
 /**
  * The bone tree of an authored fighter, as `bone -> parent`.
  *
@@ -53,6 +58,23 @@ describe("atlas-built characters", () => {
     // Not merely the same bone names: the same parents. A forearm that ends up under the
     // torso instead of under its arm still renders, and then swings from the wrong joint.
     expect(boneTree(traced(id))).toEqual(reference);
+  });
+
+  it.each(IDS)("%s has the exact same joint positions as the authored fighter", (id) => {
+    expect(restPose(traced(id))).toEqual(restPose(authored));
+  });
+
+  it.each(["authored", ...IDS] as const)("%s paints both arms above the torso", (id) => {
+    const svg = id === "authored" ? authored : traced(id);
+    const torso = svg.indexOf('<g data-bone="torso"');
+    const torsoArt = svg.indexOf("<path", torso);
+    const backArm = svg.indexOf('<g data-bone="arm-back"', torso);
+    const head = svg.indexOf('<g data-bone="head"', torso);
+    const frontArm = svg.indexOf('<g data-bone="arm-front"', torso);
+    expect(torsoArt).toBeGreaterThan(torso);
+    expect(backArm).toBeGreaterThan(torsoArt);
+    expect(head).toBeGreaterThan(backArm);
+    expect(frontArm).toBeGreaterThan(head);
   });
 
   it.each(IDS)("%s is a document the rig can read", (id) => {

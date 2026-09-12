@@ -1,18 +1,5 @@
 {
   "name": "Kiran",
-  "height": 104,
-  "proportions": {
-    "shoulderInset": 0.16,
-    "shoulderDrop": 0.04,
-    "hipSpread": 0.2,
-    "neckSink": -0.1
-  },
-  "pivots": {
-    "head": [
-      0.5,
-      1.0
-    ]
-  },
   "props": [
     {
       "slot": "prop_13",

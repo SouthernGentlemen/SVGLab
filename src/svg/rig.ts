@@ -12,6 +12,19 @@ export interface FighterModelFacts {
   readonly bones: readonly string[];
 }
 
+export type VisualFacing = -1 | 1;
+
+/**
+ * Places the whole posed rig and mirrors it at one outer boundary.
+ *
+ * Bone rotations and local x offsets stay authored for a right-facing fighter. A negative
+ * horizontal scale mirrors the completed hierarchy, so the same clip reaches, recoils and
+ * carries its visible front/back paint order correctly when facing left.
+ */
+export function fighterPlacement(x: number, y: number, scale: number, facing: VisualFacing): string {
+  return `translate(${x} ${y}) scale(${facing * scale} ${scale})`;
+}
+
 /**
  * Reads the small structural contract the rig requires without needing the DOM.
  *
@@ -75,4 +88,8 @@ export function buildFighterNode(role: "player" | "dummy", model: string = AUTHO
 
 export function applyPose(node: FighterNode, pose: Pose): void {
   for (const [name, bone] of node.bones) bone.setAttribute("transform", transform(bone, pose[name]));
+}
+
+export function placeFighter(node: FighterNode, x: number, y: number, scale: number, facing: VisualFacing): void {
+  node.root.setAttribute("transform", fighterPlacement(x, y, scale, facing));
 }
