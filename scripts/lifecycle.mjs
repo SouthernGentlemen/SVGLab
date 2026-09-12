@@ -9,7 +9,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const repoName = basename(root);
 const runtime = join(root, ".runtime");
 const pidFile = join(runtime, "wrangler.pid");
-const generatedPaths = [join(root, "dist"), join(root, ".wrangler"), join(runtime, "cloudflare"), join(runtime, "cache")];
+const generatedPaths = [join(root, "dist"), join(root, "out"), join(root, ".wrangler"), join(runtime, "cloudflare"), join(runtime, "cache")];
 
 function isRunning(pid) {
   try {
@@ -278,7 +278,7 @@ function reset() {
     rmSync(target, { recursive: true, force: true });
   }
   mkdirSync(runtime, { recursive: true });
-  console.log("reset: cleared dist, Wrangler state, and disposable runtime state");
+  console.log("reset: cleared dist, tool exports, Wrangler state, and disposable runtime state");
 }
 
 function build() {

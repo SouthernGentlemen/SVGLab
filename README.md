@@ -54,7 +54,8 @@ Selected motion-capture studies can also be retargeted into the same eleven-bone
 including four two-handed sword motions, one of which drives a second authored move; combat
 still owns fighter movement, move phases, and contact timing. See
 [the motion import guide](docs/MOTION_IMPORT.md), including the CC BY-NC terms that apply to
-the included Bandai Namco source subset.
+the included Bandai Namco source subset and the round trip that carries clips out to an
+animation tool and hand edits back in.
 
 ## Useful commands
 
@@ -66,6 +67,9 @@ npm run launch    # launch the already-built local runtime without opening a bro
 npm run verify    # types, tests, local-only guard, production bundle
 npm run build:characters  # re-trace every character atlas
 npm run build:motions     # rebuild selected BVH motion studies
+npm run export:motions    # write every clip to out/blender as BVH for an external tool
+npm run import:motions    # read an edited BVH back onto the eleven-bone rig
+npm run check:exchange    # assert an untouched export/import round trip changes nothing
 ```
 
 There is intentionally no deployment command, production environment, secret, remote route, account binding, database, or persistence contract.

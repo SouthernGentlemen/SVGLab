@@ -99,3 +99,70 @@ damage, hitstop, and whether contact succeeds.
 `bnrSwordGuardNormal` and `bnrSwordCutNormal` remain preview-only. No combat state models a
 drawn sword or a heavier committed swing yet, and adding one is a combat-content change with
 its own frame data.
+
+## Round trip through an external tool
+
+Clips are 2D nested-SVG rotations, which no animation tool reads. Two commands translate in
+each direction, and a guard (`npm run check:exchange`) asserts that an untouched round trip
+changes nothing.
+
+```bash
+npm run export:motions                      # every clip -> out/blender/<clip>.bvh
+npm run export:motions -- bnrSwordCutNormal # or just one
+npm run import:motions -- out/blender/bnrSwordCutNormal.bvh
+npm run build:motions                       # fold the result into the catalog
+```
+
+### What the export contains
+
+One BVH per clip, baked at one frame per 60 Hz tick through the same sampler
+`src/animation/sample.ts` uses, so the file plays exactly what the lab plays rather than an
+approximation of it. The skeleton is read from `src/svg/fighter.svg`, never restated: same
+eleven bones, same parents, same rest offsets.
+
+SVG points y down and turns clockwise-positive, so the rig is written into the XY plane as
+`(x, -y)` with every bone turning about Z with the sign flipped. The root carries a zero
+`OFFSET` and absolute local position channels, which keeps readers that add `OFFSET` to the
+channels and readers that let the channels replace it in agreement. Every joint also carries
+unused X and Y rotation channels so an editor has somewhere to put a mistake that this rig can
+then report.
+
+Import at scale 1 and set the scene to **60 FPS** before exporting anything back.
+
+### What the import accepts
+
+The rig is the contract. A file whose joints are renamed, reparented, added to, or whose rest
+offsets no longer match is refused, because its numbers would describe a different skeleton and
+mean something else on this one. A uniform scale is allowed and divided back out; a frame rate
+other than 60 is refused with the fix in the message.
+
+Everything the rig cannot hold is measured and reported rather than quietly dropped:
+out-of-plane rotation (and which bones it came from), depth translation, and horizontal root
+travel, which step 6 of the pipeline removes on purpose. The importer then reduces the dense
+frames back to sparse keyframes under the manifest's own tolerances, so a round trip is lossless
+to within 1 degree and 0.15 units — the same tolerances the retarget already reduces under.
+
+### Where imported clips live
+
+`motions/authored/<clip>.json` is tracked source, not build output: it is the one place a hand
+edit survives. `npm run build:motions` turns the directory into
+`src/animation/generated/authored.ts`, and `npm run check:motions` fails when the two disagree.
+
+The key carries provenance. A `bnr*` clip is still an adaptation of Bandai Namco material under
+CC BY-NC 4.0 and names the manifest clip it came from; a `lab*` clip was authored here on
+SVGLab's rig and claims no other origin. An authored clip that keeps a manifest clip's key
+replaces what the lab plays while the manifest keeps deriving the untouched original to compare
+against — which is what `npm run import:motions -- out/blender/bnrSwordCutNormal.bvh` does by
+default. Pass `--key` to land a tweak beside the original instead.
+
+Imported clips inherit the presentation decisions made for the clip they came from: arm
+layering and the rigid weapon track both fall back to the origin, and the preview lists any
+clip no moveset slot claims in an `authored` group labelled with its origin. So a tweak is
+watchable immediately, with the right limb depth and the blade still in both hands.
+
+### Reviewing a change
+
+`npm run import:motions` prints, and writes beside the BVH as `<clip>.review.md`, what the
+import did: duration and keyframe counts against the origin, the loop seam, everything dropped,
+and a per-bone table of the largest rotation and position change with the tick it happened on.
+An untouched export imports as a table of zeros, so anything non-zero is a real edit.

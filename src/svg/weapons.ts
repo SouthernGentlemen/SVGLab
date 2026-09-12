@@ -1,3 +1,4 @@
+import { clipOrigin } from "../animation/clips";
 import type { ClipName } from "../animation/clips";
 import type { FighterNode } from "./rig";
 
@@ -224,8 +225,17 @@ function interpolateTrack(track: readonly SwordKeyframe[], frame: number): Sword
  * use a small authored rigid-body track. Torso rotation is cancelled so the blade does not
  * inherit a body lean and then force the hands to chase a bent-looking weapon.
  */
+/**
+ * An imported variant inherits its origin's weapon track: the hand that was tweaked is still
+ * the hand the blade is bolted to. A clip nothing claims holds the guard.
+ */
+export function swordTrackFor(clip: string, origin: string | null): readonly SwordKeyframe[] {
+  const tracks = SWORD_TRACKS as Record<string, readonly SwordKeyframe[] | undefined>;
+  return tracks[clip] ?? (origin === null ? GUARD : tracks[origin] ?? GUARD);
+}
+
 export function swordPoseForClip(clip: ClipName, frame: number, torsoRotation = 0): SwordPose {
-  const key = interpolateTrack(SWORD_TRACKS[clip] ?? GUARD, frame);
+  const key = interpolateTrack(swordTrackFor(clip, clipOrigin(clip)), frame);
   return { x: key.x, y: key.y, rotation: key.angle - torsoRotation };
 }
 

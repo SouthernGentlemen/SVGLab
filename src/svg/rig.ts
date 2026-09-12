@@ -1,5 +1,6 @@
 import { AUTHORED_SKIN } from "./characters";
-import type { ClipName } from "../animation/clips";
+import { clipOrigin } from "../animation/clips";
+import type { BnrClipName, ClipName } from "../animation/clips";
 import type { Pose } from "../animation/types";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -48,10 +49,20 @@ const ARM_LAYER_PROFILES = {
   bnrSwordCutNormal: "punch",
   bnrSlashStudyNormal: "punch",
   bnrPunchStudyNormal: "punch",
-} as const satisfies Record<ClipName, ArmLayerProfile>;
+} as const satisfies Record<BnrClipName, ArmLayerProfile>;
+
+/**
+ * Layering is a decision per clip, and an imported clip inherits the decision made for the
+ * clip it was tweaked from. A clip authored here from scratch has no such decision to inherit
+ * and is layered anatomically until someone makes one.
+ */
+export function resolveArmLayerProfile(clip: string, origin: string | null): ArmLayerProfile {
+  const profiles = ARM_LAYER_PROFILES as Record<string, ArmLayerProfile | undefined>;
+  return profiles[clip] ?? (origin === null ? "anatomical" : profiles[origin] ?? "anatomical");
+}
 
 export function armLayerProfile(clip: ClipName): ArmLayerProfile {
-  return ARM_LAYER_PROFILES[clip];
+  return resolveArmLayerProfile(clip, clipOrigin(clip));
 }
 
 /** The imported source-left arm is far when facing right and near after a turn to the left. */

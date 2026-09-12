@@ -1,3 +1,5 @@
+import { AUTHORED_CLIPS } from "./generated/authored";
+import { clipOrigin } from "./clips";
 import type { ClipName } from "./clips";
 
 export const WEAPONS = [
@@ -53,7 +55,7 @@ export const WEAPON_MOVESETS = {
 
 export interface PreviewClipOption {
   readonly clip: ClipName;
-  readonly group: "generic" | WeaponId;
+  readonly group: "generic" | WeaponId | "authored";
   readonly slot: string;
 }
 
@@ -61,11 +63,34 @@ function clipOptions(group: PreviewClipOption["group"], moveset: AnimationMoveSe
   return Object.entries(moveset.clips).map(([slot, clip]) => ({ group, slot, clip }));
 }
 
+/**
+ * Imported clips that no moveset slot claims yet.
+ *
+ * A clip that came back from an external tool has to be watchable, or a hand-tweaked pose
+ * cannot be reviewed before anything adopts it. One that replaced a moveset clip outright is
+ * already listed under that slot; the rest show up here against the loadout they belong to,
+ * labelled with the clip they were tweaked from.
+ */
+function authoredReviewOptions(weapon: WeaponId, listed: readonly ClipName[]): PreviewClipOption[] {
+  const loadout = new Set<string>([
+    ...Object.values(GENERIC_MOVESET.clips),
+    ...Object.values(WEAPON_MOVESETS[weapon].clips),
+  ]);
+  return (Object.keys(AUTHORED_CLIPS) as ClipName[])
+    .filter((clip) => !listed.includes(clip))
+    .filter((clip) => {
+      const origin = clipOrigin(clip);
+      return origin === null || loadout.has(origin);
+    })
+    .map((clip) => ({ group: "authored" as const, slot: clipOrigin(clip) ?? "new", clip }));
+}
+
 export function previewClipOptions(weapon: WeaponId): PreviewClipOption[] {
-  return [
+  const moveset = [
     ...clipOptions("generic", GENERIC_MOVESET),
     ...clipOptions(weapon, WEAPON_MOVESETS[weapon]),
   ];
+  return [...moveset, ...authoredReviewOptions(weapon, moveset.map((entry) => entry.clip))];
 }
 
 export function previewClipNames(weapon: WeaponId): ClipName[] {

@@ -13,12 +13,15 @@
     "check:characters": "node scripts/build-characters.mjs --check",
     "build:motions": "node scripts/build-motions.mjs",
     "check:motions": "node scripts/build-motions.mjs --check",
+    "export:motions": "node scripts/export-motions.mjs",
+    "import:motions": "node scripts/import-motions.mjs",
+    "check:exchange": "node scripts/check-motion-exchange.mjs",
     "launch": "node scripts/lifecycle.mjs launch",
     "dev": "node scripts/lifecycle.mjs dev",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run check:motions && npm run typecheck && npm test && npm run build"
+    "verify": "npm run check:motions && npm run check:exchange && npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260823.1",

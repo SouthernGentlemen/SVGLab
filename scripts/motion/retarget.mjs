@@ -1,4 +1,5 @@
 import { jointPositions } from "./bvh.mjs";
+import { round, simplify } from "./clip.mjs";
 
 const ROTATION_BONES = [
   "torso", "head", "arm-back", "forearm-back", "arm-front", "forearm-front",
@@ -56,32 +57,6 @@ function unwrapSeries(values) {
   return result;
 }
 
-function simplify(values, tolerance) {
-  const keep = new Set([0, values.length - 1]);
-  const visit = (start, end) => {
-    if (end - start < 2) return;
-    let largestError = -1;
-    let largestIndex = -1;
-    for (let index = start + 1; index < end; index += 1) {
-      const progress = (index - start) / (end - start);
-      const interpolated = values[start] + (values[end] - values[start]) * progress;
-      const error = Math.abs(values[index] - interpolated);
-      if (error > largestError) {
-        largestError = error;
-        largestIndex = index;
-      }
-    }
-    if (largestError > tolerance) {
-      keep.add(largestIndex);
-      visit(start, largestIndex);
-      visit(largestIndex, end);
-    }
-  };
-  visit(0, values.length - 1);
-  return [...keep].sort((a, b) => a - b);
-}
-
-const round = (value) => Math.round(value * 1000) / 1000;
 
 /** Project and collapse the 21-joint source skeleton into SVGLab's eleven-bone 2D rig. */
 export function retargetClip(bvh, definition) {
