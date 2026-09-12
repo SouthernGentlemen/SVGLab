@@ -1,4 +1,6 @@
 import type { ClipName } from "../animation/clips";
+import { SWORD_REFERENCE_SEQUENCES } from "../animation/sword-reference";
+import type { SwordReferenceClipName } from "../animation/sword-reference";
 import type { FighterNode } from "./rig";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -53,10 +55,12 @@ interface SwordKeyframe {
   readonly angle: number;
 }
 
+/** Canonical upright guard used for sword-equipped generic locomotion too. */
 const GUARD: readonly SwordKeyframe[] = [
-  { frame: 0, x: 2, y: 4, angle: 0 },
+  { frame: 0, x: 4, y: -8, angle: 0 },
 ];
 
+/** Legacy Bandai-Namco capture tracks remain available as source-study material. */
 const SLASH: readonly SwordKeyframe[] = [
   { frame: 0, x: 0, y: -11, angle: -18 },
   { frame: 7, x: 0, y: -13, angle: -8 },
@@ -105,11 +109,23 @@ const STUDY: readonly SwordKeyframe[] = [
   { frame: 802, x: 2, y: 4, angle: 0 },
 ];
 
+function referenceTrack(name: SwordReferenceClipName): readonly SwordKeyframe[] {
+  return SWORD_REFERENCE_SEQUENCES[name].frames.map((entry) => ({
+    frame: entry.frame,
+    x: entry.sword.x,
+    y: entry.sword.y,
+    angle: entry.sword.angle,
+  }));
+}
+
 const SWORD_TRACKS: Partial<Record<ClipName, readonly SwordKeyframe[]>> = {
   bnrSwordGuardNormal: GUARD,
   bnrSwordSlashNormal: SLASH,
   bnrSwordCutNormal: CUT,
   bnrSlashStudyNormal: STUDY,
+  swordGuardReference: referenceTrack("swordGuardReference"),
+  swordOberhauReference: referenceTrack("swordOberhauReference"),
+  swordOberhauStudyReference: referenceTrack("swordOberhauStudyReference"),
 };
 
 function svg<K extends keyof SVGElementTagNameMap>(name: K): SVGElementTagNameMap[K] {
@@ -219,21 +235,24 @@ function interpolateTrack(track: readonly SwordKeyframe[], frame: number): Sword
   return track[track.length - 1];
 }
 
-/**
- * The weapon owns its orientation. Generic locomotion keeps an upright guard; sword attacks
- * use a small authored rigid-body track. Torso rotation is cancelled so the blade does not
- * inherit a body lean and then force the hands to chase a bent-looking weapon.
- */
-export function swordPoseForClip(clip: ClipName, frame: number, torsoRotation = 0): SwordPose {
-  const key = interpolateTrack(SWORD_TRACKS[clip] ?? GUARD, frame);
-  return { x: key.x, y: key.y, rotation: key.angle - torsoRotation };
-}
-
 function rotateLocal(point: Point, rotation: number): Point {
   const radians = rotation / DEG;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
   return { x: point.x * cos - point.y * sin, y: point.x * sin + point.y * cos };
+}
+
+/**
+ * The weapon owns both its position and orientation in fighter-aligned space.
+ *
+ * Because the sword is parented under the rotating torso SVG group, both its translation and
+ * its angle are inverse-rotated here. Torso lean therefore changes the shoulders and elbows,
+ * never the authored blade trajectory.
+ */
+export function swordPoseForClip(clip: ClipName, frame: number, torsoRotation = 0): SwordPose {
+  const key = interpolateTrack(SWORD_TRACKS[clip] ?? GUARD, frame);
+  const local = rotateLocal({ x: key.x, y: key.y }, -torsoRotation);
+  return { x: local.x, y: local.y, rotation: key.angle - torsoRotation };
 }
 
 export function swordGripTargets(id: SwordId, pose: SwordPose): { upper: Point; lower: Point } {
