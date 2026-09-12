@@ -56,70 +56,103 @@ const GUARD_FRAMES: readonly SwordReferenceFrame[] = [
     frame: 0,
     label: "upright guard",
     sword: { x: 4, y: -8, angle: 0 },
-    bones: body(0, 0, 0, 0, -18, 28, 24, 18),
+    bones: body(0, 0, -2, 2, -15, 28, 22, 18),
   },
   {
     frame: 30,
     label: "guard settle",
     sword: { x: 4, y: -8, angle: 0 },
-    bones: body(0, 0.6, 1.2, -1.2, -17, 27, 23, 19),
+    bones: body(0, 0.6, 0, 0, -14, 27, 21, 19),
   },
   {
     frame: 60,
     label: "upright guard",
     sword: { x: 4, y: -8, angle: 0 },
-    bones: body(0, 0, 0, 0, -18, 28, 24, 18),
+    bones: body(0, 0, -2, 2, -15, 28, 22, 18),
   },
 ];
 
+/**
+ * A committed descending cut, not a weapon-only swipe.
+ *
+ * The body first coils away from the target, then the rear side drives the pelvis and torso
+ * through contact. Momentum continues after the blade crosses longpoint: the chest, hips and
+ * stance overshoot before the fighter can gather the sword and return to guard. The asymmetric
+ * recovery is intentional; immediately snapping back to frame zero makes the strike read like
+ * the sword merely tapped something.
+ */
 const OBERHAU_FRAMES: readonly SwordReferenceFrame[] = [
   {
     frame: 0,
     label: "guard",
     sword: { x: 4, y: -8, angle: 0 },
-    bones: body(0, 0, 0, 0, -18, 28, 24, 18),
+    bones: body(0, 0, -2, 2, -15, 28, 22, 18),
   },
   {
     frame: 4,
-    label: "load",
-    sword: { x: 1, y: -15, angle: -4 },
-    bones: body(-1, 0, -7, 7, -16, 30, 26, 20),
+    label: "coil",
+    sword: { x: -1, y: -18, angle: -10 },
+    bones: body(-3, 2, -18, 12, -5, 36, 32, 28),
   },
   {
     frame: 8,
-    label: "point leads",
-    sword: { x: 1, y: -18, angle: 8 },
-    bones: body(0, -1, -5, 5, -18, 27, 25, 18),
+    label: "loaded",
+    sword: { x: -2, y: -22, angle: -12 },
+    bones: body(-4, 2, -24, 15, 2, 42, 38, 30),
   },
   {
-    frame: 11,
-    label: "hips turn",
-    sword: { x: 4, y: -14, angle: 34 },
-    bones: body(1, 0, 2, -2, -22, 24, 21, 20),
+    frame: 10,
+    label: "release",
+    sword: { x: 2, y: -18, angle: 15 },
+    bones: body(0, 0, -8, 6, -10, 30, 28, 20),
   },
   {
-    frame: 13,
-    label: "impact",
-    sword: { x: 8, y: -8, angle: 70 },
-    bones: body(2, 1, 8, -7, -26, 22, 17, 22),
+    frame: 12,
+    label: "drive",
+    sword: { x: 8, y: -13, angle: 50 },
+    bones: body(5, -1, 12, -8, -26, 20, 16, 25),
   },
   {
-    frame: 15,
-    label: "longpoint",
-    sword: { x: 11, y: -4, angle: 90 },
-    bones: body(2, 1, 9, -7, -28, 20, 15, 24),
+    frame: 14,
+    label: "impact / longpoint",
+    sword: { x: 15, y: -6, angle: 88 },
+    bones: body(10, -1, 28, -18, -38, 16, 5, 32),
+  },
+  {
+    frame: 16,
+    label: "follow through",
+    sword: { x: 20, y: 2, angle: 122 },
+    bones: body(14, 1, 42, -26, -46, 14, -6, 40),
   },
   {
     frame: 19,
-    label: "recover",
-    sword: { x: 8, y: -5, angle: 58 },
-    bones: body(1, 0, 5, -4, -24, 22, 18, 22),
+    label: "overshoot",
+    sword: { x: 18, y: 8, angle: 148 },
+    bones: body(16, 3, 48, -30, -50, 18, -12, 44),
   },
   {
-    frame: 24,
+    frame: 23,
+    label: "settle",
+    sword: { x: 14, y: 6, angle: 126 },
+    bones: body(14, 3, 32, -20, -42, 22, -4, 38),
+  },
+  {
+    frame: 28,
+    label: "recover",
+    sword: { x: 10, y: 1, angle: 84 },
+    bones: body(9, 2, 18, -10, -30, 24, 10, 28),
+  },
+  {
+    frame: 34,
+    label: "return",
+    sword: { x: 5, y: -5, angle: 25 },
+    bones: body(4, 1, 6, -4, -22, 26, 18, 22),
+  },
+  {
+    frame: 40,
     label: "guard",
     sword: { x: 4, y: -8, angle: 0 },
-    bones: body(0, 0, 0, 0, -18, 28, 24, 18),
+    bones: body(0, 0, -2, 2, -15, 28, 22, 18),
   },
 ];
 
@@ -135,15 +168,15 @@ export const SWORD_REFERENCE_SEQUENCES = {
     frames: GUARD_FRAMES,
   },
   swordOberhauReference: {
-    duration: 24,
+    duration: 40,
     loop: false,
-    note: "SVGLab descending sword cut: guard, load, point-first acceleration, impact, longpoint, and controlled recovery.",
+    note: "SVGLab committed descending cut: coil, drive, impact, full-body follow-through, overshoot, and asymmetric recovery.",
     frames: OBERHAU_FRAMES,
   },
   swordOberhauStudyReference: {
-    duration: 48,
+    duration: 80,
     loop: false,
-    note: "The authored SVGLab oberhau key poses at half speed for frame-by-frame joint inspection.",
+    note: "The authored SVGLab committed oberhau at half speed for frame-by-frame joint and follow-through inspection.",
     frames: slowed(OBERHAU_FRAMES, 2),
   },
 } as const satisfies Record<string, SwordReferenceSequence>;
