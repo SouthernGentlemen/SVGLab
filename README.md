@@ -1,87 +1,55 @@
 # SVGLab
 
-SVGLab is a deliberately unsafe, local-only laboratory for deterministic fighting mechanics and readable SVG character animation. It extracts a small combat kernel from lessons in Hexframe without copying Hexframe's game, product architecture, content, or deployment model.
+A deliberately unsafe, local-only laboratory for deterministic fighting mechanics and readable
+SVG character animation.
 
-## Start from clean state
+**[`AGENTS.md`](AGENTS.md) is the contract** — what this repository is, what it is not, and the
+ten contracts everything here is held to. Read it first. This file is only how to run the thing.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Every `npm run dev` performs:
+`npm run dev` is `teardown → reset → build → local Cloudflare launch → browser`, and the
+teardown is aggressive: it kills stale Wrangler processes from this repository and **any
+process listening on the lab port** (`8787`, or `SVGLAB_PORT`). Do not point `SVGLAB_PORT` at a
+local service you care about. `SVGLAB_NO_OPEN=1` skips opening the browser.
 
-```text
-destructive teardown → reset → rebuild → local Cloudflare launch → browser
-```
-
-The teardown is intentionally aggressive. Before starting, SVGLab kills stale Wrangler processes from this repository and **any process listening on the selected local lab port** (`8787` by default), then confirms the port is free. This repository treats its local runtime as disposable development infrastructure; do not point `SVGLAB_PORT` at another local service you care about.
-
-The command waits until the local runtime is reachable and then opens the lab in your default browser at <http://127.0.0.1:8787>. Set `SVGLAB_PORT` to use another local port; teardown and the browser follow that port automatically. Use `SVGLAB_NO_OPEN=1 npm run dev` only when you deliberately want the full dev lifecycle without opening a browser, such as in headless automation.
-
-Generated output and disposable local runtime state are cleared on every dev run. Authored work under `src/` and `docs/` is never reset.
+Reset clears `dist/`, Wrangler state and `.runtime/`. It leaves `out/` alone, because that is
+where `export:motions` puts the clips a Blender project is pointed at.
 
 ## Controls
 
-- `W`: jump
-- `A` / `D`: move
-- `S`: crouch
-- `J`: basic attack
-- `K`: sword slash
-- `R`: reset the combat state
-- `P`: pause or resume
-- `.`: advance one tick while paused
-- `` ` ``: open or close the debug overlay
+`W` jump · `A`/`D` move · `S` crouch · `J` basic attack · `K` sword slash · `R` reset ·
+`P` pause · `.` step one tick · `` ` `` debug overlay.
 
-The stage is focus-first: controls, frame timing, state, events, and geometry tools float over the fight rather than reducing the play area. Open the debug overlay to inspect pushboxes, hurtboxes, hitboxes, fighter origins, bone pivots, and animation state.
+The overlay inspects pushboxes, hurtboxes, hitboxes, fighter origins, bone pivots and animation
+state, and switches between traced characters mid-fight.
 
-## Characters
-
-The fighter in `src/svg/fighter.svg` is hand-drawn and deliberately readable. Characters can
-also be *traced*: drop a sheet of loose body parts at `characters/<id>/atlas.png`, run
-`npm run build:characters`, and the build writes `src/svg/characters/<id>.svg` — the same
-eleven-bone document shape with identical joint positions and proportions, so the same rig
-reads it and the same clips play on it. Three traced characters ship as examples; switch
-between them mid-fight in the debug overlay.
-
-The atlases are build-time input only. Everything the stage draws is vector, and a guardrail
-test fails if any raster ever reaches the bundle.
-
-See [the character atlas guide](docs/CHARACTER_ATLAS.md).
-
-Selected motion-capture studies can also be retargeted into the same eleven-bone rig with
-`npm run build:motions`. The animation catalog now contains only Bandai Namco-derived clips,
-including four two-handed sword motions, one of which drives a second authored move; combat
-still owns fighter movement, move phases, and contact timing. See
-[the motion import guide](docs/MOTION_IMPORT.md), including the CC BY-NC terms that apply to
-the included Bandai Namco source subset and the round trip that carries clips out to an
-animation tool and hand edits back in, and
-[the sword motion reference](docs/SWORD-MOTION-REFERENCE.md) for what may and may not drive a
-sword pose.
-
-## Useful commands
+## Commands
 
 ```bash
-npm run teardown  # destructively clear the selected local port and stale repo Wrangler processes
-npm run reset     # clear generated/disposable state
-npm run build     # enforce local-only config, then build
-npm run launch    # launch the already-built local runtime without opening a browser
-npm run verify    # types, tests, local-only guard, production bundle
-npm run build:characters  # re-trace every character atlas
-npm run build:motions     # rebuild selected BVH motion studies
-npm run export:motions    # write every clip, plus the fighter's art, to out/blender
-npm run import:motions    # read an edited BVH back onto the eleven-bone rig
-npm run check:exchange    # assert an untouched export/import round trip changes nothing
+npm run verify            # every gate, in order — run before merging
+npm run build:characters  # atlas → traced character        (--check)
+npm run build:motions     # manifest + authored → catalog   (--check)
+npm run export:motions    # every clip + bone art → out/blender
+npm run import:motions    # an edited BVH → motions/authored/
+npm run check:exchange    # assert an untouched round trip changes nothing
+npm run teardown          # clear the lab port and stale repo Wrangler processes
+npm run reset             # clear generated and disposable state
 ```
 
-There is intentionally no deployment command, production environment, secret, remote route, account binding, database, or persistence contract.
+There is deliberately no deploy command, production environment, secret, remote route, account
+binding, database, or persistence contract.
 
-## Boundaries
+## Guides
 
-```text
-Input → Combat simulation → State + events → Animation selection → SVG renderer
-```
-
-The combat kernel never imports from `animation`, `svg`, `app`, `debug`, or the Cloudflare worker. Animation timing can change without changing hit timing; combat frame data can change without redrawing the fighter.
-
-See [the extraction audit](docs/HEXFRAME_COMBAT_AUDIT.md) and [the experiment guide](docs/EXPERIMENTS.md).
+- [Character atlases](docs/CHARACTER_ATLAS.md) — drawing a sheet of body parts and tracing it
+  onto the eleven-bone rig.
+- [Motion import](docs/MOTION_IMPORT.md) — the BVH retarget, the CC BY-NC terms on the vendored
+  Bandai Namco subset, and the round trip out to Blender and back.
+- [Rewrite plan](docs/REWRITE_PLAN.md) — the milestones, the purge manifest, and what six
+  spikes measured.
+- [Hexframe extraction audit](docs/HEXFRAME_COMBAT_AUDIT.md) — what the combat kernel was taken
+  from and what was deliberately left behind.

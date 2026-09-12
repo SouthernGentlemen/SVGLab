@@ -141,9 +141,15 @@ export function bvhToClip(bvh, rig, options) {
       }
       properties.y = vertical;
     } else if (position.some((index) => index >= 0)) {
+      // Measured against the bone's own rest offset, not against zero. A tool that writes
+      // position channels on every joint — Blender's BVH exporter does — initialises them at
+      // OFFSET, so reading the raw magnitude reports the whole skeleton as translated work
+      // this rig threw away. What was actually dropped is the travel away from rest.
+      const rest = nodes.get(bone.name).offset;
       for (let index = 0; index < frameCount; index += 1) {
-        const point = position.map((column) => (column < 0 ? 0 : bvh.frames[index][column]));
-        dropped.depthUnits = Math.max(dropped.depthUnits, Math.hypot(...point) / scale);
+        const travel = position.map((column, axis) =>
+          (column < 0 ? 0 : bvh.frames[index][column]) - rest[axis]);
+        dropped.depthUnits = Math.max(dropped.depthUnits, Math.hypot(...travel) / scale);
       }
     }
     channels[bone.name] = properties;
@@ -155,8 +161,8 @@ export function bvhToClip(bvh, rig, options) {
   let seamDegrees = 0;
 
   if (options.loop) {
-    const first = samplePose({ duration, loop: false, keyframes }, 0);
-    const last = samplePose({ duration, loop: false, keyframes }, duration);
+    const first = samplePose({ duration, loop: false, easing: options.easing, keyframes }, 0);
+    const last = samplePose({ duration, loop: false, easing: options.easing, keyframes }, duration);
     for (const bone of Object.keys(first)) {
       seamDegrees = Math.max(seamDegrees, Math.abs((last[bone].rotation ?? 0) - (first[bone].rotation ?? 0)));
     }

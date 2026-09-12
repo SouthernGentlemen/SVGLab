@@ -57,7 +57,7 @@ if (derivedFrom !== null && origin === null) throw new Error(`derivedFrom '${der
 const loop = has("loop") ? true : has("no-loop") ? false : origin?.loop ?? false;
 
 const bvh = parseBvh(readFileSync(file, "utf8"), file);
-const read = bvhToClip(bvh, catalog.rig, { loop, tolerances: catalog.manifest.defaults });
+const read = bvhToClip(bvh, catalog.rig, { loop, easing: origin?.easing ?? "linear", tolerances: catalog.manifest.defaults });
 
 const entry = validateAuthoredClip({
   key,

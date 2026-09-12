@@ -33,14 +33,14 @@ function rejects(label, act) {
 
 for (const [key, clip] of Object.entries(catalog.clips)) {
   const text = clipToBvh(clip, catalog.rig);
-  const read = bvhToClip(parseBvh(text, key), catalog.rig, { loop: clip.loop, tolerances });
+  const read = bvhToClip(parseBvh(text, key), catalog.rig, { loop: clip.loop, easing: clip.easing, tolerances });
   check(read.duration === clip.duration, `${key}: duration ${read.duration} after a round trip, expected ${clip.duration}`);
   check(read.dropped.outOfPlaneDegrees === 0, `${key}: reported out-of-plane rotation in its own export`);
   check(read.dropped.horizontalUnits === 0, `${key}: reported horizontal travel in its own export`);
 
   let worstRotation = 0;
   let worstPosition = 0;
-  const returned = { duration: read.duration, loop: clip.loop, keyframes: read.keyframes };
+  const returned = { duration: read.duration, loop: clip.loop, easing: clip.easing, keyframes: read.keyframes };
   for (let frame = 0; frame <= clip.duration; frame += 1) {
     const before = samplePose(clip, frame);
     const after = samplePose(returned, frame);
@@ -96,6 +96,40 @@ const native = bvhToClip(parseBvh(sample, "native"), catalog.rig, { loop: false,
 check(JSON.stringify(reframed.keyframes) === JSON.stringify(native.keyframes),
   "the same clip read in another tool's frame did not come back the same");
 check(reframed.dropped.outOfPlaneDegrees === 0, "a reframed export reported out-of-plane rotation");
+
+// A tool that writes position channels on every joint — Blender's BVH exporter does —
+// initialises each one at that joint's OFFSET. Reading the raw magnitude would report the
+// whole rest skeleton as translated work the rig threw away; only travel away from rest is.
+function withJointPositions(text) {
+  const parsed = parseBvh(text, "source");
+  const lines = text.split("\n");
+  const motionStart = lines.findIndex((line) => line.startsWith("Frame Time:")) + 1;
+  let joint = 0;
+  const header = lines.slice(0, motionStart).map((line) => {
+    if (!line.trim().startsWith("CHANNELS")) return line;
+    joint += 1;
+    return line.trim().startsWith("CHANNELS 3")
+      ? line.replace("CHANNELS 3 Zrotation Xrotation Yrotation",
+          "CHANNELS 6 Xposition Yposition Zposition Zrotation Xrotation Yrotation")
+      : line;
+  });
+  const motion = parsed.frames.map((frame) => {
+    const values = [];
+    for (const node of parsed.nodes) {
+      const own = frame.slice(node.channelStart, node.channelStart + node.channels.length);
+      if (node.parent >= 0) values.push(...node.offset);
+      values.push(...own);
+    }
+    return values.map((value) => value.toFixed(6)).join(" ");
+  });
+  return [...header, ...motion, ""].join("\n");
+}
+
+const positioned = bvhToClip(parseBvh(withJointPositions(sample), "positioned"), catalog.rig, { loop: false, easing: "linear", tolerances });
+check(positioned.dropped.depthUnits === 0,
+  `a joint resting at its own OFFSET was reported as ${positioned.dropped.depthUnits.toFixed(3)} units of dropped depth translation`);
+check(JSON.stringify(positioned.keyframes) === JSON.stringify(native.keyframes),
+  "position channels holding the rest pose changed the imported clip");
 
 // Out-of-plane work is measured and dropped, not quietly kept.
 const lines = sample.split("\n");

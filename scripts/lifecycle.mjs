@@ -9,7 +9,15 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const repoName = basename(root);
 const runtime = join(root, ".runtime");
 const pidFile = join(runtime, "wrangler.pid");
-const generatedPaths = [join(root, "dist"), join(root, "out"), join(root, ".wrangler"), join(runtime, "cloudflare"), join(runtime, "cache")];
+/**
+ * What reset is allowed to delete.
+ *
+ * `out/` is deliberately absent. It is where `export:motions` puts the clips a Blender
+ * project is pointed at, so a reset that cleared it would delete a .blend somebody is in the
+ * middle of editing. Everything here is either rebuilt by the next command or is disposable
+ * runtime state.
+ */
+const generatedPaths = [join(root, "dist"), join(root, ".wrangler"), join(runtime, "cloudflare"), join(runtime, "cache")];
 
 function isRunning(pid) {
   try {
@@ -278,7 +286,7 @@ function reset() {
     rmSync(target, { recursive: true, force: true });
   }
   mkdirSync(runtime, { recursive: true });
-  console.log("reset: cleared dist, tool exports, Wrangler state, and disposable runtime state");
+  console.log("reset: cleared dist, Wrangler state, and disposable runtime state (out/ is left alone)");
 }
 
 function build() {

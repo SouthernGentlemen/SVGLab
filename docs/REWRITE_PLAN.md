@@ -322,75 +322,52 @@ The draft exposed two things:
 
 ## 2. Contracts these findings contradict
 
-Five, named explicitly, each with a proposed amendment. None of them is worked around quietly.
+Five, named rather than worked around. The evidence for each is in section 1; this is only the
+decision.
 
-### C7 — "Generated clip catalog ≤ 60 KB" is reachable only if the studies are not in it
+**C7 — the 60 KB catalog is reachable only with the studies out of it.** They are 59,523 bytes
+compact, 97% of the budget, and they are also *referenced*: `UNARMED_MOVESET.clips.study` and
+`SWORD_MOVESET.clips.study` both point at one. They are authoring aids — `bnrStrikeNormal` was
+cut from the punch study, the three sword clips from the slash study — so they need to be
+derived but not shipped, and C3 has only two categories today.
 
-The studies are 59,523 bytes compact — 97% of the budget by themselves. They are also
-*referenced*: `UNARMED_MOVESET.clips.study = bnrPunchStudyNormal` and
-`SWORD_MOVESET.clips.study = bnrSlashStudyNormal` in `src/animation/movesets.ts`, and both show
-up in the preview list. Excluding them is a functional change, not a free one.
-
-They are authoring aids — `bnrStrikeNormal` was cut from the punch study, and the three sword
-clips from the slash study — so they need a home that is *derived but not shipped*, and C3
-currently has only two categories: generated output and authored source.
-
-> **Amendment, C3.** Add a third category: a clip may be *derived and not shipped*. It is
-> rebuilt deterministically like any generated clip and is available to `export:motions`,
-> `render:clip` and the dev preview, but it is not part of the catalog C7 measures. The
-> manifest declares which lane each clip is in.
+> **C3** gains a third: a clip may be *derived and not shipped*. It rebuilds deterministically
+> like any generated clip and is written to `out/` on every build, where `export:motions`
+> already puts it and where a Blender project can be pointed at it, but it is not in the
+> catalog C7 measures. The manifest declares which lane each clip is in.
 >
-> **Amendment, C7.** Say what the 60 KB measures: the shipped catalog, raw bytes, studies
-> excluded. Measured achievable value 37,710 bytes.
+> **C7** says what the 60 KB measures: the shipped catalog, raw bytes, studies excluded.
 
-### C4 — "no value is stored to more precision than that justifies" cannot be one number
+**C4 — "no more precision than that justifies" cannot be one number.** Reduction is 1° *and*
+0.15 units. One `round()` at 1dp fails the exchange gate on the pelvis channel; at 3dp it
+stores two digits of noise on every rotation.
 
-Reduction is 1° *and* 0.15 units. A single `round()` at 1dp fails the exchange gate on the
-pelvis channel at 0.150 against a 0.15 tolerance; at 3dp it stores two digits of noise on every
-rotation.
+> **C4** states precision per channel: rotation to one decimal, position to two.
 
-> **Amendment, C4.** State the precision per channel: rotation to one decimal (tolerance 1°),
-> position to two (tolerance 0.15 units). Both measured to pass `check:exchange` on all eleven
-> clips.
+**C7 — the 120 KB character needs the knobs to be per slot.** M1 says "Coordinate precision and
+simplification tolerance are declared knobs", singular. One global setting fits and takes
+yuliya's face with it.
 
-### C7 — "One character ≤ 120 KB raw" needs the knobs to be per slot
+> **M1** declares the knobs *per slot* in the atlas sidecar, with a default and overrides, and
+> adds coordinate precision to the list — it is a constant inside the tracer today.
 
-M1 says "Coordinate precision and simplification tolerance are declared knobs", in the
-singular. One global setting reaches 108,316 bytes for yuliya and destroys her face. Per-slot
-knobs reach 114,371 with the face intact.
+**M5 — the Worker write-back endpoint cannot exist.** `workerd` gives `nodejs_compat` an
+in-memory filesystem that reports success and drops the bytes.
 
-> **Amendment, M1.** The knobs are declared *per slot*, in the atlas sidecar, with a default
-> and per-slot overrides. Coordinate precision joins colour cap, simplification tolerance and
-> minimum region area as a declared knob rather than a constant in the tracer.
+> **M5** has the Worker proxy `/dev/*` to a dev sidecar that owns disk. The sidecar watches
+> `motions/authored/` and `out/`, rebuilds, and pushes over SSE. The Worker never touches the
+> filesystem.
 
-### M5 — the Worker write-back endpoint cannot exist
+**C1 — art carries a skeleton, and the contract says it must not.** All four art files restate
+eleven rest offsets. They currently *agree* with the contract, so this is duplication rather
+than drift — but the tracer regenerates it on every build.
 
-M5 specifies "a write-back endpoint that lands an edit in `motions/authored/`" served by the
-Worker. `workerd` gives `nodejs_compat` an in-memory virtual filesystem: the write succeeds,
-reads back, and never reaches disk.
+> **No amendment: C1 is right and the code is the bug.** M1 and M3 emit art carrying only
+> `data-bone`; the renderer takes offsets from the contract.
 
-> **Amendment, M5.** The Worker proxies `/dev/*` to a dev sidecar that owns disk. The sidecar
-> watches `motions/authored/` and `out/`, rebuilds the catalog and pushes the result over SSE
-> (measured: 185 ms from save to the page). The Worker never touches the filesystem, in dev or
-> otherwise.
-
-### C1 — art carries a skeleton today, and the contract says it must not
-
-All four art files restate eleven rest offsets that `rigs/fighter.rig.json` will own.
-
-> **Amendment, none needed — C1 is right and the code is the bug.** Note it explicitly: M1 and
-> M3 must emit art carrying only `data-bone`, and the renderer must take offsets from the
-> contract. `AGENTS.md`'s own rule applies — "When code and this file disagree, one of them is
-> a bug — say which." This is the code.
-
-### One more worth naming, though it contradicts nothing
-
-Gate 7's "Skips loudly when Blender is absent; never silently passes" is satisfiable and cheap
-(1.72 s), but the contract does not say what a *reviewable* Blender artefact costs. Building a
-`.blend` per clip is 13.97 s. Those are two different commands and the plan keeps them
-separate: `check:blender` is the gate, `npm run blender` is the authoring aid.
-
----
+One more worth naming, though it contradicts nothing: gate 7's cost is 1.72 s, while building a
+reviewable `.blend` per clip is 13.97 s. Those stay two commands — `check:blender` is the gate,
+`npm run blender` is the authoring aid.
 
 ## 3. The milestone plan
 
@@ -401,7 +378,8 @@ is in. Every milestone turns on a gate, and once on, a gate never goes off.
 
 **Creates.** Orphan branch. `AGENTS.md` (amended per section 2). `rigs/fighter.rig.json`.
 `src/rig/contract.ts` (reads and validates it), `src/rig/types.ts`, `src/rig/sample.ts` (the one
-sampler), `src/rig/fk.ts` (forward kinematics, shared by the renderer and gate 7).
+sampler), `src/rig/fk.ts` (forward kinematics, shared by the renderer and gate 7). The sampler itself is
+already split out and catalog-free — see the bug list — so M0 moves it rather than writing it.
 `src/clips/types.ts`, `src/clips/index.ts` with an empty catalog. `pipelines/guards/rig.ts`.
 `package.json`, `tsconfig.json` (nodenext / `allowImportingTsExtensions` / `erasableSyntaxOnly`),
 `vitest.config.ts`. `tests/rig/contract.test.ts`, `tests/rig/sample.test.ts`.
@@ -442,7 +420,8 @@ characters — they are files on disk that nothing imports.
 
 **Done when.** Every kept clip is reproduced byte-identically; contact ticks are asserted
 against their move's active window; loop seams close; the shipped catalog is ≤ 60 KB —
-measured 37,710 — and the studies build into the derived-not-shipped lane.
+measured 37,710 — and every build also writes the studies to `out/`, where a Blender project
+is pointed and where nothing in the bundle can reach them.
 
 **Defers.** Blender, the exchange, and anything that reads a clip on a page.
 
@@ -457,8 +436,9 @@ measured 37,710 — and the studies build into the derived-not-shipped lane.
 **Done when.** A clip opens in Blender as a posed character; an edit lands in
 `motions/authored/`; an untouched round trip is a table of zeros; gate 7's forward-kinematics
 assertion passes (measured worst 1.841×10⁻⁵ against a 0.001 threshold over 19,503 comparisons)
-in 1.72 s; the guard includes a **real** Blender export rather than only the synthetic reframe;
-the dropped-work report no longer counts a static rest offset as depth translation.
+in 1.72 s; and the guard includes a **real** Blender export rather than only the synthetic
+reframe. (The dropped-work false positive that export exposed is already fixed — see
+[Bugs found and fixed while planning](#bugs-found-and-fixed-while-planning).)
 
 **Defers.** Any browser involvement. This milestone is entirely CLI and Blender.
 
@@ -484,9 +464,11 @@ other, and the seal test fails if anything in `src/kernel/**` reaches outward.
 **Gate on.** The shell half of `check:footprint`; `assert-local-only`; the production build.
 
 **Done when.** An edit saved in Blender shows up in the browser with no hand-run command
-(measured 185 ms save → page); characters are fetched on demand and no raster and no character
-SVG reaches the bundle; the shell chunk is ≤ 150 KB raw and ≤ 50 KB gzip — measured 44,427 /
-9,589 with characters fetched and studies excluded, against a 1,497,551 / 408,778 baseline.
+(measured 185 ms save → page); the sidecar also serves the study clips out of `out/`, so the
+same file is reviewable in Blender and in the live preview without entering the catalog;
+characters are fetched on demand and no raster and no character SVG reaches the bundle; the
+shell chunk is ≤ 150 KB raw and ≤ 50 KB gzip — measured 44,427 / 9,589 with characters fetched
+and studies excluded, against a 1,497,551 / 408,778 baseline.
 
 **Defers.** Editing poses in the page. The loop is Blender → disk → page; the sidecar's
 disk-write path exists and is proved but nothing in the page uses it yet.
@@ -545,273 +527,298 @@ alongside a draft.
 ## 5. Purge manifest
 
 Every path tracked in the repository today, with a verdict. The list is generated from
-`git ls-files` and asserted complete — 112 paths, **53 port, 54 rewrite, 5 delete**. Nothing is
-unlisted.
+`git ls-files` and asserted complete — 112 paths, **52 port, 55 rewrite, 5 delete**. Nothing is
+unlisted. "in place" means the path does not move.
 
 *port* — moves with its reasoning intact; translated to TypeScript where it is a `.mjs` script,
 but not redesigned. *rewrite* — the behaviour survives, the code is written again against the
 new contracts. *delete* — goes away.
 
-This file is not in the table: it did not exist when the table was generated. It is itself
-*delete* at M7 — once the milestones are done the plan is history, and `AGENTS.md` plus the
-commit log say everything it says.
+
 
 **`(root)`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `.gitattributes` | port | `.gitattributes` | The BVH trailing-whitespace rule still protects the vendored capture bytes. |
-| `.gitignore` | rewrite | `.gitignore` | Same idea, new names: out/ and .runtime/ stay ignored, rigs/ must stay tracked. |
-| `AGENTS.md` | port | `AGENTS.md` | This is the contract. It is amended by this plan, not replaced. |
-| `README.md` | rewrite | `README.md` | Describes today's commands and layout; both change wholesale. |
-| `index.html` | rewrite | `index.html` | The stage page is rebuilt against the new shell. |
-| `package-lock.json` | rewrite | `package-lock.json` | Regenerated; vite/vitest/wrangler/typescript survive as devDependencies. |
-| `package.json` | rewrite | `package.json` | New pipeline entry points, no build step for them, and the dev sidecar. |
-| `preview.html` | rewrite | `preview.html` | Becomes the M5 preview: character, clip, scrub, skeleton, kernel. |
-| `tsconfig.json` | rewrite | `tsconfig.json` | Must become nodenext + allowImportingTsExtensions + erasableSyntaxOnly (spike 1). |
-| `vite.config.ts` | rewrite | `vite.config.ts` | Must stop inlining character art; that is 93% of today's shell chunk (spike 3). |
-| `vitest.config.ts` | port | `vitest.config.ts` | Four lines, and vitest resolves .ts-extension imports unchanged (spike 1). |
-| `wrangler.local.jsonc` | port | `wrangler.local.jsonc` | Local-only config is already right; it gains nothing but a dev proxy route. |
+| `.gitattributes` | port | in place | The BVH trailing-whitespace rule still protects the vendored capture bytes. |
+| `.gitignore` | rewrite | in place | Same idea, new names: out/ and .runtime/ stay ignored, rigs/ must stay tracked. |
+| `AGENTS.md` | port | in place | This is the contract. It is amended by this plan, not replaced. |
+| `README.md` | rewrite | in place | Describes today's commands and layout; both change wholesale. |
+| `index.html` | rewrite | in place | The stage page is rebuilt against the new shell. |
+| `package-lock.json` | rewrite | in place | Regenerated; vite/vitest/wrangler/typescript survive as devDependencies. |
+| `package.json` | rewrite | in place | New pipeline entry points, no build step for them, and the dev sidecar. |
+| `preview.html` | rewrite | in place | Becomes the M5 preview: character, clip, scrub, skeleton, kernel. |
+| `tsconfig.json` | rewrite | in place | Must become nodenext + allowImportingTsExtensions + erasableSyntaxOnly (spike 1). |
+| `vite.config.ts` | rewrite | in place | Must stop inlining character art; that is 93% of today's shell chunk (spike 3). |
+| `vitest.config.ts` | port | in place | Four lines, and vitest resolves .ts-extension imports unchanged (spike 1). |
+| `wrangler.local.jsonc` | port | in place | Local-only config is already right; it gains nothing but a dev proxy route. |
 
 **`characters/<id>`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `characters/barst/atlas.json` | rewrite | `characters/barst/atlas.json` | Gains the per-slot trace profile the 120 KB budget needs (spike 3). |
-| `characters/barst/atlas.png` | port | `characters/barst/atlas.png` | Build-time input, untouched. |
-| `characters/kiran/atlas.json` | rewrite | `characters/kiran/atlas.json` | Same: per-slot trace profile alongside its prop bindings. |
-| `characters/kiran/atlas.png` | port | `characters/kiran/atlas.png` | Build-time input, untouched. |
-| `characters/yuliya/atlas.json` | rewrite | `characters/yuliya/atlas.json` | Same, and this is the character the budget is set by. |
-| `characters/yuliya/atlas.png` | port | `characters/yuliya/atlas.png` | Build-time input, untouched. |
+| `characters/barst/atlas.json` | rewrite | in place | Gains the per-slot trace profile the 120 KB budget needs (spike 3). |
+| `characters/barst/atlas.png` | port | in place | Build-time input, untouched. |
+| `characters/kiran/atlas.json` | rewrite | in place | Same: per-slot trace profile alongside its prop bindings. |
+| `characters/kiran/atlas.png` | port | in place | Build-time input, untouched. |
+| `characters/yuliya/atlas.json` | rewrite | in place | Same, and this is the character the budget is set by. |
+| `characters/yuliya/atlas.png` | port | in place | Build-time input, untouched. |
 
 **`docs`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `docs/CHARACTER_ATLAS.md` | rewrite | `docs/CHARACTER_ATLAS.md` | Still the atlas author's guide, but the knobs and the budget are new. |
-| `docs/EXPERIMENTS.md` | delete | — | Every path it names disappears; M6's authoring loop replaces it. |
-| `docs/HEXFRAME_COMBAT_AUDIT.md` | port | `docs/HEXFRAME_COMBAT_AUDIT.md` | Provenance record for the kernel's origin. Deleting it loses why the boundary is where it is. |
-| `docs/MOTION_IMPORT.md` | rewrite | `docs/MOTION_IMPORT.md` | The measured-import reasoning is kept; the commands and the study lane change. |
-| `docs/SWORD-MOTION-REFERENCE.md` | port | `docs/SWORD-MOTION-REFERENCE.md` | C8 provenance for the four sword clips, and the doctrine for when the attachment point is used again. See open question 3. |
+| `CHARACTER_ATLAS.md` | rewrite | in place | Still the atlas author's guide, but the knobs and the budget are new. |
+| `HEXFRAME_COMBAT_AUDIT.md` | port | in place | Provenance record for the kernel's origin. Deleting it loses why the boundary is where it is. |
+| `MOTION_IMPORT.md` | rewrite | in place | The measured-import reasoning and the sword doctrine are kept; the commands and the study lane change. |
+| `REWRITE_PLAN.md` | delete | — | The plan is scaffolding. At M7 the milestones are done and AGENTS.md plus the commit log say everything it says. |
 
 **`motions/authored`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `motions/authored/README.md` | port | `motions/authored/README.md` | Still exactly what that directory is. |
+| `README.md` | port | in place | Still exactly what that directory is. |
 
 **`motions`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `motions/bandai-namco-motiondataset-1.json` | rewrite | `motions/bandai-namco-motiondataset-1.json` | Gains per-channel precision and a shipped/study lane split (spike 2). |
+| `bandai-namco-motiondataset-1.json` | rewrite | in place | Gains per-channel precision and a shipped/study lane split (spike 2). |
 
 **`scripts`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `scripts/assert-local-only.mjs` | rewrite | `pipelines/guards/local-only.ts` | Same invariants, TypeScript, machine-readable report. |
-| `scripts/build-characters.mjs` | rewrite | `pipelines/sprite/build.ts` | CLI shape survives; becomes TypeScript with a machine-readable report. |
-| `scripts/build-motions.mjs` | rewrite | `pipelines/motion/build.ts` | Emits compact catalogs and the study lane separately. |
-| `scripts/check-motion-exchange.mjs` | rewrite | `pipelines/guards/exchange.ts` | Keeps every rejection case and adds the real Blender export the synthetic reframe stands in for. |
-| `scripts/export-motions.mjs` | rewrite | `pipelines/exchange/export.ts` | Bakes through the runtime sampler (C2/C4) rather than a copy of it. |
-| `scripts/import-motions.mjs` | rewrite | `pipelines/exchange/import.ts` | Same reporting, corrected dropped-work measurement. |
-| `scripts/lifecycle.mjs` | port | `pipelines/dev/lifecycle.ts` | Hard-won port reaping and process-tree teardown. Ported, then extended with the sidecar. |
+| `assert-local-only.mjs` | rewrite | `pipelines/guards/local-only.ts` | Same invariants, TypeScript, machine-readable report. |
+| `build-characters.mjs` | rewrite | `pipelines/sprite/build.ts` | CLI shape survives; becomes TypeScript with a machine-readable report. |
+| `build-motions.mjs` | rewrite | `pipelines/motion/build.ts` | Emits compact catalogs and the study lane separately. |
+| `check-motion-exchange.mjs` | rewrite | `pipelines/guards/exchange.ts` | Keeps every rejection case and adds the real Blender export the synthetic reframe stands in for. |
+| `export-motions.mjs` | rewrite | `pipelines/exchange/export.ts` | Bakes through the runtime sampler (C2/C4) rather than a copy of it. |
+| `import-motions.mjs` | rewrite | `pipelines/exchange/import.ts` | Same reporting, corrected dropped-work measurement. |
+| `lifecycle.mjs` | port | `pipelines/dev/lifecycle.ts` | Hard-won port reaping and process-tree teardown. Ported, then extended with the sidecar. |
 
 **`scripts/atlas`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `scripts/atlas/model.mjs` | rewrite | `pipelines/sprite/character.ts` | Emits art with no data-x/data-y (C1) and resolves knobs per slot. |
-| `scripts/atlas/png.mjs` | port | `pipelines/sprite/png.ts` | A correct PNG decoder with no opinions. Translate to TypeScript, change nothing. |
-| `scripts/atlas/preview.mjs` | delete | — | It exists to duplicate rig.ts's transform for a script that cannot import it. Under C2 it can. |
-| `scripts/atlas/segment.mjs` | port | `pipelines/sprite/segment.ts` | Island finding and slot assignment by band and reading order. |
-| `scripts/atlas/skeleton.mjs` | rewrite | `pipelines/sprite/fit.ts` | Its constants become rigs/fighter.rig.json; what is left is the fitting itself. |
-| `scripts/atlas/trace.mjs` | port | `pipelines/sprite/trace.ts` | The layering strategy is not to be redesigned. Ported with its reasoning; only `places` and per-slot knobs are added. |
+| `model.mjs` | rewrite | `pipelines/sprite/character.ts` | Emits art with no data-x/data-y (C1) and resolves knobs per slot. |
+| `png.mjs` | port | `pipelines/sprite/png.ts` | A correct PNG decoder with no opinions. Translate to TypeScript, change nothing. |
+| `preview.mjs` | delete | — | It exists to duplicate rig.ts's transform for a script that cannot import it. Under C2 it can. |
+| `segment.mjs` | port | `pipelines/sprite/segment.ts` | Island finding and slot assignment by band and reading order. |
+| `skeleton.mjs` | rewrite | `pipelines/sprite/fit.ts` | Its constants become rigs/fighter.rig.json; what is left is the fitting itself. |
+| `trace.mjs` | port | `pipelines/sprite/trace.ts` | The layering strategy is not to be redesigned. Ported with its reasoning; only `places` and per-slot knobs are added. |
 
 **`scripts/blender`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `scripts/blender/setup.py` | port | `pipelines/blender/setup.py` | Measured calibration against Blender's importers. Not to be redesigned. |
+| `setup.py` | port | `pipelines/blender/setup.py` | Measured calibration against Blender's importers. Not to be redesigned. |
 
 **`scripts/motion`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `scripts/motion/art.mjs` | port | `pipelines/exchange/art.ts` | The calibration corner is a measured-calibration step and must not be redesigned. |
-| `scripts/motion/bvh-read.mjs` | port | `pipelines/exchange/bvh-read.ts` | The measured-axis reader is the best thing in the repo. Ported, with the rest-offset bug fixed (spike 5). |
-| `scripts/motion/bvh-write.mjs` | port | `pipelines/exchange/bvh-write.ts` | Channel layout and sign conventions move to the rig contract; the writer is unchanged. |
-| `scripts/motion/bvh.mjs` | port | `pipelines/motion/bvh-parse.ts` | The comment about Blender's reference importer doubling limb lengths is the whole value. |
-| `scripts/motion/catalog.mjs` | rewrite | `pipelines/motion/catalog.ts` | Gains the shipped/study split and compact emission. |
-| `scripts/motion/clip.mjs` | rewrite | `pipelines/motion/reduce.ts` | simplify() and keyframesFromChannels() survive; samplePose() is deleted under C2. |
-| `scripts/motion/retarget.mjs` | port | `pipelines/motion/retarget.ts` | Projection, unwrapping, loop-seam closing and contact assertion are hard-won. |
-| `scripts/motion/rig.mjs` | rewrite | `src/rig/contract.ts` | Reads rigs/fighter.rig.json instead of parsing a drawing. Proven byte-identical in spike 6. |
+| `art.mjs` | port | `pipelines/exchange/art.ts` | The calibration corner is a measured-calibration step and must not be redesigned. |
+| `bvh-read.mjs` | port | `pipelines/exchange/bvh-read.ts` | The measured-axis reader is the best thing in the repo. Ported, with the rest-offset bug fixed (spike 5). |
+| `bvh-write.mjs` | port | `pipelines/exchange/bvh-write.ts` | Channel layout and sign conventions move to the rig contract; the writer is unchanged. |
+| `bvh.mjs` | port | `pipelines/motion/bvh-parse.ts` | The comment about Blender's reference importer doubling limb lengths is the whole value. |
+| `catalog.mjs` | rewrite | `pipelines/motion/catalog.ts` | Gains the shipped/study split and compact emission. |
+| `clip.mjs` | rewrite | `pipelines/motion/reduce.ts` | simplify() and keyframesFromChannels() are all that is left in it; the duplicate sampler is already gone. |
+| `retarget.mjs` | port | `pipelines/motion/retarget.ts` | Projection, unwrapping, loop-seam closing and contact assertion are hard-won. |
+| `rig.mjs` | rewrite | `src/rig/contract.ts` | Reads rigs/fighter.rig.json instead of parsing a drawing. Proven byte-identical in spike 6. |
 
 **`src/animation`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `src/animation/clips.ts` | rewrite | `src/clips/index.ts` | Two lanes survive; the catalog becomes fetchable rather than only imported. |
-| `src/animation/movesets.ts` | rewrite | `src/clips/movesets.ts` | The `study` slot must stop pointing at a clip the catalog no longer ships (spike 2). |
-| `src/animation/preview-playback.ts` | port | `src/clips/playback.ts` | Eight lines that say what the preview does at a loop seam. |
-| `src/animation/sample.ts` | rewrite | `src/rig/sample.ts` | Becomes THE sampler both the runtime and every pipeline import (C2, proven in spike 1). |
-| `src/animation/types.ts` | rewrite | `src/clips/types.ts` | Clip and keyframe types, unchanged in meaning. |
+| `clips.ts` | rewrite | `src/clips/index.ts` | Two lanes survive; the catalog becomes fetchable rather than only imported. |
+| `movesets.ts` | rewrite | `src/clips/movesets.ts` | The `study` slot must stop pointing at a clip the catalog no longer ships (spike 2). |
+| `preview-playback.ts` | port | `src/clips/playback.ts` | Eight lines that say what the preview does at a loop seam. |
+| `sample.ts` | rewrite | `src/rig/sample.ts` | Already THE sampler both the runtime and the pipelines import; moves to src/rig/ and keeps its freedom from the catalog. |
+| `snapshot.ts` | rewrite | `src/render/clip-for-state.ts` | Picking a clip from combat state is presentation, not sampling. Split out so the sampler stays importable by a pipeline. |
+| `types.ts` | rewrite | `src/clips/types.ts` | Clip and keyframe types, unchanged in meaning. |
 
 **`src/animation/generated`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `src/animation/generated/authored.ts` | rewrite | `src/clips/generated/authored.ts` | Regenerated in the same shape. |
-| `src/animation/generated/bandai-namco.ts` | rewrite | `src/clips/generated/bandai-namco.ts` | Regenerated compact, per-channel precision, studies excluded: 231 KB -> 37.7 KB. |
+| `authored.ts` | rewrite | `src/clips/generated/authored.ts` | Regenerated in the same shape. |
+| `bandai-namco.ts` | rewrite | `src/clips/generated/bandai-namco.ts` | Regenerated compact, per-channel precision, studies excluded: 231 KB -> 37.7 KB. |
 
 **`src/app`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `src/app/main.ts` | rewrite | `src/shell/stage.ts` | The stage entry point, rebuilt. |
-| `src/app/preview.css` | rewrite | `src/shell/preview.css` | Rebuilt with the preview page. |
-| `src/app/preview.ts` | rewrite | `src/shell/preview.ts` | Becomes the M5 preview with the dev event stream. |
-| `src/app/skeleton-debug.css` | rewrite | `src/shell/skeleton-overlay.css` | Rebuilt with the overlay. |
-| `src/app/skeleton-debug.ts` | rewrite | `src/shell/skeleton-overlay.ts` | Draws the contract's bones rather than the document's groups. |
-| `src/app/styles.css` | rewrite | `src/shell/stage.css` | Also stops being the place bone paint is defined (pipelines/exchange/art.ts reads it today). |
+| `main.ts` | rewrite | `src/shell/stage.ts` | The stage entry point, rebuilt. |
+| `preview.css` | rewrite | `src/shell/preview.css` | Rebuilt with the preview page. |
+| `preview.ts` | rewrite | `src/shell/preview.ts` | Becomes the M5 preview with the dev event stream. |
+| `skeleton-debug.css` | rewrite | `src/shell/skeleton-overlay.css` | Rebuilt with the overlay. |
+| `skeleton-debug.ts` | rewrite | `src/shell/skeleton-overlay.ts` | Draws the contract's bones rather than the document's groups. |
+| `styles.css` | rewrite | `src/shell/stage.css` | Also stops being the place bone paint is defined (pipelines/exchange/art.ts reads it today). |
 
 **`src/combat`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `src/combat/collision/aabb.ts` | port | `src/kernel/collision/aabb.ts` | Integer AABB intersection. |
-| `src/combat/collision/boxes.ts` | port | `src/kernel/collision/boxes.ts` | Active hitbox windows and hurtbox selection. |
-| `src/combat/collision/pushbox.ts` | port | `src/kernel/collision/pushbox.ts` | Symmetric separation. |
-| `src/combat/commands/attack.ts` | port | `src/kernel/commands/attack.ts` | Input edge to move start. |
-| `src/combat/constants.ts` | port | `src/kernel/constants.ts` | Integer world units and the 60 Hz tick. |
-| `src/combat/content.ts` | port | `src/kernel/content.ts` | Two transparent frame-data contracts and their validator. |
-| `src/combat/hit-resolution.ts` | port | `src/kernel/hit-resolution.ts` | Single-hit gating, hitstop, hitstun, pushback. |
-| `src/combat/index.ts` | port | `src/kernel/index.ts` | The kernel's one public surface. |
-| `src/combat/movement/physics.ts` | port | `src/kernel/movement/physics.ts` | Gravity, friction, stage bounds. |
-| `src/combat/simulation.ts` | port | `src/kernel/simulation.ts` | Deterministic stepping. The thing C6 seals. |
-| `src/combat/state/machine.ts` | port | `src/kernel/state/machine.ts` | Mode transitions and frame counters. |
-| `src/combat/types.ts` | port | `src/kernel/types.ts` | The frame-data vocabulary. C6 says this is first class. |
+| `collision/aabb.ts` | port | `src/kernel/collision/aabb.ts` | Integer AABB intersection. |
+| `collision/boxes.ts` | port | `src/kernel/collision/boxes.ts` | Active hitbox windows and hurtbox selection. |
+| `collision/pushbox.ts` | port | `src/kernel/collision/pushbox.ts` | Symmetric separation. |
+| `commands/attack.ts` | port | `src/kernel/commands/attack.ts` | Input edge to move start. |
+| `constants.ts` | port | `src/kernel/constants.ts` | Integer world units and the 60 Hz tick. |
+| `content.ts` | port | `src/kernel/content.ts` | Two transparent frame-data contracts and their validator. |
+| `hit-resolution.ts` | port | `src/kernel/hit-resolution.ts` | Single-hit gating, hitstop, hitstun, pushback. |
+| `index.ts` | port | `src/kernel/index.ts` | The kernel's one public surface. |
+| `movement/physics.ts` | port | `src/kernel/movement/physics.ts` | Gravity, friction, stage bounds. |
+| `simulation.ts` | port | `src/kernel/simulation.ts` | Deterministic stepping. The thing C6 seals. |
+| `state/machine.ts` | port | `src/kernel/state/machine.ts` | Mode transitions and frame counters. |
+| `types.ts` | port | `src/kernel/types.ts` | The frame-data vocabulary. C6 says this is first class. |
 
 **`src/debug`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `src/debug/panel.ts` | rewrite | `src/shell/debug-panel.ts` | Rebuilt against the new toggles and the fetched-skin flow. |
+| `panel.ts` | rewrite | `src/shell/debug-panel.ts` | Rebuilt against the new toggles and the fetched-skin flow. |
 
 **`src/input`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `src/input/keyboard.ts` | rewrite | `src/shell/keyboard.ts` | Its constructor parameter property is not erasable syntax (spike 1). |
+| `keyboard.ts` | rewrite | `src/shell/keyboard.ts` | Its constructor parameter property is not erasable syntax (spike 1). |
 
 **`src/svg/characters`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `src/svg/characters/barst.svg` | rewrite | `characters/barst/character.svg` | Regenerated at the per-slot knobs; becomes a fetched asset, not a module. |
-| `src/svg/characters/index.ts` | delete | — | Its ?raw imports are the C7 violation: they inline 1.4 MB of art into the shell chunk. |
-| `src/svg/characters/kiran.svg` | rewrite | `characters/kiran/character.svg` | Same. |
-| `src/svg/characters/yuliya.svg` | rewrite | `characters/yuliya/character.svg` | Same. 620,401 bytes today, 114,371 at the proposed knobs. |
+| `barst.svg` | rewrite | `characters/barst/character.svg` | Regenerated at the per-slot knobs; becomes a fetched asset, not a module. |
+| `index.ts` | delete | — | Its ?raw imports are the C7 violation: they inline 1.4 MB of art into the shell chunk. |
+| `kiran.svg` | rewrite | `characters/kiran/character.svg` | Same. |
+| `yuliya.svg` | rewrite | `characters/yuliya/character.svg` | Same. 620 KB today, 111.7 KB at the proposed knobs. |
 
 **`src/svg`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `src/svg/fighter.svg` | rewrite | `src/render/art/fighter.svg` | Keeps its art and its comment; loses the 11 data-x/data-y offsets C1 forbids. |
-| `src/svg/renderer.ts` | rewrite | `src/render/arena.ts` | Same job; parameter properties must go (spike 1) and skins are fetched. |
-| `src/svg/rig.ts` | rewrite | `src/rig/pose.ts + src/render/place.ts` | Split: the pure bone tree/pose maths a pipeline can import, and the DOM placement it cannot. |
-| `src/svg/weapons.ts` | delete | — | Weapons are explicitly out of scope. The named attachment point in the rig contract is what survives. |
+| `fighter.svg` | rewrite | `src/render/art/fighter.svg` | Keeps its art and its comment; loses the 11 data-x/data-y offsets C1 forbids. |
+| `renderer.ts` | rewrite | `src/render/arena.ts` | Same job; parameter properties must go (spike 1) and skins are fetched. |
+| `rig.ts` | rewrite | `src/rig/pose.ts + src/render/place.ts` | Split: the pure bone tree/pose maths a pipeline can import, and the DOM placement it cannot. |
+| `weapons.ts` | delete | — | Weapons are explicitly out of scope. The named attachment point in the rig contract is what survives. |
 
 **`src`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `src/worker.ts` | rewrite | `src/shell/worker.ts` | Gains the dev-only /dev/* proxy to the sidecar (spike 4); it can never touch disk itself. |
+| `worker.ts` | rewrite | `src/shell/worker.ts` | Gains the dev-only /dev/* proxy to the sidecar (spike 4); it can never touch disk itself. |
 
 **`tests`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `tests/aabb.test.ts` | port | `tests/kernel/aabb.test.ts` | Pure integer geometry; nothing about it changes. |
-| `tests/animation.test.ts` | rewrite | `tests/rig/sample.test.ts` | Becomes the one sampler's test, asserted from both a pipeline and the runtime. |
-| `tests/architecture.test.ts` | rewrite | `tests/guards/architecture.test.ts` | Keeps the no-raster guard; gains C6's kernel-import seal. |
-| `tests/character-preview.test.ts` | rewrite | `tests/shell/preview.test.ts` | Rebuilt against the fetched-skin flow. |
-| `tests/characters.test.ts` | rewrite | `tests/sprite/characters.test.ts` | Drops the rig.ts/preview.mjs duplication assertion, which no longer has two copies to compare. |
-| `tests/content.test.ts` | port | `tests/kernel/content.test.ts` | Frame-data validation. |
-| `tests/motion-exchange.test.ts` | rewrite | `tests/exchange/exchange.test.ts` | Rebuilt, and the Blender case stops being synthetic. |
-| `tests/motion-import.test.ts` | rewrite | `tests/exchange/import.test.ts` | Rebuilt against the corrected dropped-work report. |
-| `tests/movesets.test.ts` | rewrite | `tests/clips/movesets.test.ts` | Rebuilt without the study slot. |
-| `tests/preview-playback.test.ts` | port | `tests/clips/playback.test.ts` | Loop-seam behaviour of the preview. |
-| `tests/simulation.test.ts` | port | `tests/kernel/simulation.test.ts` | The kernel's determinism and boundary test. |
-| `tests/skeleton-debug.test.ts` | rewrite | `tests/shell/skeleton-overlay.test.ts` | Rebuilt against the contract-driven overlay. |
-| `tests/weapon-alignment.test.ts` | delete | — | Tests src/svg/weapons.ts, which is out of scope. |
+| `aabb.test.ts` | port | `tests/kernel/aabb.test.ts` | Pure integer geometry; nothing about it changes. |
+| `animation.test.ts` | rewrite | `tests/rig/sample.test.ts` | Becomes the one sampler's test, asserted from both a pipeline and the runtime. |
+| `architecture.test.ts` | rewrite | `tests/guards/architecture.test.ts` | Keeps the no-raster guard; gains C6's kernel-import seal. |
+| `character-preview.test.ts` | rewrite | `tests/shell/preview.test.ts` | Rebuilt against the fetched-skin flow. |
+| `characters.test.ts` | rewrite | `tests/sprite/characters.test.ts` | Drops the rig.ts/preview.mjs duplication assertion, which no longer has two copies to compare. |
+| `content.test.ts` | port | `tests/kernel/content.test.ts` | Frame-data validation. |
+| `motion-exchange.test.ts` | rewrite | `tests/exchange/exchange.test.ts` | Rebuilt, and the Blender case stops being synthetic. |
+| `motion-import.test.ts` | rewrite | `tests/exchange/import.test.ts` | Rebuilt against the corrected dropped-work report. |
+| `movesets.test.ts` | rewrite | `tests/clips/movesets.test.ts` | Rebuilt without the study slot. |
+| `preview-playback.test.ts` | port | `tests/clips/playback.test.ts` | Loop-seam behaviour of the preview. |
+| `simulation.test.ts` | port | `tests/kernel/simulation.test.ts` | The kernel's determinism and boundary test. |
+| `skeleton-debug.test.ts` | rewrite | `tests/shell/skeleton-overlay.test.ts` | Rebuilt against the contract-driven overlay. |
+| `weapon-alignment.test.ts` | delete | — | Tests src/svg/weapons.ts, which is out of scope. |
 
 **`third_party/bandai-namco-motiondataset-1`**
 
 | path | verdict | becomes | why |
 | --- | --- | --- | --- |
-| `third_party/bandai-namco-motiondataset-1/LICENSE` | port | `third_party/bandai-namco-motiondataset-1/LICENSE` | C8: the vendored licence and notice stay beside the source subset. |
-| `third_party/bandai-namco-motiondataset-1/NOTICE.md` | port | `third_party/bandai-namco-motiondataset-1/NOTICE.md` | C8: the vendored licence and notice stay beside the source subset. |
-| `third_party/bandai-namco-motiondataset-1/cfg/content_label.txt` | port | `third_party/bandai-namco-motiondataset-1/cfg/content_label.txt` | Upstream annotation tables the manifest checks each clip against. |
-| `third_party/bandai-namco-motiondataset-1/cfg/style_label.txt` | port | `third_party/bandai-namco-motiondataset-1/cfg/style_label.txt` | Upstream annotation tables the manifest checks each clip against. |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_bow_normal_001.bvh` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_bow_normal_001.bvh` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_bow_normal_001.json` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_bow_normal_001.json` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_dash_normal_001.bvh` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_dash_normal_001.bvh` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_dash_normal_001.json` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_dash_normal_001.json` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_punch_normal_001.bvh` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_punch_normal_001.bvh` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_punch_normal_001.json` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_punch_normal_001.json` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_run_normal_001.bvh` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_run_normal_001.bvh` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_run_normal_001.json` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_run_normal_001.json` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_slash_normal_001.bvh` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_slash_normal_001.bvh` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_slash_normal_001.json` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_slash_normal_001.json` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_walk_normal_002.bvh` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_walk_normal_002.bvh` | Pinned capture subset. Never regenerated, never edited (C8). |
-| `third_party/bandai-namco-motiondataset-1/data/dataset-1_walk_normal_002.json` | port | `third_party/bandai-namco-motiondataset-1/data/dataset-1_walk_normal_002.json` | Pinned capture subset. Never regenerated, never edited (C8). |
+| `LICENSE` | port | in place | C8: the vendored licence and notice stay beside the source subset. |
+| `NOTICE.md` | port | in place | C8: the vendored licence and notice stay beside the source subset. |
+| `cfg/content_label.txt` | port | in place | Upstream annotation tables the manifest checks each clip against. |
+| `cfg/style_label.txt` | port | in place | Upstream annotation tables the manifest checks each clip against. |
+| `data/dataset-1_bow_normal_001.bvh` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_bow_normal_001.json` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_dash_normal_001.bvh` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_dash_normal_001.json` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_punch_normal_001.bvh` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_punch_normal_001.json` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_run_normal_001.bvh` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_run_normal_001.json` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_slash_normal_001.bvh` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_slash_normal_001.json` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_walk_normal_002.bvh` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
+| `data/dataset-1_walk_normal_002.json` | port | in place | Pinned capture subset. Never regenerated, never edited (C8). |
 
 ---
 
 ## Open questions
 
-Places where a decision is still a person's to make, or where I am not confident enough to
-plan around my own answer.
+Two left. The rest are decided; see [Decided](#decided) below.
 
 **1. The flat-colour look is a taste decision, not a budget decision.** Per-slot knobs reach
 114,371 bytes with the face intact, but yuliya's skirt and kiran's cloak lose their shading
 gradients. I think it reads as a deliberate flat-colour style. Someone who drew these atlases
 should look at the before/after — particularly the head crops — and either accept it, or say
-that 120 KB is the wrong number and name the one that is. Both are reasonable; the spike makes
-it a decision instead of a surprise. If the answer is "keep the shading", the measured
-face-preserving cost is 140,242 raw / 42,206 gzip for yuliya, and C7 wants amending
-instead of the art.
+that 120 KB is the wrong number and name the one that is. If the answer is "keep the shading",
+the measured face-preserving cost is 140,242 raw / 42,206 gzip for yuliya, and C7 wants
+amending instead of the art.
 
-**2. Where the study clips live.** I have proposed a derived-but-not-shipped lane, but not
-where the preview gets them from. Two options I did not choose between: the dev sidecar serves
-them from `out/` on demand (they exist only while a sidecar is running), or they become a
-second fetchable catalog the page loads when a study slot is selected (they exist in
-production too, just not in the shell chunk). The first is simpler and matches "studies are an
-authoring aid"; the second keeps the preview identical in dev and in a build. This needs
-someone to say which the preview is *for*.
+**2. `length` is ambiguous for branching bones, and the arm IK reads it.** In the draft
+`pelvis` gets `length: 6` from its offset to `torso`, but it also parents both legs at its own
+origin. Either drop `length` for branching bones, or define it as "distance to the bone that
+continues the chain" and name that child.
 
-**3. `docs/SWORD-MOTION-REFERENCE.md` versus M7.** I marked it *port*, because it is C8
-provenance for four shipped clips and it records the doctrine for when the attachment point is
-used again. But weapons are explicitly out of scope, and M7's cruft gate forbids orphan docs —
-a document describing code that does not exist is exactly what that gate is for. Either M7's
-rule needs an exception for provenance and doctrine records, or this file should be folded
-into `docs/MOTION_IMPORT.md` as a paragraph. I lean towards folding it in, but commit
-`fb5c819` ("Restore the sword motion doctrine to main") suggests it was deliberately kept, and
-I do not know why.
+The live case is the forearm. Its declared tip is `[0,23]`, so it is 23 units long, but
+`weapons.ts` solves the two-handed grip against a hardcoded `22`. That is not obviously a
+typo: the traced characters put the wrist at `y: 18` on a 20-unit forearm, so the *hand* — what
+actually holds a grip — sits nearer 22 than 23. So the rig may need to declare a grip point
+separately from the bone tip rather than the IK being wrong. Weapons are out of scope and
+`weapons.ts` is scheduled for deletion, so nothing is broken today; it needs answering before
+the attachment point is used again.
 
-**4. `length` is ambiguous for branching bones.** In the draft, `pelvis` gets `length: 6` from
-its offset to `torso`, but it also parents both legs at its own origin. Either drop `length`
-for branching bones, or define it as "distance to the bone that continues the chain" and say
-which child that is. It matters because the arm IK reads it — see the forearm off-by-one in
-spike 6 — so it should not stay vague.
+## Decided
 
-**5. The forearm off-by-one is a behaviour change, not just a fix.** Setting the IK's lower
-link to the declared 23 rather than the hardcoded 22 will move every two-handed grip solution
-slightly. Since weapons are being deleted this milestone the question is deferred, not
-answered — but if the attachment point is ever used, the rig's number should win and someone
-should look at the result.
+**Study clips live in `out/`, generated on every build.** They are derived and not shipped:
+`export:motions` already writes all eleven clips there, so a Blender project can be pointed at
+`out/blender/` and `build → import → review` works in Blender today. The live preview reaches
+the same files through the dev sidecar, so a study is reviewable on both surfaces without
+entering the catalog C7 measures. This is why `reset` must leave `out/` alone — see the bug
+fixed below.
+
+**`docs/SWORD-MOTION-REFERENCE.md` is gone.** Its live content — the "motion comes from a
+recording or it does not ship" doctrine, and the Touché and SFU Kendo candidate sources — is a
+section of `docs/MOTION_IMPORT.md`. What was dropped described `src/svg/weapons.ts`, which is
+itself scheduled for deletion, and duplicated the provenance `MOTION_IMPORT.md` already states.
+
+**`docs/EXPERIMENTS.md` is gone.** It told you to hand-edit `src/animation/clips.ts`, which is
+a re-export of generated catalogs; the rest restated AGENTS.md's working rules.
+
+## Bugs found and fixed while planning
+
+None of these were the object of a spike. They turned up while reading the code the spikes ran
+through, and all five are fixed on `main` with a regression test that fails without the fix.
+
+1. **`reset` deleted `out/`.** `npm run dev` runs `reset`, so it destroyed any `.blend` being
+   edited — against AGENTS.md line 125 ("never wiped by reset") and the scope rule "never a
+   `.blend` someone is editing". This is also a precondition for the study-clip decision above.
+2. **The exchange reported a static rest offset as dropped work.** Blender writes every joint's
+   `OFFSET` into its position channels, and the reader measured their magnitude against zero:
+   a clean Blender export reported *31 units of depth translation* when nothing had moved. Now
+   measured against the bone's own rest offset; the same export reports 0.0000.
+3. **The pipeline kept a second, linear-only sampler.** On a `smoothstep` clip it disagreed with
+   the runtime by 8.64° at tick 2 — and `validateAuthoredClip` accepts `smoothstep`, so an
+   authored clip could have exported a BVH that played what the lab never drew. The copy is
+   deleted; `scripts/motion/clip.mjs` re-exports the runtime sampler, which node runs directly.
+   This is C2 held rather than asserted, one milestone early.
+4. **`ease()` treated an absent easing as a curve.** Exposed by fixing 3: several call sites
+   build clip-shaped objects without an `easing` field. Now linear unless a clip explicitly
+   asks for smoothstep, and the round-trip call sites pass the clip's own easing.
+5. **The sampler interpolated out of a value nobody wrote.** A channel first keyed after tick 0
+   was swung from an implied zero — a torso authored as a constant 40 from tick 4 read 20 at
+   tick 2. It now holds the first authored value.
+
+Fixing 3 split `src/animation/sample.ts` into the sampler (which imports only its own types,
+so a pipeline can run it) and `src/animation/snapshot.ts` (which picks a clip from combat
+state). That split is what M0 wants anyway, so it is done early rather than twice.
 
 ## What I am not sure about
 
