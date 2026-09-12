@@ -4,7 +4,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CLIPS } from "../src/animation/clips";
 import { SKINS } from "../src/svg/characters";
-import { armDepth, armLayerPlan, armLayerProfile, fighterPlacement, inspectFighterModel, legDepth } from "../src/svg/rig";
+import {
+  armDepth,
+  armLayerPlan,
+  armLayerProfile,
+  fighterPlacement,
+  inspectFighterModel,
+  legDepth,
+  torsoArtTransform,
+} from "../src/svg/rig";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -32,23 +40,29 @@ describe("character preview rig contract", () => {
     for (const clip of ["bnrWalkNormal", "bnrRunNormal", "bnrDashNormal"] as const) {
       expect(armLayerProfile(clip)).toBe("locomotion");
     }
-    for (const clip of ["bnrIdleNormal", "bnrStrikeNormal", "bnrPunchStudyNormal"] as const) {
-      expect(armLayerProfile(clip)).toBe("both-front");
+    expect(armLayerProfile("bnrIdleNormal")).toBe("both-front");
+    for (const clip of ["bnrStrikeNormal", "bnrPunchStudyNormal"] as const) {
+      expect(armLayerProfile(clip)).toBe("punch");
     }
     expect(armLayerProfile("bnrCrouchNormal")).toBe("anatomical");
 
     expect(armLayerPlan(1, "bnrWalkNormal")).toEqual({
-      underPelvis: "arm-front", behindTorso: null, foreground: ["arm-back"],
+      underLowerBody: "arm-front", behindTorso: null, foreground: ["arm-back"], head: "above-arms",
     });
     expect(armLayerPlan(-1, "bnrWalkNormal")).toEqual({
-      underPelvis: "arm-back", behindTorso: null, foreground: ["arm-front"],
+      underLowerBody: "arm-back", behindTorso: null, foreground: ["arm-front"], head: "above-arms",
     });
     expect(armLayerPlan(1, "bnrStrikeNormal")).toEqual({
-      underPelvis: null, behindTorso: null, foreground: ["arm-front", "arm-back"],
+      underLowerBody: null, behindTorso: null, foreground: ["arm-front", "arm-back"], head: "below-arms",
     });
     expect(armLayerPlan(-1, "bnrStrikeNormal")).toEqual({
-      underPelvis: null, behindTorso: null, foreground: ["arm-back", "arm-front"],
+      underLowerBody: null, behindTorso: null, foreground: ["arm-back", "arm-front"], head: "below-arms",
     });
+  });
+
+  it("counter-mirrors chest artwork while the left-facing skeleton remains mirrored", () => {
+    expect(torsoArtTransform(1)).toBeNull();
+    expect(torsoArtTransform(-1)).toBe("scale(-1 1)");
   });
 
   it("exposes both facings in the visual clip preview", () => {

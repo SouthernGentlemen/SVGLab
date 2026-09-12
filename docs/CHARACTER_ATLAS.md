@@ -101,10 +101,12 @@ scales them along with the art. `under` paints the piece behind the bone's own a
 
 There is no per-skin draw-order control. The generated document carries the right-facing base
 order, then `src/svg/rig.ts` adjusts limb depth for facing and motion. Walk, run, and dash move
-the screen-leading arm into a torso-transformed underlay below the pelvis artwork, so the leading
-hip occludes it naturally in either direction. Idle and punch clips keep both arms visible above
-the torso while the head masks hands at the chin. The bow/crouch keeps conventional far/body/near
-depth. Both legs remain behind pelvis and costume art while their crossing order swaps with facing.
+the screen-leading arm into a torso-transformed underlay below the entire lower body, so neither
+the hip nor either leg can be cut through. Left-facing rigs counter-mirror the frontal chest art
+inside the mirrored skeleton so asymmetric shoulders and costume details keep their anatomical
+side. Idle keeps both arms visible with the head above them; punch clips put the guard hand above
+the chin. The bow/crouch keeps conventional far/body/near depth. Both legs remain behind pelvis
+and costume art while their crossing order swaps with facing.
 
 ## What the tracer is doing
 

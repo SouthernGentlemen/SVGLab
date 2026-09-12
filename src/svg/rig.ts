@@ -23,9 +23,10 @@ export interface ArmDepth {
 type ArmBone = ArmDepth["far"];
 
 export interface ArmLayerPlan {
-  readonly underPelvis: ArmBone | null;
+  readonly underLowerBody: ArmBone | null;
   readonly behindTorso: ArmBone | null;
   readonly foreground: readonly ArmBone[];
+  readonly head: "above-arms" | "below-arms";
 }
 
 export interface LegDepth {
@@ -33,7 +34,7 @@ export interface LegDepth {
   readonly near: "leg-front" | "leg-back";
 }
 
-export type ArmLayerProfile = "anatomical" | "locomotion" | "both-front";
+export type ArmLayerProfile = "anatomical" | "locomotion" | "both-front" | "punch";
 
 const ARM_LAYER_PROFILES = {
   bnrIdleNormal: "both-front",
@@ -41,8 +42,8 @@ const ARM_LAYER_PROFILES = {
   bnrWalkNormal: "locomotion",
   bnrRunNormal: "locomotion",
   bnrDashNormal: "locomotion",
-  bnrStrikeNormal: "both-front",
-  bnrPunchStudyNormal: "both-front",
+  bnrStrikeNormal: "punch",
+  bnrPunchStudyNormal: "punch",
 } as const satisfies Record<ClipName, ArmLayerProfile>;
 
 export function armLayerProfile(clip: ClipName): ArmLayerProfile {
@@ -60,12 +61,22 @@ export function armLayerPlan(facing: VisualFacing, clip: ClipName): ArmLayerPlan
   const { far, near } = armDepth(facing);
   const profile = armLayerProfile(clip);
   if (profile === "locomotion") {
-    return { underPelvis: far, behindTorso: null, foreground: [near] };
+    return { underLowerBody: far, behindTorso: null, foreground: [near], head: "above-arms" };
   }
-  if (profile === "both-front") {
-    return { underPelvis: null, behindTorso: null, foreground: [far, near] };
+  if (profile === "both-front" || profile === "punch") {
+    return {
+      underLowerBody: null,
+      behindTorso: null,
+      foreground: [far, near],
+      head: profile === "punch" ? "below-arms" : "above-arms",
+    };
   }
-  return { underPelvis: null, behindTorso: far, foreground: [near] };
+  return { underLowerBody: null, behindTorso: far, foreground: [near], head: "above-arms" };
+}
+
+/** Keep front-facing chest art anatomically consistent when the posed skeleton is mirrored. */
+export function torsoArtTransform(facing: VisualFacing): string | null {
+  return facing === -1 ? "scale(-1 1)" : null;
 }
 
 export function legDepth(facing: VisualFacing): LegDepth {
@@ -152,6 +163,7 @@ export function applyPose(node: FighterNode, pose: Pose): void {
 
 const layeredPose = new WeakMap<FighterNode, string>();
 const armUnderlays = new WeakMap<FighterNode, SVGGElement>();
+const torsoArtLayers = new WeakMap<FighterNode, SVGGElement>();
 
 function armUnderlay(node: FighterNode, pelvis: SVGGElement, torso: SVGGElement): SVGGElement {
   let layer = armUnderlays.get(node);
@@ -169,14 +181,30 @@ function armUnderlay(node: FighterNode, pelvis: SVGGElement, torso: SVGGElement)
   return layer;
 }
 
+function torsoArtLayer(node: FighterNode, torso: SVGGElement, facing: VisualFacing): SVGGElement {
+  let layer = torsoArtLayers.get(node);
+  if (!layer) {
+    layer = document.createElementNS(SVG_NS, "g");
+    layer.dataset.depthLayer = "torso-art";
+    const bodyArt = [...torso.children].filter((child) => !child.hasAttribute("data-bone"));
+    torso.insertBefore(layer, bodyArt[0] ?? null);
+    for (const child of bodyArt) layer.appendChild(child);
+    torsoArtLayers.set(node, layer);
+  }
+  const facingTransform = torsoArtTransform(facing);
+  if (facingTransform) layer.setAttribute("transform", facingTransform);
+  else layer.removeAttribute("transform");
+  return layer;
+}
+
 function arrangeLimbDepth(node: FighterNode, facing: VisualFacing, clip: ClipName): void {
   const torso = node.bones.get("torso");
   const head = node.bones.get("head");
   const plan = armLayerPlan(facing, clip);
-  const underArm = plan.underPelvis ? node.bones.get(plan.underPelvis) : null;
+  const underArm = plan.underLowerBody ? node.bones.get(plan.underLowerBody) : null;
   const behindArm = plan.behindTorso ? node.bones.get(plan.behindTorso) : null;
   const foregroundArms = plan.foreground.map((name) => node.bones.get(name));
-  if (!torso || !head || (plan.underPelvis && !underArm) || (plan.behindTorso && !behindArm)
+  if (!torso || !head || (plan.underLowerBody && !underArm) || (plan.behindTorso && !behindArm)
     || foregroundArms.some((arm) => !arm)) {
     throw new Error("Fighter model is missing upper-body depth bones");
   }
@@ -188,6 +216,7 @@ function arrangeLimbDepth(node: FighterNode, facing: VisualFacing, clip: ClipNam
   if (!pelvis || !farLeg || !nearLeg) throw new Error("Fighter model is missing lower-body depth bones");
 
   const underlay = armUnderlay(node, pelvis, torso);
+  const bodyArt = torsoArtLayer(node, torso, facing);
   const profile = armLayerProfile(clip);
   const layerKey = `${facing}:${profile}`;
   if (layeredPose.get(node) === layerKey) return;
@@ -197,16 +226,19 @@ function arrangeLimbDepth(node: FighterNode, facing: VisualFacing, clip: ClipNam
     // and dash. Move it into torso space below the pelvis artwork so the hip occludes it.
     underlay.appendChild(underArm);
   }
-  if (behindArm) torso.insertBefore(behindArm, torso.firstChild);
-  // Guard and punch silhouettes put both arms here. The head still paints last so a raised
-  // hand tucks naturally beneath the chin instead of cutting through the face.
+  if (behindArm) torso.insertBefore(behindArm, bodyArt);
+  if (plan.head === "below-arms") torso.appendChild(head);
+  // Guard and punch silhouettes put both arms here. Punches deliberately paint their raised
+  // hand over the chin; other clips paint the head last and retain ordinary face occlusion.
   for (const arm of foregroundArms) torso.appendChild(arm!);
-  torso.appendChild(head);
+  if (plan.head === "above-arms") torso.appendChild(head);
 
   // Both legs stay behind the pelvis and costume art, but their crossing order follows the
   // same anatomical near/far side as the arms.
   pelvis.insertBefore(farLeg, pelvis.firstChild);
   pelvis.insertBefore(nearLeg, farLeg.nextSibling);
+  // The locomotion arm underlay belongs behind the whole lower body, not merely the hip art.
+  pelvis.insertBefore(underlay, pelvis.firstChild);
   layeredPose.set(node, layerKey);
 }
 
