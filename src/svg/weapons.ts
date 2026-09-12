@@ -1,6 +1,4 @@
 import type { ClipName } from "../animation/clips";
-import { SWORD_REFERENCE_SEQUENCES } from "../animation/sword-reference";
-import type { SwordReferenceClipName } from "../animation/sword-reference";
 import type { FighterNode } from "./rig";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -29,7 +27,9 @@ export interface SwordPose {
 export interface SwordSpec {
   readonly bladeLength: number;
   readonly handleLength: number;
+  /** Grip nearest the guard/blade. */
   readonly upperGripY: number;
+  /** Grip nearest the pommel. */
   readonly lowerGripY: number;
 }
 
@@ -47,86 +47,13 @@ export const SWORD_SPECS: Readonly<Record<SwordId, SwordSpec>> = {
   greatsword: { bladeLength: 70, handleLength: 18, upperGripY: 5, lowerGripY: 13 },
 };
 
-interface SwordKeyframe {
-  readonly frame: number;
-  readonly x: number;
-  readonly y: number;
-  /** Desired blade angle in fighter space. Zero means straight up. */
-  readonly angle: number;
-}
-
-/** Canonical upright guard used for sword-equipped generic locomotion too. */
-const GUARD: readonly SwordKeyframe[] = [
-  { frame: 0, x: 4, y: -8, angle: 0 },
-];
-
-/** Legacy Bandai-Namco capture tracks remain available as source-study material. */
-const SLASH: readonly SwordKeyframe[] = [
-  { frame: 0, x: 0, y: -11, angle: -18 },
-  { frame: 7, x: 0, y: -13, angle: -8 },
-  { frame: 12, x: 3, y: -9, angle: 22 },
-  { frame: 16, x: 6, y: -5, angle: 58 },
-  { frame: 21, x: 8, y: 2, angle: 96 },
-  { frame: 30, x: 7, y: 5, angle: 108 },
-];
-
-const CUT: readonly SwordKeyframe[] = [
-  { frame: 0, x: 2, y: 4, angle: 0 },
-  { frame: 28, x: 2, y: 2, angle: -5 },
-  { frame: 46, x: 0, y: -7, angle: -16 },
-  { frame: 62, x: 0, y: -14, angle: -8 },
-  { frame: 72, x: 2, y: -12, angle: 18 },
-  { frame: 82, x: 6, y: -5, angle: 62 },
-  { frame: 92, x: 9, y: 3, angle: 104 },
-  { frame: 108, x: 7, y: 6, angle: 94 },
-  { frame: 124, x: 4, y: 5, angle: 72 },
-];
-
-const STUDY: readonly SwordKeyframe[] = [
-  { frame: 0, x: 2, y: 4, angle: 0 },
-  { frame: 62, x: 2, y: 2, angle: -4 },
-  { frame: 92, x: 0, y: -8, angle: -15 },
-  { frame: 116, x: 0, y: -14, angle: -7 },
-  { frame: 132, x: 3, y: -9, angle: 27 },
-  { frame: 148, x: 7, y: -3, angle: 72 },
-  { frame: 164, x: 9, y: 4, angle: 108 },
-  { frame: 220, x: 3, y: 5, angle: 36 },
-  { frame: 300, x: 2, y: 4, angle: 0 },
-  { frame: 340, x: 2, y: 2, angle: -4 },
-  { frame: 370, x: 0, y: -9, angle: -16 },
-  { frame: 392, x: 0, y: -14, angle: -6 },
-  { frame: 408, x: 4, y: -8, angle: 30 },
-  { frame: 424, x: 8, y: -2, angle: 76 },
-  { frame: 442, x: 9, y: 5, angle: 108 },
-  { frame: 500, x: 2, y: 4, angle: 0 },
-  { frame: 620, x: 2, y: 2, angle: -4 },
-  { frame: 652, x: 0, y: -9, angle: -16 },
-  { frame: 674, x: 0, y: -14, angle: -6 },
-  { frame: 690, x: 4, y: -8, angle: 30 },
-  { frame: 706, x: 8, y: -2, angle: 76 },
-  { frame: 724, x: 9, y: 5, angle: 108 },
-  { frame: 770, x: 4, y: 5, angle: 55 },
-  { frame: 802, x: 2, y: 4, angle: 0 },
-];
-
-function referenceTrack(name: SwordReferenceClipName): readonly SwordKeyframe[] {
-  return SWORD_REFERENCE_SEQUENCES[name].frames.map((entry) => ({
-    frame: entry.frame,
-    x: entry.sword.x,
-    y: entry.sword.y,
-    angle: entry.sword.angle,
-  }));
-}
-
-const SWORD_TRACKS: Partial<Record<ClipName, readonly SwordKeyframe[]>> = {
-  bnrSwordGuardNormal: GUARD,
-  bnrSwordSlashNormal: SLASH,
-  bnrSwordCutNormal: CUT,
-  bnrSlashStudyNormal: STUDY,
-  swordGuardReference: referenceTrack("swordGuardReference"),
-  swordOberhauReference: referenceTrack("swordOberhauReference"),
-  swordOberhauStudyReference: referenceTrack("swordOberhauStudyReference"),
-};
+/** These clips all come from the same real two-handed Bandai Namco slash capture. */
+const CAPTURED_SWORD_CLIPS = new Set<ClipName>([
+  "bnrSwordGuardNormal",
+  "bnrSwordSlashNormal",
+  "bnrSwordCutNormal",
+  "bnrSlashStudyNormal",
+]);
 
 function svg<K extends keyof SVGElementTagNameMap>(name: K): SVGElementTagNameMap[K] {
   return document.createElementNS(SVG_NS, name);
@@ -217,24 +144,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function interpolateTrack(track: readonly SwordKeyframe[], frame: number): SwordKeyframe {
-  if (track.length === 1 || frame <= track[0].frame) return track[0];
-  for (let index = 1; index < track.length; index++) {
-    const next = track[index];
-    if (frame > next.frame) continue;
-    const previous = track[index - 1];
-    const span = next.frame - previous.frame;
-    const t = span <= 0 ? 0 : (frame - previous.frame) / span;
-    return {
-      frame,
-      x: previous.x + (next.x - previous.x) * t,
-      y: previous.y + (next.y - previous.y) * t,
-      angle: previous.angle + (next.angle - previous.angle) * t,
-    };
-  }
-  return track[track.length - 1];
-}
-
 function rotateLocal(point: Point, rotation: number): Point {
   const radians = rotation / DEG;
   const cos = Math.cos(radians);
@@ -243,16 +152,42 @@ function rotateLocal(point: Point, rotation: number): Point {
 }
 
 /**
- * The weapon owns both its position and orientation in fighter-aligned space.
+ * Reconstruct one fixed-size sword from the two captured grip locations.
  *
- * Because the sword is parented under the rotating torso SVG group, both its translation and
- * its angle are inverse-rotated here. Torso lean therefore changes the shoulders and elbows,
- * never the authored blade trajectory.
+ * The points only define the handle axis and its center. They never resize the weapon. The
+ * guard-side hand is the source right hand (`arm-back` after retargeting); the source left hand
+ * (`arm-front`) sits toward the pommel. This ordering is what keeps both captured hands on the
+ * handle instead of accidentally extending the blade through one of them.
  */
-export function swordPoseForClip(clip: ClipName, frame: number, torsoRotation = 0): SwordPose {
-  const key = interpolateTrack(SWORD_TRACKS[clip] ?? GUARD, frame);
-  const local = rotateLocal({ x: key.x, y: key.y }, -torsoRotation);
-  return { x: local.x, y: local.y, rotation: key.angle - torsoRotation };
+export function swordPoseFromGripPoints(
+  id: SwordId,
+  guardHand: Point,
+  pommelHand: Point,
+): SwordPose | null {
+  const dx = pommelHand.x - guardHand.x;
+  const dy = pommelHand.y - guardHand.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 0.5) return null;
+
+  const axis = { x: dx / distance, y: dy / distance };
+  const midpoint = {
+    x: (guardHand.x + pommelHand.x) / 2,
+    y: (guardHand.y + pommelHand.y) / 2,
+  };
+  const spec = SWORD_SPECS[id];
+  const gripCenterY = (spec.upperGripY + spec.lowerGripY) / 2;
+  return {
+    x: midpoint.x - axis.x * gripCenterY,
+    y: midpoint.y - axis.y * gripCenterY,
+    // Local +Y follows guard -> pommel, so local -Y (the blade) points out past the guard hand.
+    rotation: Math.atan2(-axis.x, axis.y) * DEG,
+  };
+}
+
+/** Fixed upright guard for generic locomotion, where the source motion was not holding a sword. */
+export function swordGuardPose(torsoRotation = 0): SwordPose {
+  const local = rotateLocal({ x: 4, y: -8 }, -torsoRotation);
+  return { x: local.x, y: local.y, rotation: -torsoRotation };
 }
 
 export function swordGripTargets(id: SwordId, pose: SwordPose): { upper: Point; lower: Point } {
@@ -262,6 +197,26 @@ export function swordGripTargets(id: SwordId, pose: SwordPose): { upper: Point; 
   return {
     upper: { x: pose.x + upper.x, y: pose.y + upper.y },
     lower: { x: pose.x + lower.x, y: pose.y + lower.y },
+  };
+}
+
+/** Forward-kinematics endpoint for the same two-link arm convention used by the SVG rig. */
+export function armHandPoint(
+  shoulder: Point,
+  upperRotation: number,
+  lowerRotation: number,
+  upperLength: number,
+  lowerLength: number,
+): Point {
+  const upperRadians = (upperRotation + 90) / DEG;
+  const elbow = {
+    x: shoulder.x + Math.cos(upperRadians) * upperLength,
+    y: shoulder.y + Math.sin(upperRadians) * upperLength,
+  };
+  const lowerRadians = (upperRotation + lowerRotation + 90) / DEG;
+  return {
+    x: elbow.x + Math.cos(lowerRadians) * lowerLength,
+    y: elbow.y + Math.sin(lowerRadians) * lowerLength,
   };
 }
 
@@ -305,6 +260,17 @@ function baseNumber(node: Element, name: "x" | "y"): number {
   return Number(node.getAttribute(`data-${name}`) ?? 0);
 }
 
+function rotationNumber(node: Element): number {
+  const match = /rotate\(([-+\d.eE]+)\)/.exec(node.getAttribute("transform") ?? "");
+  return match ? Number(match[1]) : 0;
+}
+
+function capturedHand(upper: SVGGElement, lower: SVGGElement): Point {
+  const shoulder = { x: baseNumber(upper, "x"), y: baseNumber(upper, "y") };
+  const upperLength = Math.abs(baseNumber(lower, "y")) || 21;
+  return armHandPoint(shoulder, rotationNumber(upper), rotationNumber(lower), upperLength, 22);
+}
+
 function setBoneRotation(bone: SVGGElement, rotation: number): void {
   bone.setAttribute(
     "transform",
@@ -340,15 +306,16 @@ export function equipSword(node: FighterNode, id: SwordId | null): void {
 }
 
 /**
- * Apply the rigid weapon after the body clip has been sampled.
+ * Apply the rigid weapon after the captured body clip has been sampled.
  *
- * The sword transform is authoritative. Both arm chains are then solved onto two fixed points
- * on its handle. Nothing in this function changes blade length, handle length, or grip spacing.
+ * Sword-specific capture uses the recorded two-hand pose to reconstruct a rigid handle line,
+ * then fits both arms back onto the selected sword's fixed grip points. Generic locomotion uses
+ * an upright guard because those source clips were never holding a sword.
  */
 export function applySwordConstraint(
   node: FighterNode,
   clip: ClipName,
-  frame: number,
+  _frame: number,
   torsoRotation = 0,
 ): void {
   const sword = node.root.querySelector<SVGGElement>("[data-equipped-sword]");
@@ -367,10 +334,19 @@ export function applySwordConstraint(
   }
 
   if (sword.parentElement !== torso) torso.insertBefore(sword, torso.firstChild);
-  const pose = swordPoseForClip(clip, frame, torsoRotation);
+
+  // The retarget manifest maps source L -> arm-front and source R -> arm-back. In this
+  // two-handed slash capture the source right hand is nearest the guard and the left hand is
+  // nearest the pommel. Capture the endpoints before IK overwrites either arm.
+  const pose = CAPTURED_SWORD_CLIPS.has(clip)
+    ? swordPoseFromGripPoints(id, capturedHand(backArm, backForearm), capturedHand(frontArm, frontForearm))
+      ?? swordGuardPose(torsoRotation)
+    : swordGuardPose(torsoRotation);
+
   sword.setAttribute("transform", `translate(${pose.x.toFixed(3)} ${pose.y.toFixed(3)}) rotate(${pose.rotation.toFixed(3)})`);
 
   const grips = swordGripTargets(id, pose);
-  constrainArm(frontArm, frontForearm, grips.upper, -1);
-  constrainArm(backArm, backForearm, grips.lower, 1);
+  // Source R/back stays on the guard-side grip; source L/front stays toward the pommel.
+  constrainArm(backArm, backForearm, grips.upper, 1);
+  constrainArm(frontArm, frontForearm, grips.lower, -1);
 }
