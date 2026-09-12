@@ -75,6 +75,8 @@ The previous SVGLab 360-degree recovery is explicitly rejected. It confused "fol
 | 35 | re-chamber | rising toward guard | stance and hands rebuild the high guard |
 | 42 | guard | vertical | exact starting weapon pose restored after recovery |
 
+The important timing rule is frames 14–21: blade rotation is already decelerating while pelvis/torso motion continues. That is the follow-through. Frames 24–42 are recovery and must be judged separately rather than read as part of the cutting arc.
+
 `swordOberhauStudyReference` is the same pose sequence at half speed so every joint can be scrubbed and inspected without inventing a second animation.
 
 ## Next moves
