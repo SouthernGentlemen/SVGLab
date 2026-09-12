@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { CLIPS } from "../src/animation/clips";
+import { sampleClip } from "../src/animation/sample";
 import {
   SWORD_SPECS,
   armHandPoint,
@@ -74,6 +76,31 @@ describe("rigid sword constraints", () => {
     expect(fixedMidpoint.y).toBeCloseTo((capturedGuardHand.y + capturedPommelHand.y) / 2);
   });
 
+  it("uses the capture's source-L/front hand at the guard so the contact blade points forward", () => {
+    const body = sampleClip(CLIPS.bnrSwordSlashNormal, 14);
+    const frontHand = armHandPoint(
+      { x: 11, y: -22 },
+      body["arm-front"]?.rotation ?? 0,
+      body["forearm-front"]?.rotation ?? 0,
+      21,
+      22,
+    );
+    const backHand = armHandPoint(
+      { x: -11, y: -22 },
+      body["arm-back"]?.rotation ?? 0,
+      body["forearm-back"]?.rotation ?? 0,
+      21,
+      22,
+    );
+    const pose = swordPoseFromGripPoints("longsword", frontHand, backHand);
+    expect(pose).not.toBeNull();
+
+    const grips = swordGripTargets("longsword", pose!);
+    const tipOffset = rotate({ x: 0, y: -SWORD_SPECS.longsword.bladeLength }, pose!.rotation);
+    const tipX = pose!.x + tipOffset.x;
+    expect(tipX).toBeGreaterThan(Math.max(grips.upper.x, grips.lower.x));
+  });
+
   it("preserves captured guard/pommel ordering for a vertical two-hand grip", () => {
     const pose = swordPoseFromGripPoints("longsword", { x: 0, y: 4 }, { x: 0, y: 12 });
     expect(pose).not.toBeNull();
@@ -103,17 +130,17 @@ describe("rigid sword constraints", () => {
   });
 
   it("keeps fixed reconstructed grips reachable for every sword size", () => {
-    const guardHand = { x: -4, y: -4 };
-    const pommelHand = { x: 3, y: 2 };
+    const guardHand = { x: 4, y: -4 };
+    const pommelHand = { x: -3, y: 2 };
 
     for (const id of Object.keys(SWORD_SPECS) as SwordId[]) {
       const pose = swordPoseFromGripPoints(id, guardHand, pommelHand);
       expect(pose).not.toBeNull();
       const grips = swordGripTargets(id, pose!);
-      const back = solveTwoBoneArm({ x: -11, y: -22 }, grips.upper, 21, 22, 1);
-      const front = solveTwoBoneArm({ x: 11, y: -22 }, grips.lower, 21, 22, -1);
-      expect(back.clamped, `${id} guard-side hand`).toBe(false);
-      expect(front.clamped, `${id} pommel-side hand`).toBe(false);
+      const front = solveTwoBoneArm({ x: 11, y: -22 }, grips.upper, 21, 22, -1);
+      const back = solveTwoBoneArm({ x: -11, y: -22 }, grips.lower, 21, 22, 1);
+      expect(front.clamped, `${id} guard-side hand`).toBe(false);
+      expect(back.clamped, `${id} pommel-side hand`).toBe(false);
     }
   });
 });
