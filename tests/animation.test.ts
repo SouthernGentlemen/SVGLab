@@ -17,8 +17,18 @@ describe("SVG animation boundary", () => {
     simulation.step([InputBit.Attack, 0]);
     for (let frame = 0; frame < 5; frame++) simulation.step([0, 0]);
     const snapshot = animationSnapshot(simulation.getState().fighters[0]);
-    expect(snapshot.clip).toBe("strike");
+    expect(snapshot.clip).toBe("bnrStrikeNormal");
     expect(snapshot.frame).toBe(5);
     expect(snapshot.duration).toBe(20);
+  });
+
+  it("uses the imported walk while preserving the simulation-owned state frame", () => {
+    const simulation = new CombatSimulation();
+    simulation.step([InputBit.Right, 0]);
+    const fighter = simulation.getState().fighters[0];
+    const snapshot = animationSnapshot(fighter);
+    expect(snapshot.clip).toBe("bnrWalkNormal");
+    expect(snapshot.frame).toBe(fighter.stateFrame);
+    expect(snapshot.duration).toBe(60);
   });
 });

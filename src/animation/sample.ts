@@ -64,9 +64,9 @@ export interface AnimationSnapshot {
 /** Presentation chooses a clip from combat state but never writes back to it. */
 export function animationSnapshot(fighter: FighterState): AnimationSnapshot {
   const clipName = fighter.mode === "attack"
-    ? "strike"
+    ? "bnrStrikeNormal"
     : fighter.mode === "walk"
-      ? "walk"
+      ? "bnrWalkNormal"
       : fighter.mode === "crouch"
         ? "crouch"
         : fighter.mode === "jump"

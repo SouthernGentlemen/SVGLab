@@ -11,12 +11,14 @@
     "build": "vite build",
     "build:characters": "node scripts/build-characters.mjs",
     "check:characters": "node scripts/build-characters.mjs --check",
+    "build:motions": "node scripts/build-motions.mjs",
+    "check:motions": "node scripts/build-motions.mjs --check",
     "launch": "node scripts/lifecycle.mjs launch",
     "dev": "node scripts/lifecycle.mjs dev",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run typecheck && npm test && npm run build"
+    "verify": "npm run check:motions && npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260823.1",

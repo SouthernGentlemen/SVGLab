@@ -5,7 +5,7 @@ import type { FighterDefinition, MoveDefinition } from "./types";
 export const BASIC_STRIKE: MoveDefinition = {
   id: "basic-strike",
   name: "Basic strike",
-  animation: "strike",
+  animation: "bnrStrikeNormal",
   startup: 5,
   active: 3,
   recovery: 12,

@@ -1,4 +1,5 @@
 import type { AnimationClip } from "./types";
+import { BANDAI_NAMCO_CLIPS } from "./generated/bandai-namco";
 
 export const CLIPS = {
   idle: {
@@ -79,6 +80,7 @@ export const CLIPS = {
       { frame: 16, bones: { pelvis: { x: 0 }, torso: { rotation: 0 }, head: { rotation: 0 }, "arm-front": { rotation: 8 }, "arm-back": { rotation: -8 } } },
     ],
   },
+  ...BANDAI_NAMCO_CLIPS,
 } as const satisfies Record<string, AnimationClip>;
 
 export type ClipName = keyof typeof CLIPS;

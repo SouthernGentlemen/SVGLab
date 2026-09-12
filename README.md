@@ -47,6 +47,11 @@ test fails if any raster ever reaches the bundle.
 
 See [the character atlas guide](docs/CHARACTER_ATLAS.md).
 
+Selected motion-capture studies can also be retargeted into the same eleven-bone rig with
+`npm run build:motions`. Imported studies remain presentation data: combat still owns fighter
+movement, move phases, and contact timing. See [the motion import guide](docs/MOTION_IMPORT.md),
+including the CC BY-NC terms that apply to the included Bandai Namco source subset.
+
 ## Useful commands
 
 ```bash
@@ -56,6 +61,7 @@ npm run build     # enforce local-only config, then build
 npm run launch    # launch the already-built local runtime without opening a browser
 npm run verify    # types, tests, local-only guard, production bundle
 npm run build:characters  # re-trace every character atlas
+npm run build:motions     # rebuild selected BVH motion studies
 ```
 
 There is intentionally no deployment command, production environment, secret, remote route, account binding, database, or persistence contract.
