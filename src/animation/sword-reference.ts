@@ -73,13 +73,13 @@ const GUARD_FRAMES: readonly SwordReferenceFrame[] = [
 ];
 
 /**
- * A committed descending cut with an actual body consequence.
+ * A compact, committed descending cut based on real longsword mechanics.
  *
- * The fighter coils away from the target, compresses the rear side, then drives pelvis and
- * chest through the cut. Contact is only the midpoint: the sword, shoulders and hips continue
- * into a low finish. Recovery follows the blade's remaining momentum in a circle around the
- * body instead of reversing the attack path like a rewound clip. Only after that circle does
- * the stance unwind and return to the upright guard.
+ * The fighter coils into a high guard, then the rear side drives the pelvis and chest through
+ * the strike. The sword accelerates sharply into longpoint and then BRAKES while the body keeps
+ * travelling underneath it. That body-after-blade timing is the follow-through: contact is not
+ * a stop, but neither is it an excuse to spin the weapon around the fighter. Recovery begins
+ * only after the forward finish has settled, then the hands withdraw and re-chamber to guard.
  */
 const OBERHAU_FRAMES: readonly SwordReferenceFrame[] = [
   {
@@ -91,67 +91,79 @@ const OBERHAU_FRAMES: readonly SwordReferenceFrame[] = [
   {
     frame: 4,
     label: "coil",
-    sword: { x: -1, y: -18, angle: -10 },
-    bones: body(-4, 2, -20, 12, -3, 38, 34, 28),
+    sword: { x: 0, y: -19, angle: -18 },
+    bones: body(-4, 2, -22, 12, -3, 38, 34, 28),
   },
   {
-    frame: 8,
+    frame: 7,
     label: "loaded",
-    sword: { x: -3, y: -23, angle: -15 },
+    sword: { x: -2, y: -24, angle: -20 },
     bones: body(-5, 3, -28, 16, 4, 46, 42, 32),
   },
   {
-    frame: 10,
+    frame: 9,
     label: "release",
-    sword: { x: 1, y: -19, angle: 12 },
+    sword: { x: 2, y: -20, angle: 5 },
     bones: body(0, 1, -12, 8, -10, 32, 30, 22),
   },
   {
-    frame: 12,
+    frame: 11,
     label: "drive",
-    sword: { x: 8, y: -13, angle: 48 },
-    bones: body(7, 0, 12, -10, -28, 18, 14, 28),
+    sword: { x: 6, y: -15, angle: 35 },
+    bones: body(4, 0, 8, -6, -26, 20, 16, 28),
+  },
+  {
+    frame: 13,
+    label: "cut",
+    sword: { x: 10, y: -9, angle: 68 },
+    bones: body(8, -1, 22, -14, -36, 15, 6, 34),
   },
   {
     frame: 14,
-    label: "impact / longpoint",
-    sword: { x: 16, y: -6, angle: 86 },
-    bones: body(13, -1, 30, -20, -42, 14, 2, 36),
+    label: "impact",
+    sword: { x: 12, y: -5, angle: 88 },
+    bones: body(10, -1, 32, -20, -42, 14, 2, 36),
   },
   {
     frame: 16,
-    label: "follow through",
-    sword: { x: 21, y: 2, angle: 120 },
-    bones: body(18, 1, 46, -30, -52, 12, -10, 46),
+    label: "longpoint",
+    sword: { x: 13, y: 0, angle: 103 },
+    bones: body(11, 0, 40, -24, -46, 14, -4, 40),
   },
   {
-    frame: 19,
-    label: "overshoot",
-    sword: { x: 20, y: 10, angle: 152 },
-    bones: body(22, 4, 56, -34, -56, 16, -18, 52),
+    frame: 18,
+    label: "body follows",
+    sword: { x: 13, y: 3, angle: 110 },
+    bones: body(14, 2, 47, -28, -48, 16, -8, 44),
   },
   {
-    frame: 23,
-    label: "low finish",
-    sword: { x: 14, y: 15, angle: 178 },
-    bones: body(23, 5, 50, -30, -50, 22, -12, 46),
+    frame: 21,
+    label: "braked finish",
+    sword: { x: 12, y: 4, angle: 112 },
+    bones: body(15, 3, 43, -26, -46, 18, -6, 42),
   },
   {
-    frame: 28,
-    label: "circle recover",
-    sword: { x: 6, y: 12, angle: 220 },
-    bones: body(20, 4, 34, -20, -40, 26, 0, 36),
+    frame: 24,
+    label: "settle",
+    sword: { x: 11, y: 2, angle: 108 },
+    bones: body(14, 2, 36, -20, -42, 20, 0, 38),
   },
   {
-    frame: 34,
-    label: "return",
-    sword: { x: -1, y: 2, angle: 300 },
-    bones: body(12, 2, 14, -8, -28, 28, 12, 28),
+    frame: 29,
+    label: "withdraw",
+    sword: { x: 8, y: -2, angle: 75 },
+    bones: body(10, 1, 24, -12, -32, 24, 10, 30),
   },
   {
-    frame: 40,
+    frame: 35,
+    label: "re-chamber",
+    sword: { x: 5, y: -10, angle: 28 },
+    bones: body(5, 1, 8, -5, -24, 26, 18, 24),
+  },
+  {
+    frame: 42,
     label: "guard",
-    sword: { x: 4, y: -8, angle: 360 },
+    sword: { x: 4, y: -8, angle: 0 },
     bones: body(0, 0, -2, 2, -15, 28, 22, 18),
   },
 ];
@@ -168,15 +180,15 @@ export const SWORD_REFERENCE_SEQUENCES = {
     frames: GUARD_FRAMES,
   },
   swordOberhauReference: {
-    duration: 40,
+    duration: 42,
     loop: false,
-    note: "SVGLab committed descending cut: coil, drive, impact, continued body rotation, low finish, circular recovery, and guard reset.",
+    note: "SVGLab reference-driven oberhau: high-guard load, hip-driven cut, longpoint, blade braking, body follow-through, then controlled withdrawal and re-chamber.",
     frames: OBERHAU_FRAMES,
   },
   swordOberhauStudyReference: {
-    duration: 80,
+    duration: 84,
     loop: false,
-    note: "The authored SVGLab committed oberhau at half speed for frame-by-frame joint and follow-through inspection.",
+    note: "The authored SVGLab oberhau at half speed for frame-by-frame joint, braking, and body-follow-through inspection.",
     frames: slowed(OBERHAU_FRAMES, 2),
   },
 } as const satisfies Record<string, SwordReferenceSequence>;
