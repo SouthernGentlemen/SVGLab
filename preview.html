@@ -21,10 +21,14 @@
       </header>
 
       <aside class="preview-controls glass" aria-label="Character preview controls">
-        <p class="overlay-label">RIG + CLIP</p>
+        <p class="overlay-label">RIG + MOVESET</p>
         <div class="preview-field">
           <label for="skin">Character</label>
           <select id="skin"></select>
+        </div>
+        <div class="preview-field">
+          <label for="weapon">Weapon</label>
+          <select id="weapon"></select>
         </div>
         <div class="preview-field">
           <label for="clip">Clip</label>
@@ -51,14 +55,14 @@
           <input id="frame-scrub" type="range" min="0" max="60" step="1" value="0" />
         </div>
 
-        <p class="preview-shortcuts">Keyboard: <kbd>Space</kbd> play/pause · <kbd>[</kbd>/<kbd>]</kbd> clip · <kbd>.</kbd> step · <kbd>R</kbd> replay · <kbd>C</kbd> compare · <kbd>F</kbd> facing · <kbd>G</kbd> pivots · <kbd>K</kbd> skeleton</p>
+        <p class="preview-shortcuts">Keyboard: <kbd>Space</kbd> play/pause · <kbd>[</kbd>/<kbd>]</kbd> clip · <kbd>W</kbd> weapon · <kbd>.</kbd> step · <kbd>R</kbd> replay · <kbd>C</kbd> compare · <kbd>F</kbd> facing · <kbd>G</kbd> pivots · <kbd>K</kbd> skeleton</p>
       </aside>
 
       <section class="preview-stage glass" aria-label="Character animation preview">
         <div class="preview-stage-header">
           <div>
             <p class="overlay-label">LIVE VECTOR PREVIEW</p>
-            <h2 id="stage-title">Authored fighter</h2>
+            <h2 id="stage-title">Authored fighter · Unarmed</h2>
           </div>
           <span id="playback-state" class="tick-chip">playing</span>
         </div>
@@ -75,9 +79,11 @@
 
       <aside class="preview-readout glass" aria-label="Clip and rig facts">
         <section>
-          <p class="overlay-label">CLIP</p>
+          <p class="overlay-label">MOVESET</p>
           <dl class="preview-facts">
-            <div><dt>Name</dt><dd id="clip-name">idle</dd></div>
+            <div><dt>Weapon</dt><dd id="weapon-name">Unarmed</dd></div>
+            <div><dt>Moveset</dt><dd id="moveset-name">Generic + Unarmed</dd></div>
+            <div><dt>Clip</dt><dd id="clip-name">bnrIdleNormal</dd></div>
             <div><dt>Frame</dt><dd id="clip-frame">0</dd></div>
             <div><dt>Duration</dt><dd id="clip-duration">60</dd></div>
             <div><dt>Loop</dt><dd id="clip-loop">yes</dd></div>

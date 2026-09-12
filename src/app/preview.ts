@@ -2,6 +2,14 @@ import "./styles.css";
 import "./preview.css";
 import { CLIPS } from "../animation/clips";
 import type { ClipName } from "../animation/clips";
+import {
+  WEAPONS,
+  defaultPreviewClip,
+  previewClipNames,
+  previewClipOptions,
+  previewMovesetName,
+} from "../animation/movesets";
+import type { WeaponId } from "../animation/movesets";
 import { sampleClip } from "../animation/sample";
 import type { AnimationClip } from "../animation/types";
 import { SKINS } from "../svg/characters";
@@ -11,7 +19,6 @@ import type { FighterNode } from "../svg/rig";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const FRAME_MS = 1000 / 60;
-const CLIP_NAMES = Object.keys(CLIPS) as ClipName[];
 
 function required<T extends Element>(selector: string): T {
   const node = document.querySelector<T>(selector);
@@ -34,6 +41,7 @@ interface GalleryRig {
 }
 
 const skinSelect = requiredSelect("#skin");
+const weaponSelect = requiredSelect("#weapon");
 const clipSelect = requiredSelect("#clip");
 const compareToggle = required<HTMLInputElement>("#compare");
 const facingToggle = required<HTMLInputElement>("#face-left");
@@ -61,6 +69,35 @@ const gallery: GalleryRig[] = [];
 
 const facing = () => facingToggle.checked ? -1 : 1;
 
+function currentWeapon(): WeaponId {
+  return WEAPONS.some((entry) => entry.id === weaponSelect.value) ? weaponSelect.value as WeaponId : "unarmed";
+}
+
+function currentWeaponName(): string {
+  return WEAPONS.find((entry) => entry.id === currentWeapon())?.name ?? WEAPONS[0].name;
+}
+
+function availableClipNames(): ClipName[] {
+  return previewClipNames(currentWeapon());
+}
+
+function refreshClipOptions(preferred?: ClipName): void {
+  const weapon = currentWeapon();
+  const options = previewClipOptions(weapon);
+  const names = options.map((entry) => entry.clip);
+  const selected = preferred ?? (names.includes(clipSelect.value as ClipName)
+    ? clipSelect.value as ClipName
+    : defaultPreviewClip(weapon));
+
+  clipSelect.replaceChildren(...options.map((entry) => {
+    const option = document.createElement("option");
+    option.value = entry.clip;
+    option.textContent = `${entry.group} / ${entry.slot} — ${entry.clip}`;
+    return option;
+  }));
+  clipSelect.value = names.includes(selected) ? selected : defaultPreviewClip(weapon);
+}
+
 function placePreviewFighters(): void {
   const clip = currentClipName();
   placeFighter(singleNode, 180, 260, 2.2, facing(), clip);
@@ -75,12 +112,14 @@ function populateSelects(): void {
     return option;
   }));
 
-  clipSelect.replaceChildren(...CLIP_NAMES.map((name) => {
+  weaponSelect.replaceChildren(...WEAPONS.map((entry) => {
     const option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
+    option.value = entry.id;
+    option.textContent = entry.name;
     return option;
   }));
+
+  refreshClipOptions();
 }
 
 function currentSkin(): CharacterSkin {
@@ -88,7 +127,8 @@ function currentSkin(): CharacterSkin {
 }
 
 function currentClipName(): ClipName {
-  return CLIP_NAMES.includes(clipSelect.value as ClipName) ? clipSelect.value as ClipName : CLIP_NAMES[0];
+  const available = availableClipNames();
+  return available.includes(clipSelect.value as ClipName) ? clipSelect.value as ClipName : defaultPreviewClip(currentWeapon());
 }
 
 function currentClip(): AnimationClip {
@@ -153,7 +193,7 @@ function rebuildSingle(): void {
   singleNode = buildFighterNode("player", entry.model);
   placeFighter(singleNode, 180, 260, 2.2, facing(), currentClipName());
   singleLayer.replaceChildren(singleNode.root);
-  stageTitle.textContent = entry.name;
+  stageTitle.textContent = `${entry.name} · ${currentWeaponName()}`;
 }
 
 function setRigOverlay(show: boolean): void {
@@ -164,25 +204,38 @@ function setRigOverlay(show: boolean): void {
 function setCompare(compare: boolean): void {
   singleView.hidden = compare;
   compareView.hidden = !compare;
-  stageTitle.textContent = compare ? `Compare all ${SKINS.length} skins` : currentSkin().name;
+  stageTitle.textContent = compare
+    ? `Compare all ${SKINS.length} skins · ${currentWeaponName()}`
+    : `${currentSkin().name} · ${currentWeaponName()}`;
 }
 
-function setClipByOffset(offset: number): void {
-  const currentIndex = Math.max(0, CLIP_NAMES.indexOf(currentClipName()));
-  const nextIndex = (currentIndex + offset + CLIP_NAMES.length) % CLIP_NAMES.length;
-  clipSelect.value = CLIP_NAMES[nextIndex];
+function resetPlayback(): void {
   frame = 0;
   playing = true;
   accumulator = 0;
   lastTime = performance.now();
+}
+
+function setClipByOffset(offset: number): void {
+  const names = availableClipNames();
+  const currentIndex = Math.max(0, names.indexOf(currentClipName()));
+  const nextIndex = (currentIndex + offset + names.length) % names.length;
+  clipSelect.value = names[nextIndex];
+  resetPlayback();
+  render();
+}
+
+function setWeaponByOffset(offset: number): void {
+  const currentIndex = Math.max(0, WEAPONS.findIndex((entry) => entry.id === currentWeapon()));
+  const nextIndex = (currentIndex + offset + WEAPONS.length) % WEAPONS.length;
+  weaponSelect.value = WEAPONS[nextIndex].id;
+  refreshClipOptions();
+  resetPlayback();
   render();
 }
 
 function replay(): void {
-  frame = 0;
-  playing = true;
-  accumulator = 0;
-  lastTime = performance.now();
+  resetPlayback();
   render();
 }
 
@@ -217,6 +270,8 @@ function renderFacts(clip: AnimationClip): void {
   const skin = currentSkin();
   const missing = missingBones(singleNode, clip);
   required<HTMLElement>("#clip-name").textContent = clip.name;
+  required<HTMLElement>("#weapon-name").textContent = currentWeaponName();
+  required<HTMLElement>("#moveset-name").textContent = previewMovesetName(currentWeapon());
   required<HTMLElement>("#clip-frame").textContent = String(frame);
   required<HTMLElement>("#clip-duration").textContent = String(clip.duration);
   required<HTMLElement>("#clip-loop").textContent = clip.loop ? "yes" : "no";
@@ -280,11 +335,13 @@ skinSelect.addEventListener("change", () => {
   rebuildSingle();
   render();
 });
+weaponSelect.addEventListener("change", () => {
+  refreshClipOptions();
+  resetPlayback();
+  render();
+});
 clipSelect.addEventListener("change", () => {
-  frame = 0;
-  playing = true;
-  accumulator = 0;
-  lastTime = performance.now();
+  resetPlayback();
   render();
 });
 compareToggle.addEventListener("change", render);
@@ -309,6 +366,7 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "Space") togglePlayback();
   else if (event.code === "BracketLeft") setClipByOffset(-1);
   else if (event.code === "BracketRight") setClipByOffset(1);
+  else if (event.code === "KeyW") setWeaponByOffset(1);
   else if (event.code === "Period") stepOneFrame();
   else if (event.code === "KeyR") replay();
   else if (event.code === "KeyC") {
