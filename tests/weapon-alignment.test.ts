@@ -72,8 +72,8 @@ describe("rigid sword constraints", () => {
     const overshoot = frames.find((entry) => entry.label === "overshoot")!;
     expect(followThrough.sword.angle).toBeGreaterThan(impact.sword.angle);
     expect(overshoot.sword.angle).toBeGreaterThan(followThrough.sword.angle);
-    expect(overshoot.bones.torso?.rotation).toBeGreaterThan(impact.bones.torso?.rotation ?? 0);
-    expect(overshoot.bones.pelvis?.x).toBeGreaterThan(impact.bones.pelvis?.x ?? 0);
+    expect(overshoot.bones.torso?.rotation ?? 0).toBeGreaterThan(impact.bones.torso?.rotation ?? 0);
+    expect(overshoot.bones.pelvis?.x ?? 0).toBeGreaterThan(impact.bones.pelvis?.x ?? 0);
     expect(frames.at(-1)?.sword).toEqual(frames[0].sword);
   });
 
