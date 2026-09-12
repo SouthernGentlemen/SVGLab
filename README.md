@@ -69,7 +69,7 @@ npm run launch    # launch the already-built local runtime without opening a bro
 npm run verify    # types, tests, local-only guard, production bundle
 npm run build:characters  # re-trace every character atlas
 npm run build:motions     # rebuild selected BVH motion studies
-npm run export:motions    # write every clip to out/blender as BVH for an external tool
+npm run export:motions    # write every clip, plus the fighter's art, to out/blender
 npm run import:motions    # read an edited BVH back onto the eleven-bone rig
 npm run check:exchange    # assert an untouched export/import round trip changes nothing
 ```

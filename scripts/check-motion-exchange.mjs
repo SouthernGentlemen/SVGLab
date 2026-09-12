@@ -67,6 +67,36 @@ rejects("wrong frame rate", () =>
 rejects("rest offset drift", () =>
   bvhToClip(parseBvh(sample.replace("OFFSET 11.000000 22.000000", "OFFSET 11.000000 30.000000"), "drift"), catalog.rig, { loop: false, tolerances }));
 
+// A tool hands back the rig in whatever frame it uses itself — Blender writes this skeleton
+// z-up with its rotation channels in its own order — so the same clip has to survive being
+// re-expressed. This is our own export rotated into that frame, joint offsets and channel
+// names together.
+function reframe(text) {
+  const lines = text.split("\n");
+  const motionStart = lines.findIndex((line) => line.startsWith("Frame Time:")) + 1;
+  // Stand the skeleton up along +Z instead of +Y, a quarter turn about X, and move the planar
+  // rotation to the channel that now turns about the depth axis.
+  const header = lines.slice(0, motionStart).map((line) => {
+    if (!line.trim().startsWith("OFFSET")) return line;
+    const [x, y, z] = line.trim().split(/\s+/).slice(1).map(Number);
+    return line.replace(/OFFSET.*/, `OFFSET ${x.toFixed(6)} ${(-z).toFixed(6)} ${y.toFixed(6)}`);
+  });
+  const motion = lines.slice(motionStart).map((line) => {
+    if (line.trim() === "") return line;
+    const values = line.split(" ").map(Number);
+    const turned = [values[0], -values[2], values[1], 0, 0, -values[3]];
+    for (let index = 6; index < values.length; index += 3) turned.push(0, 0, -values[index]);
+    return turned.map((value) => value.toFixed(6)).join(" ");
+  });
+  return [...header, ...motion].join("\n");
+}
+
+const reframed = bvhToClip(parseBvh(reframe(sample), "reframed"), catalog.rig, { loop: false, tolerances });
+const native = bvhToClip(parseBvh(sample, "native"), catalog.rig, { loop: false, tolerances });
+check(JSON.stringify(reframed.keyframes) === JSON.stringify(native.keyframes),
+  "the same clip read in another tool's frame did not come back the same");
+check(reframed.dropped.outOfPlaneDegrees === 0, "a reframed export reported out-of-plane rotation");
+
 // Out-of-plane work is measured and dropped, not quietly kept.
 const lines = sample.split("\n");
 const motionStart = lines.findIndex((line) => line.startsWith("Frame Time:")) + 1;

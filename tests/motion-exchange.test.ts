@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,6 +80,30 @@ describe("motion exchange with external tools", () => {
         expect(CLIPS[option.clip]).toBeDefined();
       }
     }
+  });
+
+  it("writes the fighter's own artwork beside the bones, ready to be placed", () => {
+    execFileSync(process.execPath, ["scripts/export-motions.mjs", "--out", exported], { cwd: root, stdio: "pipe" });
+    const bones = [
+      "pelvis", "torso", "head", "arm-front", "forearm-front", "arm-back", "forearm-back",
+      "leg-front", "shin-front", "leg-back", "shin-back",
+    ];
+    const art = readdirSync(join(exported, "art"));
+    expect(art.sort()).toEqual(bones.map((bone) => `${bone}.svg`).sort());
+
+    // A BVH carries no geometry, so the setup script places these against the rest pose.
+    expect(existsSync(join(exported, "setup.py"))).toBe(true);
+    const order: number[] = [];
+    for (const bone of bones) {
+      const svg = readFileSync(join(exported, "art", `${bone}.svg`), "utf8");
+      expect(svg).toContain('id="svglab-calibration"');
+      const ids = [...svg.matchAll(/id="svglab-(part|line)-(\d+)"/g)];
+      expect(ids.length).toBeGreaterThan(0);
+      order.push(...ids.map((id) => Number(id[2])));
+    }
+    // Paint order is document order, and it has to stay unique across the whole fighter for
+    // an importer to rebuild the depth the lab draws in.
+    expect(new Set(order).size).toBe(order.length);
   });
 
   it("keeps provenance readable from the clip name alone", () => {

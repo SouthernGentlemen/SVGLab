@@ -122,7 +122,9 @@ npm run build:motions                       # fold the result into the catalog
 One BVH per clip, baked at one frame per 60 Hz tick through the same sampler
 `src/animation/sample.ts` uses, so the file plays exactly what the lab plays rather than an
 approximation of it. The skeleton is read from `src/svg/fighter.svg`, never restated: same
-eleven bones, same parents, same rest offsets.
+eleven bones, same parents, same rest offsets. Beside the clips, `art/<bone>.svg` carries each
+bone's own drawing with its class names resolved to explicit paint, and `setup.py` puts the two
+together.
 
 SVG points y down and turns clockwise-positive, so the rig is written into the XY plane as
 `(x, -y)` with every bone turning about Z with the sign flipped. The root carries a zero
@@ -133,12 +135,48 @@ then report.
 
 Import at scale 1 and set the scene to **60 FPS** before exporting anything back.
 
+### Opening a clip in Blender
+
+```bash
+blender --python out/blender/setup.py -- bnrSwordCutNormal
+```
+
+Or inside Blender: Scripting tab, open `setup.py`, Run.
+
+A BVH carries bones and animation and no character, so the script also imports every bone's
+artwork and parents it to that bone. Without it a clip is eleven sticks in an empty plane,
+which is not something anyone can review.
+
+The script builds the armature itself rather than handing the file to Blender's BVH importer.
+That importer rebuilds a skeleton with conventions of its own: on this rig it welds the head to
+the chest's averaged tail and moves that joint six units, so the head would turn about a pivot
+the lab never uses. The file's offsets are the rig, so they are read and applied directly, and
+the scene was checked against the lab's own kinematics — every joint of every sampled tick
+lands within 0.0001 units of where `sampleClip` puts it.
+
+Two details the script handles because the rig is flat. Artwork is placed by measuring, not
+assuming: each art file opens with a calibration corner at the bone's own origin, so whatever
+an importer does to scale, offset or flip a document, the frame it produced can be read back
+and inverted. And SVG has no z-index — document order is paint order — so each part is offset
+a hair in depth along that order, which keeps the head over the collar and the near arm over
+the chest instead of leaving a renderer to break the tie.
+
+The fighter stands in Blender's XZ plane, about 110 units tall, at 60 FPS. Numpad 1 is the
+view that matters; the depth axis carries nothing.
+
 ### What the import accepts
 
 The rig is the contract. A file whose joints are renamed, reparented, added to, or whose rest
 offsets no longer match is refused, because its numbers would describe a different skeleton and
 mean something else on this one. A uniform scale is allowed and divided back out; a frame rate
 other than 60 is refused with the fix in the message.
+
+Which way the file draws the rig is measured rather than assumed. SVGLab writes its exports
+y-up, Blender's BVH exporter writes the same skeleton z-up with its rotation channels in its
+own order, and both are the same rig. So the drawing's own axes are read out of the offsets —
+bones that move along one authored axis alone give it away — and the planar rotation is taken
+from whichever channel turns about the depth those two axes imply, with the sign they imply.
+`File → Export → Motion Capture (.bvh)` at 60 FPS therefore round trips as a table of zeros.
 
 Everything the rig cannot hold is measured and reported rather than quietly dropped:
 out-of-plane rotation (and which bones it came from), depth translation, and horizontal root
