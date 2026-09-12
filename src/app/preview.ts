@@ -444,7 +444,7 @@ window.addEventListener("keydown", (event) => {
 
   if (event.code === "Space") togglePlayback();
   else if (event.code === "BracketLeft") setClipByOffset(-1);
-  else if (event.code === "BracketRight") setClipByOffset(1));
+  else if (event.code === "BracketRight") setClipByOffset(1);
   else if (event.code === "KeyW") setWeaponByOffset(1);
   else if (event.code === "KeyQ") setSwordByOffset(1);
   else if (event.code === "Period") stepOneFrame();
