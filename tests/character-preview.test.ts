@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CLIPS } from "../src/animation/clips";
 import { SKINS } from "../src/svg/characters";
-import { fighterPlacement, inspectFighterModel } from "../src/svg/rig";
+import { armDepth, fighterPlacement, inspectFighterModel, legDepth } from "../src/svg/rig";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -22,6 +22,10 @@ describe("character preview rig contract", () => {
   it("mirrors the complete rig at the placement boundary", () => {
     expect(fighterPlacement(120, 224, 1.55, 1)).toBe("translate(120 224) scale(1.55 1.55)");
     expect(fighterPlacement(120, 224, 1.55, -1)).toBe("translate(120 224) scale(-1.55 1.55)");
+    expect(armDepth(1)).toEqual({ far: "arm-front", near: "arm-back" });
+    expect(armDepth(-1)).toEqual({ far: "arm-back", near: "arm-front" });
+    expect(legDepth(1)).toEqual({ far: "leg-front", near: "leg-back" });
+    expect(legDepth(-1)).toEqual({ far: "leg-back", near: "leg-front" });
   });
 
   it("exposes both facings in the visual clip preview", () => {

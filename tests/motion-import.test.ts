@@ -17,6 +17,8 @@ describe("Bandai Namco motion import", () => {
   });
 
   it("preserves source time in the 60 Hz animation domain", () => {
+    expect(BANDAI_NAMCO_CLIPS.bnrIdleNormal.duration).toBe(60);
+    expect(BANDAI_NAMCO_CLIPS.bnrCrouchNormal.duration).toBe(18);
     expect(BANDAI_NAMCO_CLIPS.bnrWalkNormal.duration).toBe(60);
     expect(BANDAI_NAMCO_CLIPS.bnrRunNormal.duration).toBe(46);
     expect(BANDAI_NAMCO_CLIPS.bnrDashNormal.duration).toBe(38);

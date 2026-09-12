@@ -14,12 +14,35 @@ export interface FighterModelFacts {
 
 export type VisualFacing = -1 | 1;
 
+export interface ArmDepth {
+  readonly far: "arm-front" | "arm-back";
+  readonly near: "arm-front" | "arm-back";
+}
+
+export interface LegDepth {
+  readonly far: "leg-front" | "leg-back";
+  readonly near: "leg-front" | "leg-back";
+}
+
+/** The imported source-left arm is far when facing right and near after a turn to the left. */
+export function armDepth(facing: VisualFacing): ArmDepth {
+  return facing === 1
+    ? { far: "arm-front", near: "arm-back" }
+    : { far: "arm-back", near: "arm-front" };
+}
+
+export function legDepth(facing: VisualFacing): LegDepth {
+  return facing === 1
+    ? { far: "leg-front", near: "leg-back" }
+    : { far: "leg-back", near: "leg-front" };
+}
+
 /**
  * Places the whole posed rig and mirrors it at one outer boundary.
  *
  * Bone rotations and local x offsets stay authored for a right-facing fighter. A negative
- * horizontal scale mirrors the completed hierarchy, so the same clip reaches, recoils and
- * carries its visible front/back paint order correctly when facing left.
+ * horizontal scale mirrors the completed hierarchy, so the same clip reaches and recoils in
+ * the correct direction. `placeFighter` also swaps the anatomical near/far limb layers.
  */
 export function fighterPlacement(x: number, y: number, scale: number, facing: VisualFacing): string {
   return `translate(${x} ${y}) scale(${facing * scale} ${scale})`;
@@ -90,6 +113,37 @@ export function applyPose(node: FighterNode, pose: Pose): void {
   for (const [name, bone] of node.bones) bone.setAttribute("transform", transform(bone, pose[name]));
 }
 
+const layeredFacing = new WeakMap<FighterNode, VisualFacing>();
+
+function arrangeLimbDepth(node: FighterNode, facing: VisualFacing): void {
+  if (layeredFacing.get(node) === facing) return;
+  const torso = node.bones.get("torso");
+  const head = node.bones.get("head");
+  const { far, near } = armDepth(facing);
+  const farArm = node.bones.get(far);
+  const nearArm = node.bones.get(near);
+  if (!torso || !head || !farArm || !nearArm) throw new Error("Fighter model is missing upper-body depth bones");
+
+  // Far limb, body art, near limb, head. This lets the torso occlude the far shoulder and
+  // lets the face occlude either hand whenever a guarded/recovering pose crosses the chin.
+  torso.insertBefore(farArm, torso.firstChild);
+  torso.appendChild(nearArm);
+  torso.appendChild(head);
+
+  const pelvis = node.bones.get("pelvis");
+  const { far: farLegName, near: nearLegName } = legDepth(facing);
+  const farLeg = node.bones.get(farLegName);
+  const nearLeg = node.bones.get(nearLegName);
+  if (!pelvis || !farLeg || !nearLeg) throw new Error("Fighter model is missing lower-body depth bones");
+
+  // Both legs stay behind the pelvis and costume art, but their crossing order follows the
+  // same anatomical near/far side as the arms.
+  pelvis.insertBefore(farLeg, pelvis.firstChild);
+  pelvis.insertBefore(nearLeg, farLeg.nextSibling);
+  layeredFacing.set(node, facing);
+}
+
 export function placeFighter(node: FighterNode, x: number, y: number, scale: number, facing: VisualFacing): void {
+  arrangeLimbDepth(node, facing);
   node.root.setAttribute("transform", fighterPlacement(x, y, scale, facing));
 }

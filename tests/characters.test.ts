@@ -64,17 +64,23 @@ describe("atlas-built characters", () => {
     expect(restPose(traced(id))).toEqual(restPose(authored));
   });
 
-  it.each(["authored", ...IDS] as const)("%s paints both arms above the torso", (id) => {
+  it.each(["authored", ...IDS] as const)("%s has the right-facing far/body/near/head depth order", (id) => {
     const svg = id === "authored" ? authored : traced(id);
+    const pelvis = svg.indexOf('<g data-bone="pelvis"');
+    const farLeg = svg.indexOf('<g data-bone="leg-front"', pelvis);
+    const nearLeg = svg.indexOf('<g data-bone="leg-back"', farLeg);
     const torso = svg.indexOf('<g data-bone="torso"');
-    const torsoArt = svg.indexOf("<path", torso);
-    const backArm = svg.indexOf('<g data-bone="arm-back"', torso);
-    const head = svg.indexOf('<g data-bone="head"', torso);
     const frontArm = svg.indexOf('<g data-bone="arm-front"', torso);
-    expect(torsoArt).toBeGreaterThan(torso);
+    const torsoArt = svg.indexOf("<path", frontArm);
+    const backArm = svg.indexOf('<g data-bone="arm-back"', torsoArt);
+    const head = svg.indexOf('<g data-bone="head"', backArm);
+    expect(farLeg).toBeGreaterThan(pelvis);
+    expect(nearLeg).toBeGreaterThan(farLeg);
+    expect(torso).toBeGreaterThan(nearLeg);
+    expect(frontArm).toBeGreaterThan(torso);
+    expect(torsoArt).toBeGreaterThan(frontArm);
     expect(backArm).toBeGreaterThan(torsoArt);
     expect(head).toBeGreaterThan(backArm);
-    expect(frontArm).toBeGreaterThan(head);
   });
 
   it.each(IDS)("%s is a document the rig can read", (id) => {
@@ -90,7 +96,7 @@ describe("atlas-built characters", () => {
     expect(svg).not.toMatch(/NaN|Infinity|undefined/);
   });
 
-  it.each(IDS)("%s can be posed by every authored clip", (id) => {
+  it.each(IDS)("%s can be posed by every shipped Bandai Namco clip", (id) => {
     const bones = boneTree(traced(id));
     for (const clip of Object.values(CLIPS)) {
       for (const keyframe of clip.keyframes) {

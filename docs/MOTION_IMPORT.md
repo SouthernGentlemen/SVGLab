@@ -38,11 +38,12 @@ The manifest is the authored record of source files, frame ranges, loop decision
 and tolerances. `src/animation/generated/bandai-namco.ts` is reproducible output and must not be
 edited by hand. Run `npm run check:motions` to detect drift.
 
-Imported studies appear in the character preview but do not automatically become combat
-clips. Two selections are deliberately wired into the stage: `bnrWalkNormal` presents the
-simulation's walk state, and `bnrStrikeNormal` presents its basic attack. For the strike,
-source frames 24–44 select the first punch, its 30 FPS timing is warped to the existing
-20-tick move, and source frame 30 maps to tick 6 inside the authoritative active window at
-ticks 5–7. Combat still owns movement, that window, the hitbox, damage, hitstop, and whether
-contact succeeds. Run, dash, and the full punch study remain preview-only until matching
-simulation states or move definitions exist.
+Bandai Namco-derived clips are the entire animation catalog. A guarded lead-in presents idle,
+the walk presents ground movement, a grounded bow descent presents the compact stance, the
+dash presents airborne and hit-reaction states, and the selected punch presents the basic
+attack. The run, dash, and full punch study also remain directly inspectable in the preview.
+
+For the strike, source frames 24–44 select the first punch, its 30 FPS timing is warped to the
+existing 20-tick move, and source frame 30 maps to tick 6 inside the authoritative active
+window at ticks 5–7. Combat still owns movement, that window, the hitbox, damage, hitstop, and
+whether contact succeeds.

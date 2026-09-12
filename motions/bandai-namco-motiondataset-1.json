@@ -14,6 +14,28 @@
   },
   "clips": [
     {
+      "key": "bnrIdleNormal",
+      "source": "data/dataset-1_punch_normal_001.bvh",
+      "content": 12,
+      "style": 0,
+      "sourceStart": 0,
+      "sourceEnd": 20,
+      "targetDuration": 60,
+      "loop": true,
+      "note": "Bandai Namco guarded neutral lead-in, loop-closed for the idle presentation state."
+    },
+    {
+      "key": "bnrCrouchNormal",
+      "source": "data/dataset-1_bow_normal_001.bvh",
+      "content": 6,
+      "style": 0,
+      "sourceStart": 0,
+      "sourceEnd": 58,
+      "targetDuration": 18,
+      "loop": false,
+      "note": "Bandai Namco grounded bow descent held as the compact presentation stance."
+    },
+    {
       "key": "bnrWalkNormal",
       "source": "data/dataset-1_walk_normal_002.bvh",
       "content": 0,

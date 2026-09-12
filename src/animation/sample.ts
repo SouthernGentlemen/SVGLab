@@ -68,12 +68,12 @@ export function animationSnapshot(fighter: FighterState): AnimationSnapshot {
     : fighter.mode === "walk"
       ? "bnrWalkNormal"
       : fighter.mode === "crouch"
-        ? "crouch"
+        ? "bnrCrouchNormal"
         : fighter.mode === "jump"
-          ? "jump"
+          ? "bnrDashNormal"
       : fighter.mode === "hitstun" || fighter.mode === "defeated"
-        ? "hit"
-        : "idle";
+        ? "bnrCrouchNormal"
+        : "bnrIdleNormal";
   const clip = CLIPS[clipName];
   const frame = fighter.mode === "attack" ? fighter.moveFrame : fighter.stateFrame;
   return { clip: clipName, frame, duration: clip.duration, loop: clip.loop, easing: clip.easing, note: clip.note, pose: sampleClip(clip, frame) };

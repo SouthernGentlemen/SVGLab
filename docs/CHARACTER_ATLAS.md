@@ -99,9 +99,11 @@ below the neck it pivots on. Most parts need nothing here.
 because that is the frame you are looking at when lining a cape up against a torso; the build
 scales them along with the art. `under` paints the piece behind the bone's own art.
 
-There is no draw-order control and there does not need to be one. Paint order is document
-order: the torso covers the legs, while both arms draw above torso art so a coat or breastplate
-cannot swallow them. The back arm remains behind the head and front arm to preserve depth.
+There is no per-skin draw-order control. The generated document carries the right-facing base
+order, then `src/svg/rig.ts` swaps the anatomical near/far arms and legs whenever facing changes.
+The far arm goes behind torso and costume art, the near arm goes in front, and the head paints
+above both so a guarded hand disappears naturally behind the chin. Both legs remain behind the
+pelvis and costume art while their crossing order swaps with facing.
 
 ## What the tracer is doing
 

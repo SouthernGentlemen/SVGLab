@@ -47,14 +47,16 @@ export const HAND_FOR = { "forearm-back": "hand_l", "forearm-front": "hand_r" };
 /**
  * Document order inside each bone's group, which is also paint order.
  *
- * `SELF` is where the bone's own art goes. Both arms are written after the torso so neither is
- * swallowed by a wide coat or breastplate; the back arm remains behind the head and front arm
- * for depth. There is no z-index in SVG, only the order things are written down.
+ * `SELF` is where the bone's own art goes. The default order is the right-facing depth order:
+ * source-left/front-named limbs behind their source-right/back-named partners, the far arm
+ * behind the body, the near arm in front, then the head above both. `rig.ts` reverses the two
+ * anatomical sides when the fighter faces left.
+ * There is no z-index in SVG, only the order things are written down.
  */
 export const SELF = Symbol("self");
 export const LAYOUT = {
-  pelvis: ["leg-back", "leg-front", SELF, "torso"],
-  torso: [SELF, "arm-back", "head", "arm-front"],
+  pelvis: ["leg-front", "leg-back", SELF, "torso"],
+  torso: ["arm-front", SELF, "arm-back", "head"],
   "leg-back": [SELF, "shin-back"],
   "leg-front": [SELF, "shin-front"],
   "arm-back": [SELF, "forearm-back"],

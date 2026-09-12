@@ -6,10 +6,15 @@ import { InputBit } from "../src/combat/types";
 
 describe("SVG animation boundary", () => {
   it("interpolates sparse bone properties without simulation knowledge", () => {
-    const pose = sampleClip(CLIPS.strike, 4);
-    expect(pose.torso.rotation).toBeGreaterThan(-12);
-    expect(pose.torso.rotation).toBeLessThan(17);
-    expect(pose["arm-front"].rotation).toBeLessThan(46);
+    const pose = sampleClip(CLIPS.bnrStrikeNormal, 3.5);
+    expect(pose["arm-front"].rotation).toBeGreaterThan(-85.086);
+    expect(pose["arm-front"].rotation).toBeLessThan(-84.669);
+  });
+
+  it("ships and selects only Bandai Namco-derived clips", () => {
+    expect(Object.keys(CLIPS).every((name) => name.startsWith("bnr"))).toBe(true);
+    const simulation = new CombatSimulation();
+    expect(animationSnapshot(simulation.getState().fighters[0]).clip).toBe("bnrIdleNormal");
   });
 
   it("derives attack playback from the authoritative move frame", () => {

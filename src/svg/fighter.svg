@@ -6,15 +6,6 @@
   -->
   <g data-model="fighter">
     <g data-bone="pelvis" data-x="0" data-y="-42">
-      <g data-bone="leg-back" data-x="-6" data-y="0">
-        <path class="part part--back" d="M-5 0 Q-8 12 -2 23 L5 22 Q7 10 5 0 Z"/>
-        <circle class="joint-guide" r="2.2"/>
-        <g data-bone="shin-back" data-x="0" data-y="22">
-          <path class="part part--back" d="M-3 0 Q-5 11 -2 21 L12 22 L12 17 L4 15 L4 0 Z"/>
-          <circle class="joint-guide" r="2.2"/>
-        </g>
-      </g>
-
       <g data-bone="leg-front" data-x="6" data-y="0">
         <path class="part" d="M-5 0 Q-7 12 -3 23 L5 22 Q8 10 5 0 Z"/>
         <circle class="joint-guide" r="2.2"/>
@@ -24,10 +15,28 @@
         </g>
       </g>
 
+      <g data-bone="leg-back" data-x="-6" data-y="0">
+        <path class="part part--back" d="M-5 0 Q-8 12 -2 23 L5 22 Q7 10 5 0 Z"/>
+        <circle class="joint-guide" r="2.2"/>
+        <g data-bone="shin-back" data-x="0" data-y="22">
+          <path class="part part--back" d="M-3 0 Q-5 11 -2 21 L12 22 L12 17 L4 15 L4 0 Z"/>
+          <circle class="joint-guide" r="2.2"/>
+        </g>
+      </g>
+
       <path class="part part--accent" d="M-13 -5 Q0 -10 13 -5 L10 8 Q0 13 -10 8 Z"/>
       <circle class="joint-guide" r="2.5"/>
 
       <g data-bone="torso" data-x="0" data-y="-6">
+        <g data-bone="arm-front" data-x="11" data-y="-22">
+          <path class="part part--skin" d="M-5 -2 Q-7 10 -3 25 L5 24 Q8 9 5 -2 Z"/>
+          <circle class="joint-guide" r="2.2"/>
+          <g data-bone="forearm-front" data-x="0" data-y="21">
+            <path class="part part--skin" d="M-4 0 Q-6 11 -1 23 L8 23 Q10 18 5 16 L4 0 Z"/>
+            <circle class="joint-guide" r="2.2"/>
+          </g>
+        </g>
+
         <path class="part" d="M-14 -31 Q0 -39 15 -29 L13 1 Q0 9 -13 1 Z"/>
         <path class="detail" d="M-8 -17 Q0 -11 9 -18"/>
         <circle class="joint-guide" r="2.5"/>
@@ -46,15 +55,6 @@
           <path class="part part--accent" d="M-13 -14 Q0 -27 14 -13 L9 -18 Q0 -11 -11 -8 Z"/>
           <path class="detail" d="M2 -5 L8 -4"/>
           <circle class="joint-guide" r="2.2"/>
-        </g>
-
-        <g data-bone="arm-front" data-x="11" data-y="-22">
-          <path class="part part--skin" d="M-5 -2 Q-7 10 -3 25 L5 24 Q8 9 5 -2 Z"/>
-          <circle class="joint-guide" r="2.2"/>
-          <g data-bone="forearm-front" data-x="0" data-y="21">
-            <path class="part part--skin" d="M-4 0 Q-6 11 -1 23 L8 23 Q10 18 5 16 L4 0 Z"/>
-            <circle class="joint-guide" r="2.2"/>
-          </g>
         </g>
       </g>
     </g>
