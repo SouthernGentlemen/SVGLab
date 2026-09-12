@@ -20,23 +20,24 @@ describe("weapon-aware animation movesets", () => {
     }
   });
 
-  it("keeps punch clips unarmed and sword clips armed", () => {
+  it("keeps punch clips unarmed and captured sword clips armed", () => {
     expect(unarmed).toContain(UNARMED_MOVESET.clips.primary);
     expect(unarmed).toContain(UNARMED_MOVESET.clips.study);
     expect(unarmed).not.toContain(SWORD_MOVESET.clips.primary);
     expect(unarmed).not.toContain(SWORD_MOVESET.clips.study);
 
     expect(sword).toContain(SWORD_MOVESET.clips.primary);
+    expect(sword).toContain(SWORD_MOVESET.clips.secondary);
     expect(sword).toContain(SWORD_MOVESET.clips.study);
-    expect(sword).toContain(SWORD_MOVESET.clips.sourceCapture);
     expect(sword).not.toContain(UNARMED_MOVESET.clips.primary);
     expect(sword).not.toContain(UNARMED_MOVESET.clips.study);
   });
 
-  it("uses the authored reference guard and attack as the active sword moveset", () => {
-    expect(SWORD_MOVESET.clips.neutral).toBe("swordGuardReference");
-    expect(SWORD_MOVESET.clips.primary).toBe("swordOberhauReference");
-    expect(SWORD_MOVESET.clips.study).toBe("swordOberhauStudyReference");
+  it("uses the pinned Bandai Namco two-hand capture as the active sword moveset", () => {
+    expect(SWORD_MOVESET.clips.neutral).toBe("bnrSwordGuardNormal");
+    expect(SWORD_MOVESET.clips.primary).toBe("bnrSwordSlashNormal");
+    expect(SWORD_MOVESET.clips.secondary).toBe("bnrSwordCutNormal");
+    expect(SWORD_MOVESET.clips.study).toBe("bnrSlashStudyNormal");
   });
 
   it("uses weapon-specific neutral clips and only references shipped animation", () => {
