@@ -1,17 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["ES2022"],
     "strict": true,
     "noEmit": true,
-    "skipLibCheck": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
-    "types": ["@cloudflare/workers-types", "vite/client", "node"]
+    "erasableSyntaxOnly": true,
+    "noUncheckedIndexedAccess": false,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
   },
-  "include": ["src/**/*", "tests/**/*", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src/**/*", "pipelines/**/*", "tests/**/*", "vitest.config.ts"]
 }

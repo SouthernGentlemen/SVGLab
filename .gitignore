@@ -1,7 +1,7 @@
 node_modules/
 dist/
-out/
 .runtime/
 .wrangler/
 *.log
 .DS_Store
+out/

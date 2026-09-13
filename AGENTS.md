@@ -20,8 +20,9 @@ which.
    data and consumed by the runtime, the pipelines, and Blender.
 3. **Clips.** Motion-capture BVH and hand-authored edits reduce to sparse linear keyframes in
    an integer 60 Hz tick domain.
-4. **Blender ⇄ preview loop.** Any clip opens in Blender as a posed character; a saved edit
-   lands back in the catalog and the preview picks it up. Two surfaces, one source of truth.
+4. **Blender ⇄ preview loop.** Any clip opens in Blender as a posed figure; a saved edit
+   lands back in the catalog and the preview picks it up, through a dev sidecar that owns disk
+   because the Worker's filesystem is virtual. Two surfaces, one source of truth.
 5. **Frame data.** The Hexframe-derived move kernel — startup, active, recovery, hitbox frame
    windows, hitstop, hitstun, single-hit gating — deterministic and independent of
    presentation. This is first class, not scaffolding.
@@ -47,14 +48,36 @@ Never authored source, never a `.blend` someone is editing.
 
 Each one is testable, and something in `verify` tests it.
 
-**C1 — The rig is data.** `rigs/fighter.rig.json` is the single source of truth: bones as
-`{ name, parent, offset: [x, y], tip }` in SVG units with y down, pivots at bone heads, tails
-declared so every build produces a byte-identical armature, roll zero, paint order, per-profile
-depth layers, named attachment points, the SVG↔Blender axis mapping (SVG `+x` → `+X`,
-SVG `+y` → `−Z`, unused depth → `+Y`, one SVG unit to one Blender unit), and the BVH channel
-layout. Bone names are ASCII, hyphen-separated, unique, and at most 63 characters, because that
-is Blender's limit and a name must never change crossing the boundary. Art references bones by
-id and carries no skeleton of its own.
+**C1 — The rig is data.** `rigs/<name>.rig.json` is the single source of truth: a `contract`
+version a loader refuses to guess at; bones as `{ name, parent, offset: [x, y], tip, slot,
+artHeight }` in SVG units with y down, pivots at bone heads, tails declared so every build
+produces a byte-identical armature, roll zero; paint order; per-profile depth layers; the
+SVG↔Blender axis mapping (SVG `+x` → `+X`, SVG `+y` → `−Z`, unused depth → `+Y`, one SVG unit
+to one Blender unit); and the BVH channel layout. Bone names are ASCII, hyphen-separated,
+unique, and at most 63 characters, because that is Blender's limit and a name must never change
+crossing the boundary. Art references bones by id and carries no skeleton of its own.
+
+It also carries the four things that make every piece interchangeable:
+
+- **Anchors** — named points on a bone, in that bone's frame, in rig units: `torso.neck`,
+  `head.crown`, `forearm-front.grip`. A cosmetic binds to an anchor. Nothing binds to a pixel
+  offset in the sheet it was drawn on, because that offset is multiplied by the target's own
+  part scale and lands somewhere different on every figure. An anchor on a joint *is* the child
+  bone's offset; a `grip` is where a hand closes, which is a different question from a `tip`.
+- **Depth slots** — `under`, `part`, `over`, `outer`, ordered, inside each bone's group. A
+  cosmetic names one. A boolean cannot say that a cloak goes outside a pauldron.
+- **Sockets** — the overlap a part must provide at each joint and the width step allowed there.
+  The guard assembles every part with every other part in its slot and reports; it never
+  resizes art.
+- **Cosmetic kinds** — a hat behaves like every other hat and a skirt like every other skirt,
+  and no one set of rules suits both. A kind is a named bundle of defaults; a piece overrides
+  what it needs, and lists in `fitted` the figures it actually suits rather than pretending to
+  suit all of them. A piece may `hide` a slot, which drops that part's art instead of painting
+  over it.
+
+**A figure is a manifest, not a document.** `figures/<name>.json` names which part fills each
+slot, which cosmetics are worn and which rig it targets. The art it names may come from any
+number of sheets. A character is one possible figure, not the unit of assembly.
 
 **C2 — One tick domain, one sampler.** Integer ticks at 60 Hz. Source at 30 fps is resampled.
 The runtime sampler and every pipeline are the same code; there is never a second
@@ -67,14 +90,22 @@ that fails when stale. `motions/authored/<key>.json` is tracked source and the o
 hand edit survives; an authored clip may carry a derived clip's key, which overrides what plays
 while the manifest keeps deriving the original to compare against.
 
+There is a third category: **derived and not shipped.** A study clip rebuilds deterministically
+like any generated clip and is written to `out/` on every build, where a Blender project is
+pointed at it and where the dev surface can reach it, but it is not in the catalog C7 measures.
+The manifest declares which lane a clip is in.
+
 **C4 — The exchange is measured, not assumed.** Export bakes one BVH frame per tick through
 the runtime sampler, so a file plays what the lab plays. Import measures what it is given: the
 drawing's axes come out of the file's own offsets, the planar rotation from whichever channel
 turns about the depth those axes imply, and a uniform scale is divided back out. An untouched
 round trip changes nothing. Anything the rig cannot hold — out-of-plane rotation, depth
 translation, horizontal root travel — is measured, attributed to the bones it came from, and
-reported. Reduction is Douglas–Peucker per channel at 1° and 0.15 units, and no value is stored
-to more precision than that justifies.
+reported — measured against the bone's own rest offset, because a tool that writes position
+channels on every joint initialises them at `OFFSET` and reading the raw magnitude reports a
+skeleton at rest as work that was thrown away. Reduction is Douglas–Peucker per channel at 1°
+and 0.15 units, and no value is stored to more precision than that justifies: rotation to one
+decimal, position to two. One rounding rule cannot express two tolerances.
 
 **C5 — Blender's importers are not trusted with this rig.** Its BVH importer rebuilds
 skeletons with conventions of its own: on eleven bones it welds the head to the chest's
@@ -89,10 +120,17 @@ Worker, and never touches the DOM or a wall clock. Presentation reads kernel sta
 writes back to it. Combat owns movement, move phases, and contact timing; animation owns how
 that reads.
 
-**C7 — Footprint is a gate.** Zero runtime dependencies. Shell chunk ≤ 150 KB raw and ≤ 50 KB
-gzip. One character, fetched on demand, ≤ 120 KB raw and ≤ 35 KB gzip. Generated clip catalog
-≤ 60 KB. Tracked source outside `third_party/` ≤ 1 MB. Art is never inlined into the bundle,
-and no raster ever reaches the shipped page.
+**C7 — Footprint is a gate, and the gate is "it did not get bigger".** Three invariants are
+absolute: zero runtime dependencies; art is never inlined into the bundle; no raster ever
+reaches the shipped page. Those are architectural, a number cannot express them, and they are
+what actually matters — not inlining art took the shell chunk from 1,497,551 bytes to 44,427.
+
+The byte counts are a ratchet, not a threshold. `check:footprint` records what every figure,
+part, catalog and chunk weighs, raw and gzip, and fails when a number **grows** against the
+committed baseline. Accepting growth means committing the new baseline, which puts the increase
+in a diff where someone has to look at it. Minimal is enforced as a direction while the shape is
+still moving; thresholds go in when there is something to base them on rather than a number
+picked before anything was measured.
 
 **C8 — Provenance is in the name.** `bnr*` clips are CC BY-NC 4.0 adaptations of Bandai Namco
 material and record the clip they derive from; `lab*` clips are original to this repository and
@@ -111,18 +149,21 @@ how much — a diff an agent can act on, not prose.
 ## Layout
 
 ```
-rigs/                  the rig contract
-characters/<id>/       atlas.png + atlas.json — build-time input only
+rigs/                  the rig contract, and the footprint baseline
+figures/               a figure: which part fills each slot, which cosmetics are worn
+characters/<id>/       atlas.png + atlas.json — build-time input; parts/ once built
+cosmetics/<set>/       atlas.png + set.json — build-time input; pieces once built
 motions/               dataset manifest + authored/ clip source
 third_party/           vendored capture subset, LICENSE, NOTICE
-pipelines/             TypeScript: sprite/, motion/, exchange/, guards
+pipelines/             TypeScript: sprite/, motion/, exchange/, wardrobe/, dev/, guards/
 pipelines/blender/     setup.py, export.py — Python only because Blender's API is
-src/rig/               bone tree, pose types, the one sampler
+src/rig/               contract, bone tree, anchors, forward kinematics, the one sampler
 src/clips/             generated catalog + authored lane
 src/kernel/            frame data: states, phases, hitboxes, resolution
-src/render/            SVG renderer and placement
+src/render/            assembly from a figure, SVG renderer and placement
 src/shell/             the page and the Worker
-out/                   untracked exchange output; never wiped by reset
+out/                   untracked exchange output and derived-not-shipped clips.
+                       NEVER wiped by reset: a Blender project is pointed at it.
 ```
 
 ## Language
@@ -135,68 +176,90 @@ TypeScript side.
 ## Commands
 
 ```
-npm run dev            build and serve the local Worker
-npm run build:characters   atlas → rigged SVG            (--check)
-npm run build:motions      manifest + authored → catalog (--check)
-npm run export:motions     catalog → out/ for Blender
+npm run dev            build and serve the local Worker, with the dev sidecar watching
+npm run build:parts        atlas → one SVG per part       (--check)
+npm run build:cosmetics    atlas → one SVG per piece      (--check)
+npm run build:motions      manifest + authored → catalog  (--check)
+npm run export:motions     catalog + studies → out/ for Blender
 npm run import:motions     an edited file → authored clip
 npm run blender            build a .blend per clip when Blender is installed
 npm run render:clip        contact sheet for review, agent or human
+npm run render:figure      every part and cosmetic of a figure, assembled and posed
 npm run verify             every gate below, in order
 ```
+
+A command that does not exist yet is listed here because it is what the milestone it belongs to
+has to produce. `npm run verify` runs the gates that exist.
 
 ## Verification gates
 
 No CI runs these. The loop is branch, verify, merge, pull, build.
 
-1. `check:rig` — contract parses, tree is a tree, offsets and tips finite, names Blender-legal
-   and unique, paint order a permutation of the bones.
-2. `check:sprites` — re-tracing every atlas reproduces the committed SVG byte for byte, inside
-   its size budget.
-3. `check:motions` — re-deriving every clip reproduces the catalog byte for byte, contact ticks
+1. `check:rig` — contract parses at a version this build understands, tree is a tree, offsets
+   and tips finite, names Blender-legal and unique, paint order a permutation of the bones,
+   every anchor on a bone that exists, every cosmetic kind on an anchor and a depth slot that
+   exist.
+2. `check:sprites` — re-tracing every atlas reproduces every committed part byte for byte.
+3. `check:sockets` — every part assembled with every other part in its slot, across every
+   sheet, overlaps at each joint by at least the declared minimum. Exhaustive on purpose: a
+   slow check that proves the claim beats a fast one that approximates it.
+4. `check:motions` — re-deriving every clip reproduces the catalog byte for byte, contact ticks
    land in their move's active window, loop seams close.
-4. `check:exchange` — untouched round trip changes nothing; a file in another tool's axis
-   convention reads back identically; dropped work is reported; authored-clip validation
-   rejects bad provenance, unknown bones, unordered frames, open seams.
-5. `check:footprint` — C7.
-6. `typecheck` · `test` · `assert-local-only` · production build.
-7. `check:blender` — with Blender present: every joint of every sampled tick lands within
+5. `check:exchange` — untouched round trip changes nothing; a file in another tool's axis
+   convention reads back identically; dropped work is reported and a rest pose is not mistaken
+   for it; authored-clip validation rejects bad provenance, unknown bones, unordered frames,
+   open seams.
+6. `check:wardrobe` — every cosmetic names a kind, an anchor and a depth slot that exist,
+   covers what it claims to hide, and reports which figures it is fitted for.
+7. `check:footprint` — C7: the invariants hold and nothing grew against the baseline.
+8. `typecheck` · `test` · `assert-local-only` · production build.
+9. `check:blender` — with Blender present: every joint of every sampled tick lands within
    0.001 units of the sampler's own forward kinematics, and an export back reports zero deltas.
    Skips loudly when Blender is absent; never silently passes.
 
 ## Implementation plan
 
 One commit per milestone, `verify` green before merge, no starting the next until the previous
-is in.
+is in. `docs/REWRITE_PLAN.md` expands each of these into the files it creates, the gate it turns
+on, its definition of done, and what it defers — along with what the spikes measured and a
+verdict on every path the old tree carried.
 
-- **M0 — clean head.** Orphan branch; this file; rig contract; the one sampler; clip types;
-  `check:rig`; typecheck; tests. Done when an empty catalog builds and the contract has a test.
-- **M1 — sprite sheets.** Port the tracer to TypeScript with its reasoning intact: flat
-  silhouette, one path per nested patch of flat colour, hairline strokes closing seams,
-  deterministic quantisation. Coordinate precision and simplification tolerance are declared
-  knobs. Done when a rebuild reproduces a committed character inside budget.
+- **M0 — clean head.** *Done.* This file; the rig contract with anchors, depth slots, sockets
+  and cosmetic kinds; the one sampler; forward kinematics; clip types; an empty catalog;
+  `check:rig`; typecheck; tests. The old tree is gone and every port comes from history.
+- **M1 — parts and figures.** Port the tracer with its reasoning intact: flat silhouette, one
+  path per nested patch of flat colour, hairline strokes closing seams, deterministic
+  quantisation. Colour cap, coordinate precision, simplification tolerance and minimum region
+  area are declared knobs, **per slot**, in the atlas sidecar. Emit one file per part. Done
+  when a rebuild reproduces every committed part byte for byte and `check:sockets` assembles
+  every part with every other.
 - **M2 — clips.** Both lanes, the retarget (project to the plane, collapse to eleven bones,
-  drop horizontal root travel, resample, reduce), the generated catalog. Done when every kept
-  clip is reproduced with contact ticks asserted.
+  drop horizontal root travel, resample, reduce), the generated catalog, and the studies
+  written to `out/`. Done when every kept clip is reproduced with contact ticks asserted.
 - **M3 — Blender exchange.** Export with per-bone art and the calibration corner; `setup.py`
   building the armature from C1; `export.py`; the axis-measuring reader; `check:exchange` and
-  `check:blender`. Done when a clip opens as a posed character, an edit lands in
+  `check:blender`. Done when a clip opens as a posed figure, an edit lands in
   `motions/authored/`, and an untouched round trip is a table of zeros.
 - **M4 — frame data.** Port the kernel: states, move phases, hitbox windows, hitstop, hitstun,
   single-hit gating, deterministic stepping, the boundary test. Done when a move's active
   window and its clip's contact tick are asserted against each other.
-- **M5 — preview loop.** The Worker and one page: pick a character, pick a clip, play, scrub,
-  inspect the skeleton, drive the kernel. In dev only, the Worker serves the exchange — a clip
-  as BVH, the bone art, and a write-back endpoint that lands an edit in `motions/authored/` —
-  so Blender and the preview are two views of one source. Done when an edit saved in Blender
-  shows up in the browser without a hand-run command.
-- **M6 — agent surface.** `render:clip` contact sheets, machine-readable reports from every
-  pipeline, an authored-clip schema an agent can write against, and a documented loop: author,
-  validate, render, look, iterate. Done when a clip can be authored end to end without opening
-  an editor.
-- **M7 — cruft gate.** No orphan docs, no unreferenced files, no dead scripts, zero runtime
+- **M5 — preview loop.** The Worker and one page: pick a figure, pick a clip, play, scrub,
+  inspect the skeleton, drive the kernel, swap a part without a reload. In dev only the Worker
+  proxies `/dev/*` to a sidecar that owns disk — the Worker's own filesystem is virtual and a
+  write through it is silently lost — and the sidecar watches `motions/authored/` and `out/`,
+  rebuilds, and pushes. Done when an edit saved in Blender shows up in the browser without a
+  hand-run command.
+- **M6 — wardrobe.** Cosmetics as their own production line: kinds, anchors, depth slots,
+  `hides`, `fitted`. Done when a hat, a skirt and a pauldron each render on every figure they
+  claim, with no per-figure tuning inside the renderer.
+- **M7 — agent surface.** `render:clip` contact sheets, `render:figure` sheets,
+  machine-readable reports from every pipeline, schemas an agent can write against, and a
+  documented loop: author, validate, render, look, iterate. Done when a clip and a figure can
+  be authored end to end without opening an editor.
+- **M8 — cruft gate.** No orphan docs, no unreferenced files, no dead scripts, zero runtime
   dependencies. State the final line count, the shipped byte count, and what each directory is
-  for.
+  for. `docs/REWRITE_PLAN.md` is deleted here: the milestones are done and this file plus the
+  commit log say everything it said.
 
 ## Working rules
 

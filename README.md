@@ -4,52 +4,48 @@ A deliberately unsafe, local-only laboratory for deterministic fighting mechanic
 SVG character animation.
 
 **[`AGENTS.md`](AGENTS.md) is the contract** — what this repository is, what it is not, and the
-ten contracts everything here is held to. Read it first. This file is only how to run the thing.
+ten contracts everything here is held to. Read it first.
+
+## Where this is
+
+The repository is being rebuilt from the contract outwards. **M0 is in: the rig, the sampler,
+and the gate that checks them.** Everything else is listed in
+[`docs/REWRITE_PLAN.md`](docs/REWRITE_PLAN.md) with the files it creates, the gate it turns on
+and what it defers — and every port comes out of git history, which is why nothing was lost
+when the old tree went.
+
+There is no page to open yet. That is M5.
 
 ```bash
 npm install
-npm run dev
+npm run verify     # check:rig, typecheck, test
 ```
 
-`npm run dev` is `teardown → reset → build → local Cloudflare launch → browser`, and the
-teardown is aggressive: it kills stale Wrangler processes from this repository and **any
-process listening on the lab port** (`8787`, or `SVGLAB_PORT`). Do not point `SVGLAB_PORT` at a
-local service you care about. `SVGLAB_NO_OPEN=1` skips opening the browser.
+## What exists
 
-Reset clears `dist/`, Wrangler state and `.runtime/`. It leaves `out/` alone, because that is
-where `export:motions` puts the clips a Blender project is pointed at.
-
-## Controls
-
-`W` jump · `A`/`D` move · `S` crouch · `J` basic attack · `K` sword slash · `R` reset ·
-`P` pause · `.` step one tick · `` ` `` debug overlay.
-
-The overlay inspects pushboxes, hurtboxes, hitboxes, fighter origins, bone pivots and animation
-state, and switches between traced characters mid-fight.
-
-## Commands
-
-```bash
-npm run verify            # every gate, in order — run before merging
-npm run build:characters  # atlas → traced character        (--check)
-npm run build:motions     # manifest + authored → catalog   (--check)
-npm run export:motions    # every clip + bone art → out/blender
-npm run import:motions    # an edited BVH → motions/authored/
-npm run check:exchange    # assert an untouched round trip changes nothing
-npm run teardown          # clear the lab port and stale repo Wrangler processes
-npm run reset             # clear generated and disposable state
+```
+rigs/fighter.rig.json   the rig: eleven bones, 19 anchors, four depth slots, seven cosmetic
+                        kinds, sockets, paint order, the Blender axis map, the BVH layout
+src/rig/                the contract loader, forward kinematics, and the one sampler
+src/clips/              clip types, and a catalog that is empty until M2
+pipelines/guards/rig.ts check:rig
+characters/<id>/        atlas.png + atlas.json — build-time input, waiting for M1
+motions/                dataset manifest + authored clip source, waiting for M2
+third_party/            the vendored Bandai Namco subset, CC BY-NC 4.0
 ```
 
-There is deliberately no deploy command, production environment, secret, remote route, account
-binding, database, or persistence contract.
+The rig is data and everything reads it: art references bones by id and carries no skeleton of
+its own, a cosmetic binds to a named anchor rather than a pixel offset, and a figure is a
+manifest of which part fills each slot rather than a document. That is what makes every piece
+of every character interchangeable with every piece of every other.
 
 ## Guides
 
 - [Character atlases](docs/CHARACTER_ATLAS.md) — drawing a sheet of body parts and tracing it
-  onto the eleven-bone rig.
+  onto the rig. Describes the M1 pipeline, which is not built yet.
 - [Motion import](docs/MOTION_IMPORT.md) — the BVH retarget, the CC BY-NC terms on the vendored
-  Bandai Namco subset, and the round trip out to Blender and back.
-- [Rewrite plan](docs/REWRITE_PLAN.md) — the milestones, the purge manifest, and what six
+  Bandai Namco subset, and the round trip out to Blender and back. Describes M2 and M3.
+- [Rewrite plan](docs/REWRITE_PLAN.md) — the milestones, the purge manifest, and what seven
   spikes measured.
 - [Hexframe extraction audit](docs/HEXFRAME_COMBAT_AUDIT.md) — what the combat kernel was taken
   from and what was deliberately left behind.
