@@ -209,15 +209,15 @@
   "shells": {
     "dist/assets/preview.js": {
       "raw": 6225,
-      "gzip": 2472
+      "gzip": 2473
     },
     "dist/assets/skeleton.js": {
-      "raw": 13562,
-      "gzip": 5051
+      "raw": 13557,
+      "gzip": 5048
     },
     "dist/assets/stage.js": {
       "raw": 16201,
-      "gzip": 5957
+      "gzip": 5956
     }
   }
 }

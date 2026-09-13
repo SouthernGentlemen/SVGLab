@@ -32,7 +32,7 @@ export function watchRuntimeCatalog(
   events.addEventListener("catalog", () => {
     void fetchRuntimeCatalog().then(onCatalog, (error: unknown) => onError((error as Error).message));
   });
-  events.addEventListener("clip-error", (event) => {
+  events.addEventListener("error", (event) => {
     if (event instanceof MessageEvent) onError(event.data);
   });
   return events;

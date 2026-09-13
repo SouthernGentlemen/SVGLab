@@ -8,18 +8,17 @@ ten contracts everything here is held to. Read it first.
 
 ## Where this is
 
-The repository is being rebuilt from the contract outwards. **M0 through M3 are in: the rig,
-sampler, swappable traced parts, figure manifests, clip lanes, Blender exchange, and the gates
-that check them.**
+The repository is being rebuilt from the contract outwards. **M0 through M5 are in: the rig,
+sampler, swappable traced parts, figure manifests, clip lanes, Blender exchange, the sealed
+frame-data kernel, and the live preview loop.**
 Everything else is listed in
 [`docs/REWRITE_PLAN.md`](docs/REWRITE_PLAN.md) with the files it creates, the gate it turns on
 and what it defers — and every port comes out of git history, which is why nothing was lost
 when the old tree went.
 
-There is no page to open yet. That is M5.
-
 ```bash
 npm install
+npm run dev         # build, start the disk-owning sidecar and local Worker, open the stage
 npm run build:parts
 npm run build:motions
 npm run export:motions -- bnrSwordCutNormal # default figure: barst
@@ -41,6 +40,9 @@ motions/                dataset manifest with shipped/study lanes + authored cli
 pipelines/motion/       BVH parser, measured retarget, reducer and deterministic catalog build
 pipelines/exchange/     BVH/art export, measured-axis import and authored review reports
 pipelines/blender/      contract-built armature, calibrated art attachment and joint probe
+src/render/             fetched figure assembly, rig placement and skeleton overlay
+src/shell/              preview page, kernel-driven stage and local Worker
+pipelines/dev/          watcher/write sidecar plus process-tree-safe local lifecycle
 third_party/            the vendored Bandai Namco subset, CC BY-NC 4.0
 ```
 
