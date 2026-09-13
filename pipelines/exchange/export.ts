@@ -2,15 +2,15 @@
 /** Export the playable catalog and study lane for review in Blender. */
 
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { Clip } from "../../src/clips/types.ts";
-import type { FigureManifest } from "../../src/render/manifest.ts";
 import type { Rig } from "../../src/rig/types.ts";
 import { buildCatalog } from "../motion/catalog.ts";
-import { validateAuthoredFigure } from "../render/manifest.ts";
+import { assembleFigureBones, loadFigure } from "../render/sheet.ts";
+import type { LoadedFigure } from "../render/sheet.ts";
 import { findBlender } from "../dev/find-blender.ts";
 import { boneArtSvg } from "./art.ts";
 import { clipToBvh } from "./bvh-write.ts";
@@ -74,18 +74,14 @@ function figurePath(requested: string | null): string {
   return join(ROOT, "figures", first);
 }
 
-export function readFigure(requested: string | null, rig: Rig): { id: string; path: string; manifest: FigureManifest } {
+export function readFigure(requested: string | null, rig: Rig): LoadedFigure {
   const path = figurePath(requested);
   if (!existsSync(path)) throw new Error(`figure manifest '${portable(path)}' does not exist`);
-  const manifest = validateAuthoredFigure(JSON.parse(readFileSync(path, "utf8")) as unknown, portable(path), rig);
-  for (const bone of rig.bones) {
-    const reference = manifest.parts[bone.slot];
-    const partPath = resolve(ROOT, reference);
-    if (!partPath.startsWith(`${ROOT}${sep}`) || !existsSync(partPath)) {
-      throw new Error(`${portable(path)} cannot read '${reference}' for ${bone.name}`);
-    }
+  const figure = loadFigure(ROOT, path);
+  if (figure.rig.contract.id !== rig.contract.id) {
+    throw new Error(`${portable(path)} targets rig '${figure.rig.contract.id}', not '${rig.contract.id}'`);
   }
-  return { id: basename(path, ".json"), path, manifest };
+  return figure;
 }
 
 function readme(figure: string): string {
@@ -144,11 +140,14 @@ export function main(argv: readonly string[]): number {
 
     const artDirectory = join(outDirectory, "art");
     mkdirSync(artDirectory, { recursive: true });
+    const assembly = assembleFigureBones(figure);
     let order = 0;
     let pathCount = 0;
     for (const boneName of catalog.rig.contract.paintOrder) {
       const bone = catalog.rig.byName.get(boneName)!;
-      const source = readFileSync(resolve(ROOT, figure.manifest.parts[bone.slot]), "utf8");
+      const layers = [...assembly.get(bone.name)!.layers].map(([layer, contents]) =>
+        `<g data-depth="${layer}">${contents}</g>`).join("");
+      const source = `<svg xmlns="http://www.w3.org/2000/svg" data-bone="${bone.name}">${layers}</svg>`;
       const art = boneArtSvg(bone.name, source, order);
       order = art.nextOrder;
       pathCount += art.paths;
@@ -177,7 +176,12 @@ export function main(argv: readonly string[]): number {
       defaultedFigure: args.figure === null,
       out: portable(outDirectory),
       clips,
-      art: { bones: catalog.rig.bones.length, paths: pathCount },
+      art: {
+        bones: catalog.rig.bones.length,
+        cosmetics: figure.cosmetics.length,
+        placements: figure.cosmetics.reduce((sum, cosmetic) => sum + cosmetic.placements.length, 0),
+        paths: pathCount,
+      },
       blendFiles,
     };
     if (args.json) console.log(JSON.stringify(report, null, 2));
@@ -186,7 +190,7 @@ export function main(argv: readonly string[]): number {
       for (const clip of clips) {
         console.log(`${clip.key}.bvh  ${clip.frames} frames @ ${catalog.rig.contract.exchange.bvh.frameRate} FPS  ${clip.keyframes} keyframes  (${clip.lane})`);
       }
-      console.log(`exported ${clips.length} clips and ${catalog.rig.bones.length} bone art files (${pathCount} paths) -> ${report.out}`);
+      console.log(`exported ${clips.length} clips and ${catalog.rig.bones.length} bone art files with ${report.art.cosmetics} cosmetics / ${report.art.placements} placements (${pathCount} paths) -> ${report.out}`);
       for (const path of blendFiles) console.log(`saved ${path}`);
     }
     return 0;

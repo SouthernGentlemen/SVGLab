@@ -25,34 +25,67 @@ function body(document: string): string {
   return match[1];
 }
 
-function translatedBounds(documentBody: string): { x0: number; y0: number; x1: number; y1: number } {
+type Matrix = readonly [number, number, number, number, number, number];
+
+const IDENTITY: Matrix = [1, 0, 0, 1, 0, 0];
+
+function multiply(left: Matrix, right: Matrix): Matrix {
+  const [a, b, c, d, e, f] = left;
+  const [g, h, i, j, k, l] = right;
+  return [a * g + c * h, b * g + d * h, a * i + c * j, b * i + d * j, a * k + c * l + e, b * k + d * l + f];
+}
+
+function transformMatrix(source: string | null): Matrix {
+  if (source === null) return IDENTITY;
+  let result = IDENTITY;
+  let consumed = "";
+  for (const match of source.matchAll(/([a-z]+)\s*\(([^)]*)\)/gi)) {
+    consumed += match[0];
+    const values = match[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    let next: Matrix;
+    if (match[1] === "translate" && (values.length === 1 || values.length === 2)) {
+      next = [1, 0, 0, 1, values[0], values[1] ?? 0];
+    } else if (match[1] === "scale" && (values.length === 1 || values.length === 2)) {
+      next = [values[0], 0, 0, values[1] ?? values[0], 0, 0];
+    } else if (match[1] === "rotate" && values.length === 1) {
+      const radians = values[0] * Math.PI / 180;
+      const cosine = Math.cos(radians);
+      const sine = Math.sin(radians);
+      next = [cosine, sine, -sine, cosine, 0, 0];
+    } else {
+      throw new Error(`unsupported part transform '${source}'`);
+    }
+    if (values.some((value) => !Number.isFinite(value))) throw new Error(`invalid part transform '${source}'`);
+    result = multiply(result, next);
+  }
+  if (consumed.replace(/\s/g, "") !== source.replace(/\s/g, "")) throw new Error(`unsupported part transform '${source}'`);
+  return result;
+}
+
+function transformedBounds(documentBody: string): { x0: number; y0: number; x1: number; y1: number } {
   const xs = [0, CALIBRATION_SPAN];
   const ys = [0, CALIBRATION_SPAN];
-  const translations: Array<readonly [number, number]> = [[0, 0]];
+  const transforms: Matrix[] = [IDENTITY];
 
   for (const token of documentBody.matchAll(/<g\b([^>]*?)(\/?)>|<\/g>|<path\b([^>]*)>/g)) {
     if (token[0] === "</g>") {
-      if (translations.length > 1) translations.pop();
+      if (transforms.length > 1) transforms.pop();
       continue;
     }
     if (token[1] !== undefined) {
-      const parent = translations.at(-1)!;
-      const transform = attribute(token[1], "transform");
-      const translated = transform ? /^translate\(\s*([^\s,)]+)[,\s]+([^\s,)]+)\s*\)$/.exec(transform) : null;
-      if (transform && !translated) throw new Error(`unsupported part transform '${transform}'`);
-      const next = translated
-        ? [parent[0] + Number(translated[1]), parent[1] + Number(translated[2])] as const
-        : parent;
-      if (token[2] !== "/") translations.push(next);
+      const next = multiply(transforms.at(-1)!, transformMatrix(attribute(token[1], "transform")));
+      if (token[2] !== "/") transforms.push(next);
       continue;
     }
 
     const pathData = attribute(token[3] ?? "", "d") ?? "";
     const numbers = [...pathData.matchAll(/-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi)].map(([value]) => Number(value));
-    const [tx, ty] = translations.at(-1)!;
+    const [a, b, c, d, e, f] = transforms.at(-1)!;
     for (let index = 0; index + 1 < numbers.length; index += 2) {
-      xs.push(numbers[index] + tx);
-      ys.push(numbers[index + 1] + ty);
+      const x = numbers[index];
+      const y = numbers[index + 1];
+      xs.push(a * x + c * y + e);
+      ys.push(b * x + d * y + f);
     }
   }
 
@@ -84,7 +117,7 @@ export function boneArtSvg(bone: string, part: string, startingOrder = 0): BoneA
     const kind = attribute(attributes, "fill") === "none" ? "line" : "part";
     return `<path id="svglab-${kind}-${order++}"${attributes}${slash}>`;
   });
-  const box = translatedBounds(sourceBody);
+  const box = transformedBounds(sourceBody);
 
   return {
     paths: order - startingOrder,
