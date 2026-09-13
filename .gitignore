@@ -3,5 +3,7 @@ dist/
 .runtime/
 .wrangler/
 *.log
+__pycache__/
+*.pyc
 .DS_Store
 out/

@@ -8,8 +8,9 @@ ten contracts everything here is held to. Read it first.
 
 ## Where this is
 
-The repository is being rebuilt from the contract outwards. **M0 through M2 are in: the rig,
-sampler, swappable traced parts, figure manifests, clip lanes, and the gates that check them.**
+The repository is being rebuilt from the contract outwards. **M0 through M3 are in: the rig,
+sampler, swappable traced parts, figure manifests, clip lanes, Blender exchange, and the gates
+that check them.**
 Everything else is listed in
 [`docs/REWRITE_PLAN.md`](docs/REWRITE_PLAN.md) with the files it creates, the gate it turns on
 and what it defers — and every port comes out of git history, which is why nothing was lost
@@ -21,7 +22,8 @@ There is no page to open yet. That is M5.
 npm install
 npm run build:parts
 npm run build:motions
-npm run verify     # rig, sprites, sockets, motions, footprint, typecheck, test
+npm run export:motions -- bnrSwordCutNormal # default figure: barst
+npm run verify     # includes measured exchange and Blender gates
 ```
 
 ## What exists
@@ -37,6 +39,8 @@ characters/<id>/        atlas.png + atlas.json source; generated parts/<slot>.sv
 figures/                 manifests selecting a rig and one file for every part slot
 motions/                dataset manifest with shipped/study lanes + authored clip source
 pipelines/motion/       BVH parser, measured retarget, reducer and deterministic catalog build
+pipelines/exchange/     BVH/art export, measured-axis import and authored review reports
+pipelines/blender/      contract-built armature, calibrated art attachment and joint probe
 third_party/            the vendored Bandai Namco subset, CC BY-NC 4.0
 ```
 
