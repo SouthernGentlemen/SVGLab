@@ -37,7 +37,7 @@ The tracer emits eleven SVG documents. Each one names its `data-bone`, but carri
 `data-x`/`data-y`: rest offsets belong only to the rig contract. A figure manifest selects one
 file for each slot, and those files may come from different sheets.
 
-That is the whole design. The renderer will assemble the manifest against the same rig every
+That is the whole design. The renderer assembles the manifest against the same rig every
 clip uses, while the combat kernel — which must never learn what a fighter looks like — learns
 nothing. Swap one part and the simulation cannot tell.
 
@@ -96,7 +96,11 @@ below the neck it pivots on. Most parts need nothing here.
 **`trace`** declares the default colour cap, simplification tolerance, coordinate precision
 and minimum flat-colour region area. An entry in `bySlot` overrides only the values it names.
 Heads keep more colours and a tighter curve because that is where the face lives; the body uses
-three colours because that is where the bytes live.
+three colours because that is where the bytes live. That split is measured: one global
+four-colour profile brought the largest figure under the old 120 KB target but erased its blue
+eyes and mouth. Keeping heads at 12 colours / epsilon 1.2 and bodies at 3 / 3.0 produced
+64,790-, 81,791- and 114,371-byte figures with the faces intact. Five rebuilds agreed byte for
+byte on the three source atlases; a new palette may still justify a different authored profile.
 
 Costume islands in band 3 are source candidates, not part bindings. The part build reports and
 leaves them unused. Selected art is copied into `cosmetics/<set>/atlas.png`; its authored
@@ -132,8 +136,8 @@ that changes a file means the art changed.
 ## Adding a character
 
 1. Cut the atlas to the layout above, save it as `characters/<id>/atlas.png`.
-2. Write `atlas.json` with the trace profile above, plus costume-piece bindings and genuine
-   crop-specific pivot corrections. Do not introduce skin-specific proportions.
+2. Write `atlas.json` with the trace profile above and genuine crop-specific pivot corrections.
+   Do not introduce skin-specific proportions; move selected costume art into a wardrobe set.
 3. `node pipelines/sprite/build.ts <id>` and inspect an assembled render; a pivot a few pixels
    out is invisible on a neutral stand and obvious on a bent elbow.
 4. Add `figures/<id>.json`, naming the rig and one part file for all eleven slots.

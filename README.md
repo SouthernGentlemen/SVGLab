@@ -4,60 +4,81 @@ A deliberately unsafe, local-only laboratory for deterministic fighting mechanic
 SVG character animation.
 
 **[`AGENTS.md`](AGENTS.md) is the contract** — what this repository is, what it is not, and the
-ten contracts everything here is held to. Read it first.
+ten contracts every path is held to. Read it first.
 
-## Where this is
+The contract-first rewrite is complete. Sprite atlases become interchangeable SVG parts,
+figures select parts and fitted cosmetics, captured and authored motion share one 60 Hz sampler,
+Blender round trips are measured, the combat kernel is sealed from presentation, and the local
+Worker preview reloads edits through a disk-owning sidecar. Ten verification gates keep that
+shape from drifting.
 
-The repository is being rebuilt from the contract outwards. **M0 through M5 are in: the rig,
-sampler, swappable traced parts, figure manifests, clip lanes, Blender exchange, the sealed
-frame-data kernel, and the live preview loop.**
-Everything else is listed in
-[`docs/REWRITE_PLAN.md`](docs/REWRITE_PLAN.md) with the files it creates, the gate it turns on
-and what it defers — and every port comes out of git history, which is why nothing was lost
-when the old tree went.
+## Run the lab
 
 ```bash
 npm install
-npm run dev         # build, start the disk-owning sidecar and local Worker, open the stage
-npm run build:parts
-npm run build:motions
-npm run export:motions -- bnrSwordCutNormal # default figure: barst
-npm run verify     # includes measured exchange and Blender gates
+npm run dev                              # build, start the sidecar and local Worker, open the stage
+npm run render:figure -- --figure yuliya # write an assembled review sheet to out/render/
+npm run render:clip -- --clip labWave    # write a motion contact sheet to out/render/
+npm run verify                           # all gates, typecheck, tests and production build
 ```
 
-## What exists
+The Worker is deliberately local-only. There is no account id, route, persistent binding,
+deployment script or production authentication surface.
+
+## Repository map
 
 ```
-rigs/fighter.rig.json   the rig: eleven bones, 19 anchors, four depth slots, seven cosmetic
-                        kinds, sockets, paint order, the Blender axis map, the BVH layout
-src/rig/                the contract loader, forward kinematics, and the one sampler
-src/clips/              clip types, generated and authored catalogs, playback and movesets
-pipelines/guards/rig.ts check:rig
-pipelines/sprite/       deterministic atlas decoder, cutter, tracer and part builder
-characters/<id>/        atlas.png + atlas.json source; generated parts/<slot>.svg output
-figures/                 manifests selecting a rig and one file for every part slot
-motions/                dataset manifest with shipped/study lanes + authored clip source
-pipelines/motion/       BVH parser, measured retarget, reducer and deterministic catalog build
-pipelines/exchange/     BVH/art export, measured-axis import and authored review reports
-pipelines/blender/      contract-built armature, calibrated art attachment and joint probe
-src/render/             fetched figure assembly, rig placement and skeleton overlay
-src/shell/              preview page, kernel-driven stage and local Worker
-pipelines/dev/          watcher/write sidecar plus process-tree-safe local lifecycle
-third_party/            the vendored Bandai Namco subset, CC BY-NC 4.0
+characters/<id>/       source atlas + trace sidecar; generated one-SVG-per-slot parts
+cosmetics/<set>/       source wardrobe atlas + manifest; generated SVG pieces
+docs/                  atlas, motion and authoring guides; Hexframe provenance record
+figures/               authored manifests selecting a rig, parts and fitted cosmetics
+motions/               capture manifest and tracked hand-authored clip source
+pipelines/blender/     thin Python armature, export and joint-probe scripts
+pipelines/dev/         local process lifecycle and disk-owning live-reload sidecar
+pipelines/exchange/    measured BVH/art export and import
+pipelines/guards/      rig, socket, exchange, wardrobe, footprint, cruft and local-only gates
+pipelines/motion/      BVH parse, planar retarget, reduction and deterministic catalog build
+pipelines/render/      agent-readable clip and figure review sheets plus schemas
+pipelines/sprite/      in-project PNG decode, segmentation, fitting and flat-colour tracing
+pipelines/wardrobe/    cosmetic trace, contract validation and anchor-based placement
+rigs/                  rig contract, generated authoring schemas and footprint ratchet
+src/clips/             clip types, generated catalogs, movesets, playback and runtime loading
+src/kernel/            sealed deterministic state, movement, collision and hit resolution
+src/render/            fetched figure assembly, placement, arena and skeleton overlay
+src/rig/               rig validation, forward kinematics and the one sampler
+src/shell/             stage, animation preview, controls, styles and local Worker
+tests/                 Vitest suites arranged by the same concerns
+third_party/           pinned Bandai Namco capture subset, annotations, licence and notice
+dist/                  untracked production build; disposable
+out/                   untracked render, study and Blender work; never removed by reset
 ```
 
-The rig is data and everything reads it: art references bones by id and carries no skeleton of
-its own, a cosmetic binds to a named anchor rather than a pixel offset, and a figure is a
-manifest of which part fills each slot rather than a document. That is what makes every piece
-of every character interchangeable with every piece of every other.
+Generated art names a bone but carries no skeleton. The rig owns joints, anchors, depth slots,
+socket expectations, paint order and exchange axes; a figure is only a manifest of choices.
+The browser fetches those choices, so raster atlases and SVG part payloads never enter a shell
+chunk.
 
 ## Guides
 
-- [Character atlases](docs/CHARACTER_ATLAS.md) — drawing a sheet of body parts and tracing it
-  into swappable parts on the rig.
-- [Motion import](docs/MOTION_IMPORT.md) — the BVH retarget, the CC BY-NC terms on the vendored
-  Bandai Namco subset, and the round trip out to Blender and back. Describes M2 and M3.
-- [Rewrite plan](docs/REWRITE_PLAN.md) — the milestones, the purge manifest, and what seven
-  spikes measured.
-- [Hexframe extraction audit](docs/HEXFRAME_COMBAT_AUDIT.md) — what the combat kernel was taken
-  from and what was deliberately left behind.
+- [Agent authoring loop](docs/AUTHORING.md) — write a clip or figure against the committed
+  schemas, validate it, render a sheet and iterate.
+- [Character atlases](docs/CHARACTER_ATLAS.md) — draw a body-part sheet and trace it into fitted,
+  swappable SVG parts.
+- [Motion import](docs/MOTION_IMPORT.md) — source provenance, planar retargeting, catalog lanes,
+  and the measured Blender round trip.
+- [Hexframe extraction audit](docs/HEXFRAME_COMBAT_AUDIT.md) — what the combat kernel retained
+  and deliberately left behind.
+
+## Final footprint
+
+- 199 tracked files; 183 outside the pinned `third_party/` subset.
+- 10,538 lines of TypeScript and 452 lines of Blender Python.
+- Zero runtime dependencies. Development uses only `@cloudflare/workers-types`, `@types/node`,
+  `typescript`, `vite`, `vitest` and `wrangler`.
+- 43,158 raw / 15,617 gzip bytes across three production shell chunks. Art remains
+  fetched and is not part of those chunks.
+- Ten gates in `verify`, plus typecheck, 116 tests across 26 files, and the production build.
+
+These are measured repository and `dist/assets` totals, not budgets. Per-asset raw and gzip
+sizes remain ratcheted in `rigs/footprint.baseline.json`; a decrease passes and an increase must
+be accepted in that file's diff.
