@@ -1,0 +1,19 @@
+{
+  "contract": 1,
+  "name": "Barst",
+  "rig": "fighter",
+  "parts": {
+    "pelvis": "characters/barst/parts/pelvis.svg",
+    "leg_upper_r": "characters/barst/parts/leg_upper_r.svg",
+    "leg_lower_r": "characters/barst/parts/leg_lower_r.svg",
+    "leg_upper_l": "characters/barst/parts/leg_upper_l.svg",
+    "leg_lower_l": "characters/barst/parts/leg_lower_l.svg",
+    "torso": "characters/barst/parts/torso.svg",
+    "arm_upper_r": "characters/barst/parts/arm_upper_r.svg",
+    "arm_lower_r": "characters/barst/parts/arm_lower_r.svg",
+    "arm_upper_l": "characters/barst/parts/arm_upper_l.svg",
+    "arm_lower_l": "characters/barst/parts/arm_lower_l.svg",
+    "head": "characters/barst/parts/head.svg"
+  },
+  "cosmetics": []
+}
