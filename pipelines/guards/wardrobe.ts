@@ -7,10 +7,8 @@ import { fileURLToPath } from "node:url";
 
 import { validateRig } from "../../src/rig/contract.ts";
 import type { Point, Rig } from "../../src/rig/types.ts";
-import { inspectCosmetic, resolveCosmeticPlacements } from "../wardrobe/place.ts";
-import type { CosmeticPlacement } from "../wardrobe/place.ts";
-import type { WardrobeSet } from "../wardrobe/types.ts";
-import { validateWardrobeSet } from "../wardrobe/types.ts";
+import { inspectCosmetic, resolveCosmeticPlacements, validateWardrobeSet } from "../../src/render/wardrobe.ts";
+import type { CosmeticPlacement, WardrobeSet } from "../../src/render/wardrobe.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 

@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import { loadBuildRig } from "../../pipelines/sprite/build.ts";
 import { loadWardrobeSet } from "../../pipelines/wardrobe/build.ts";
-import { inspectCosmetic, resolveCosmetic, resolveCosmeticPlacements } from "../../pipelines/wardrobe/place.ts";
 import { hiddenPartSlots } from "../../src/render/assemble.ts";
 import type { CosmeticNode } from "../../src/render/assemble.ts";
+import { inspectCosmetic, resolveCosmetic, resolveCosmeticPlacements } from "../../src/render/wardrobe.ts";
 
 describe("contract-based cosmetic placement", () => {
   const rig = loadBuildRig();

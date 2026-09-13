@@ -15,6 +15,12 @@ function filesUnder(directory: string): string[] {
 }
 
 describe("architecture guardrails", () => {
+  it("keeps browser source independent from build pipelines", () => {
+    for (const path of filesUnder(join(ROOT, "src")).filter((file) => file.endsWith(".ts"))) {
+      expect(readFileSync(path, "utf8"), `${path} imports a build pipeline`).not.toMatch(/from\s+["'][^"']*pipelines\//);
+    }
+  });
+
   it("keeps the clip preview on the presentation side of the kernel boundary", () => {
     const source = readFileSync(join(ROOT, "src", "shell", "preview.ts"), "utf8");
     expect(source).not.toMatch(/from ["'][^"']*kernel/); expect(source).not.toMatch(/\bCombatSimulation\b/);

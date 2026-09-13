@@ -4,13 +4,11 @@ import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { Pose } from "../../src/clips/types.ts";
 import { cosmeticReference, figurePath, inspectPart, validateFigure } from "../../src/render/manifest.ts";
 import type { FigureManifest } from "../../src/render/manifest.ts";
+import { inspectCosmetic, placementTransform, resolveCosmeticPlacements, validateWardrobeSet } from "../../src/render/wardrobe.ts";
+import type { CosmeticPiece, CosmeticPlacement, WardrobeSet } from "../../src/render/wardrobe.ts";
 import { validateRig } from "../../src/rig/contract.ts";
 import { forwardKinematics } from "../../src/rig/fk.ts";
 import type { Rig } from "../../src/rig/types.ts";
-import { inspectCosmetic, placementTransform, resolveCosmeticPlacements } from "../wardrobe/place.ts";
-import type { CosmeticPlacement } from "../wardrobe/place.ts";
-import type { CosmeticPiece, WardrobeSet } from "../wardrobe/types.ts";
-import { validateWardrobeSet } from "../wardrobe/types.ts";
 import { visualPaintOrder } from "./depth.ts";
 import { validateAuthoredFigure } from "./manifest.ts";
 
