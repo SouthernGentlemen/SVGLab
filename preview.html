@@ -22,31 +22,51 @@
         <ul id="keybind-list"></ul>
       </div>
 
-      <aside class="preview-controls glass" aria-label="Figure preview controls">
-        <p class="overlay-label">FIGURE + CLIP</p>
-        <div class="preview-field"><label for="figure">Figure</label><select id="figure"></select></div>
-        <div class="preview-field"><label for="clip">Clip</label><select id="clip"></select></div>
-        <div class="preview-field"><label for="cosmetic">Cosmetic</label><select id="cosmetic"></select></div>
+      <aside id="loadout-panel" class="preview-controls glass" aria-label="Character loadout and preview controls">
+        <section class="loadout-section">
+          <p class="overlay-label">CHARACTER</p>
+          <div id="character-picker" class="character-picker"></div>
+        </section>
 
-        <div class="toggle-grid preview-toggles">
-          <label><input id="compare" type="checkbox" /> Compare all figures</label>
-          <label><input id="face-left" type="checkbox" /> Face left</label>
-          <label><input id="show-rig" type="checkbox" /> Bone pivots</label>
-          <label><input id="show-skeleton" type="checkbox" /> Skeleton overlay</label>
-        </div>
+        <section class="loadout-section">
+          <div class="loadout-heading"><p class="overlay-label">BODY</p><span>paint order</span></div>
+          <div id="body-slots" class="body-slots"></div>
+        </section>
 
-        <div class="preview-button-grid">
-          <button id="previous-clip" type="button">Previous</button>
-          <button id="next-clip" type="button">Next</button>
-          <button id="play-pause" class="primary-button" type="button">Pause</button>
-          <button id="step-frame" type="button">Step</button>
-          <button id="replay" type="button">Replay</button>
-        </div>
+        <section class="loadout-section">
+          <p class="overlay-label">WARDROBE</p>
+          <div id="wardrobe-pieces" class="wardrobe-pieces"></div>
+        </section>
 
-        <div class="preview-scrub">
-          <div><label for="frame-scrub">Frame</label><output id="frame-output">0</output></div>
-          <input id="frame-scrub" type="range" min="0" max="60" step="1" value="0" />
-        </div>
+        <section class="loadout-section">
+          <p class="overlay-label">WEAPON</p>
+          <div id="weapon-readout" class="weapon-readout"></div>
+        </section>
+
+        <section class="preview-playback">
+          <p class="overlay-label">ANIMATION</p>
+          <div class="preview-field"><label for="clip">Moveset slot</label><select id="clip"></select></div>
+
+          <div class="toggle-grid preview-toggles">
+            <label><input id="compare" type="checkbox" /> Compare all figures</label>
+            <label><input id="face-left" type="checkbox" /> Face left</label>
+            <label><input id="show-rig" type="checkbox" /> Bone pivots</label>
+            <label><input id="show-skeleton" type="checkbox" /> Skeleton overlay</label>
+          </div>
+
+          <div class="preview-button-grid">
+            <button id="previous-clip" type="button">Previous</button>
+            <button id="next-clip" type="button">Next</button>
+            <button id="play-pause" class="primary-button" type="button">Pause</button>
+            <button id="step-frame" type="button">Step</button>
+            <button id="replay" type="button">Replay</button>
+          </div>
+
+          <div class="preview-scrub">
+            <div><label for="frame-scrub">Frame</label><output id="frame-output">0</output></div>
+            <input id="frame-scrub" type="range" min="0" max="60" step="1" value="0" />
+          </div>
+        </section>
       </aside>
 
       <section class="preview-stage glass" aria-label="Figure animation preview">

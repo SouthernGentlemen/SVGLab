@@ -8,6 +8,7 @@ export type PartLabelMode = "off" | "bones" | "bones-and-cosmetics";
 interface Overlay {
   readonly root: SVGGElement;
   readonly labels: SVGGElement;
+  readonly cosmeticSignature: string;
 }
 
 export function nextPartLabelMode(mode: PartLabelMode): PartLabelMode {
@@ -16,7 +17,16 @@ export function nextPartLabelMode(mode: PartLabelMode): PartLabelMode {
   return "off";
 }
 
+function activeCosmeticSignature(node: FigureNode): string {
+  return [...node.cosmetics.values()]
+    .filter((cosmetic) => cosmetic.enabled)
+    .map((cosmetic) => cosmetic.reference)
+    .sort()
+    .join("\n");
+}
+
 function createSkeleton(node: FigureNode): Overlay {
+  overlays.get(node)?.root.remove();
   const overlay = document.createElementNS(SVG_NS, "g");
   overlay.classList.add("skeleton-debug-overlay");
   overlay.setAttribute("aria-hidden", "true");
@@ -51,6 +61,7 @@ function createSkeleton(node: FigureNode): Overlay {
     labels.appendChild(label);
   }
   for (const cosmetic of node.cosmetics.values()) {
+    if (!cosmetic.enabled) continue;
     const pieceId = cosmetic.reference.slice(cosmetic.reference.lastIndexOf("/") + 1).replace(/\.svg$/, "");
     for (const placement of cosmetic.placements) {
       const guide = document.createElementNS(SVG_NS, "line");
@@ -70,7 +81,7 @@ function createSkeleton(node: FigureNode): Overlay {
   }
   overlay.appendChild(labels);
   node.root.appendChild(overlay);
-  const result = { root: overlay, labels };
+  const result = { root: overlay, labels, cosmeticSignature: activeCosmeticSignature(node) };
   overlays.set(node, result);
   return result;
 }
@@ -104,7 +115,13 @@ function cosmeticPosition(
   return point.matrixTransform(matrix).matrixTransform(toRoot);
 }
 
-function positionLabels(node: FigureNode, overlay: Overlay, positions: Map<string, DOMPoint>, mode: PartLabelMode): void {
+function positionLabels(
+  node: FigureNode,
+  overlay: Overlay,
+  positions: Map<string, DOMPoint>,
+  mode: PartLabelMode,
+  highlightedBone: string | null,
+): void {
   const rootMatrix = node.root.getCTM();
   const screenMatrix = node.root.getScreenCTM();
   const svg = node.root.ownerSVGElement;
@@ -115,9 +132,10 @@ function positionLabels(node: FigureNode, overlay: Overlay, positions: Map<strin
   const screenSide = mirrored ? "right" : "left";
   const localSide = mirrored ? (screenSide === "left" ? "right" : "left") : screenSide;
   const toRoot = rootMatrix.inverse();
-  const labels = [...overlay.labels.querySelectorAll<SVGTextElement>(
-    mode === "bones" ? ".part-label--bone" : ".part-label",
-  )];
+  const labels = [...overlay.labels.querySelectorAll<SVGTextElement>(".part-label")]
+    .filter((label) => label.classList.contains("part-label--bone")
+      ? mode !== "off" || label.dataset.labelBone === highlightedBone
+      : mode === "bones-and-cosmetics");
   const entries = labels.flatMap((label) => {
     const position = label.classList.contains("part-label--cosmetic")
       ? cosmeticPosition(node, label, toRoot, svg)
@@ -155,13 +173,22 @@ export function updateSkeletonOverlay(
   node: FigureNode,
   skeletonVisible: boolean,
   labelMode: PartLabelMode = "off",
+  highlightedBone: string | null = null,
 ): void {
-  const overlay = overlays.get(node) ?? createSkeleton(node);
-  overlay.root.classList.toggle("is-visible", skeletonVisible || labelMode !== "off");
+  const existing = overlays.get(node);
+  const signature = activeCosmeticSignature(node);
+  const overlay = !existing || existing.cosmeticSignature !== signature ? createSkeleton(node) : existing;
+  const highlighted = highlightedBone !== null && node.bones.has(highlightedBone);
+  overlay.root.classList.toggle("is-visible", skeletonVisible || labelMode !== "off" || highlighted);
   overlay.root.classList.toggle("show-skeleton", skeletonVisible);
   overlay.labels.classList.toggle("show-bones", labelMode !== "off");
   overlay.labels.classList.toggle("show-cosmetics", labelMode === "bones-and-cosmetics");
-  if (!skeletonVisible && labelMode === "off") return;
+  overlay.labels.classList.toggle("show-highlight", highlighted);
+  for (const label of overlay.labels.querySelectorAll<SVGElement>("[data-label-bone]")) {
+    const boneLabel = label.classList.contains("part-label--bone") || label.classList.contains("part-label-guide--bone");
+    label.classList.toggle("is-highlighted", highlighted && label.dataset.labelBone === highlightedBone && boneLabel);
+  }
+  if (!skeletonVisible && labelMode === "off" && !highlighted) return;
   const positions = bonePositions(node);
   for (const segment of overlay.root.querySelectorAll<SVGLineElement>(".skeleton-debug-segment")) {
     const from = positions.get(segment.dataset.skeletonFrom ?? "");
@@ -178,6 +205,6 @@ export function updateSkeletonOverlay(
     joint.setAttribute("cx", position.x.toFixed(3));
     joint.setAttribute("cy", position.y.toFixed(3));
   }
-  if (labelMode === "off") return;
-  positionLabels(node, overlay, positions, labelMode);
+  if (labelMode === "off" && !highlighted) return;
+  positionLabels(node, overlay, positions, labelMode, highlighted ? highlightedBone : null);
 }

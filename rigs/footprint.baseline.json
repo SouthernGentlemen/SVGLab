@@ -208,16 +208,16 @@
   },
   "shells": {
     "dist/assets/keybinds.js": {
-      "raw": 24876,
-      "gzip": 8362
+      "raw": 27495,
+      "gzip": 9121
     },
     "dist/assets/preview.js": {
-      "raw": 5238,
-      "gzip": 2228
+      "raw": 46846,
+      "gzip": 9843
     },
     "dist/assets/stage.js": {
-      "raw": 15597,
-      "gzip": 5845
+      "raw": 15756,
+      "gzip": 5932
     }
   },
   "cosmetics": {

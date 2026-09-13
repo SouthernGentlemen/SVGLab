@@ -12,6 +12,7 @@ import type { DebugToggles } from "../render/arena.ts";
 import { nextPartLabelMode } from "../render/skeleton-overlay.ts";
 import type { PartLabelMode } from "../render/skeleton-overlay.ts";
 import { renderAnimationPanel, renderEvents, renderSimulationPanel } from "./debug-panel.ts";
+import { renderCharacterPicker } from "./character-picker.ts";
 import { keybindAction, renderKeybindHelp } from "./keybinds.ts";
 import { KeyboardInput } from "./keyboard.ts";
 
@@ -39,8 +40,8 @@ const timelineLast = required<HTMLElement>("#timeline-last");
 const runState = required<HTMLElement>("#run-state");
 const debugOverlay = required<HTMLElement>("#debug-overlay");
 const debugToggle = required<HTMLButtonElement>("#debug-toggle");
-const playerFigure = required<HTMLSelectElement>("#player-skin");
-const dummyFigure = required<HTMLSelectElement>("#dummy-skin");
+const playerFigurePicker = required<HTMLElement>("#player-character-picker");
+const dummyFigurePicker = required<HTMLElement>("#dummy-character-picker");
 
 let paused = false;
 let lastTime = performance.now();
@@ -48,6 +49,8 @@ let accumulator = 0;
 let latestReport: FrameReport | null = null;
 let eventHistory: CombatEvent[] = [];
 let labelMode: PartLabelMode = "off";
+let stageFigures: [string, string] = ["fighter", "barst"];
+let figureSwap = Promise.resolve();
 
 renderKeybindHelp(required<HTMLElement>("#keybind-list"), "stage");
 
@@ -112,14 +115,22 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 
-for (const select of [playerFigure, dummyFigure]) {
-  select.replaceChildren(...figures.figures.map((entry) => {
-    const option = document.createElement("option"); option.value = entry.id; option.textContent = entry.name; return option;
-  }));
+function renderFigurePickers(): void {
+  const choose = (index: 0 | 1, figureId: string): void => {
+    if (stageFigures[index] === figureId) return;
+    stageFigures[index] = figureId;
+    renderFigurePickers();
+    figureSwap = figureSwap.then(async () => {
+      await renderer.setFigures(stageFigures);
+      render();
+    }).catch((error: unknown) => {
+      required<HTMLElement>("#dev-status").textContent = `figure error: ${(error as Error).message}`;
+    });
+  };
+  renderCharacterPicker(playerFigurePicker, figures.figures, stageFigures[0], (id) => choose(0, id), { label: "Player character" });
+  renderCharacterPicker(dummyFigurePicker, figures.figures, stageFigures[1], (id) => choose(1, id), { label: "Dummy character" });
 }
-playerFigure.value = "fighter"; dummyFigure.value = "barst";
-const swapFigures = async (): Promise<void> => { await renderer.setFigures([playerFigure.value, dummyFigure.value]); render(); };
-playerFigure.addEventListener("change", () => void swapFigures()); dummyFigure.addEventListener("change", () => void swapFigures());
+renderFigurePickers();
 pauseButton.addEventListener("click", () => setPaused(!paused)); stepButton.addEventListener("click", () => { if (paused) step(); });
 required<HTMLButtonElement>("#reset").addEventListener("click", reset);
 debugToggle.addEventListener("click", () => setDebugVisible(debugOverlay.hidden));
@@ -127,7 +138,8 @@ required<HTMLButtonElement>("#debug-close").addEventListener("click", () => setD
 dummyInvulnerable.addEventListener("change", () => { simulation.setDummyInvulnerable(dummyInvulnerable.checked); render(); });
 for (const toggle of document.querySelectorAll<HTMLInputElement>("[data-toggle]")) toggle.addEventListener("change", render);
 window.addEventListener("keydown", (event) => {
-  if (event.repeat) return;
+  if (event.repeat || event.target instanceof HTMLButtonElement || event.target instanceof HTMLInputElement
+    || event.target instanceof HTMLSelectElement) return;
   const action = keybindAction("stage", event.code);
   if (action === "pause") setPaused(!paused);
   else if (action === "step" && paused) step();

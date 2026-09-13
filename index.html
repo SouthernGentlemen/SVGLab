@@ -101,11 +101,15 @@
             <label><input data-toggle="skeleton" type="checkbox" /> Skeleton</label>
             <label><input id="dummy-invulnerable" type="checkbox" /> Dummy invulnerable</label>
           </div>
-          <div class="skin-grid">
-            <label for="player-skin">Player figure</label>
-            <select id="player-skin"></select>
-            <label for="dummy-skin">Dummy figure</label>
-            <select id="dummy-skin"></select>
+          <div class="stage-character-pickers">
+            <section>
+              <p class="picker-caption">Player character</p>
+              <div id="player-character-picker" class="character-picker character-picker--compact"></div>
+            </section>
+            <section>
+              <p class="picker-caption">Dummy character</p>
+              <div id="dummy-character-picker" class="character-picker character-picker--compact"></div>
+            </section>
           </div>
           <div class="legend" aria-label="Overlay legend">
             <span class="legend-push">push</span><span class="legend-hurt">hurt</span><span class="legend-hit">hit</span>

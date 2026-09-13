@@ -3,14 +3,21 @@ import "./preview.css";
 import "../render/skeleton-overlay.css";
 import { sampleClip } from "../rig/sample.ts";
 import { advancePreviewFrame, previewLastFrame } from "../clips/playback.ts";
+import { WEAPONS, defaultPreviewClip, previewClipOptions } from "../clips/movesets.ts";
+import type { PreviewClipOption, WeaponId } from "../clips/movesets.ts";
 import { fetchRuntimeCatalog, watchRuntimeCatalog } from "../clips/runtime.ts";
 import type { RuntimeCatalog } from "../clips/runtime.ts";
-import { assembleFigure, loadFigureIndex } from "../render/assemble.ts";
+import { assembleFigure, loadFigureIndex, loadFigureManifest, loadWardrobeIndex } from "../render/assemble.ts";
 import type { FigureIndex, FigureNode } from "../render/assemble.ts";
+import type { FigureManifest } from "../render/manifest.ts";
+import { applyLoadout } from "../render/loadout.ts";
+import type { Loadout } from "../render/loadout.ts";
 import { applyPose, depthProfileFor, placeFigure } from "../render/place.ts";
 import { nextPartLabelMode, updateSkeletonOverlay } from "../render/skeleton-overlay.ts";
 import type { PartLabelMode } from "../render/skeleton-overlay.ts";
 import { keybindAction, renderKeybindHelp } from "./keybinds.ts";
+import { renderLoadoutPanel } from "./loadout-panel.ts";
+import type { LoadoutPanelElements, LoadoutPanelLibrary } from "./loadout-panel.ts";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const FRAME_MS = 1000 / 60;
@@ -23,9 +30,24 @@ function required<T>(selector: string): T {
 
 interface GalleryEntry { readonly id: string; readonly node: FigureNode; readonly svg: SVGSVGElement; readonly facts: HTMLElement }
 
-let [catalog, figureIndex]: [RuntimeCatalog, FigureIndex] = await Promise.all([fetchRuntimeCatalog(), loadFigureIndex()]);
+let [catalog, figureIndex, wardrobeIndex] = await Promise.all([
+  fetchRuntimeCatalog(),
+  loadFigureIndex(),
+  loadWardrobeIndex(),
+]);
+const manifests = new Map<string, FigureManifest>(await Promise.all(figureIndex.figures.map(async (entry) => [
+  entry.id,
+  await loadFigureManifest(entry.path),
+] as const)));
+const loadoutLibrary: LoadoutPanelLibrary = { figures: figureIndex, manifests, wardrobe: wardrobeIndex };
+const initialFigureId = figureIndex.figures.some((entry) => entry.id === "fighter") ? "fighter" : figureIndex.figures[0].id;
 
-const figureSelect = required<HTMLSelectElement>("#figure");
+function figureLoadout(figureId: string): Loadout {
+  const manifest = manifests.get(figureId);
+  if (!manifest) throw new Error(`figure index has no manifest for '${figureId}'`);
+  return { figure: figureId, parts: { ...manifest.parts }, cosmetics: [...manifest.cosmetics], weapon: null };
+}
+
 const clipSelect = required<HTMLSelectElement>("#clip");
 const compareToggle = required<HTMLInputElement>("#compare");
 const facingToggle = required<HTMLInputElement>("#face-left");
@@ -37,8 +59,18 @@ const compareView = required<HTMLElement>("#compare-view");
 const singleSvg = required<SVGSVGElement>("#single-svg");
 const singleLayer = required<SVGGElement>("#single-rig");
 const playPause = required<HTMLButtonElement>("#play-pause");
+const loadoutElements: LoadoutPanelElements = {
+  root: required<HTMLElement>("#loadout-panel"),
+  characters: required<HTMLElement>("#character-picker"),
+  body: required<HTMLElement>("#body-slots"),
+  wardrobe: required<HTMLElement>("#wardrobe-pieces"),
+  weapon: required<HTMLElement>("#weapon-readout"),
+};
 let singleNode: FigureNode;
 let gallery: GalleryEntry[] = [];
+let loadout = figureLoadout(initialFigureId);
+let selectedSlot: string | null = null;
+let loadoutBusy = false;
 let frame = 0;
 let playing = true;
 let accumulator = 0;
@@ -54,18 +86,35 @@ function option(value: string, label: string): HTMLOptionElement {
   const node = document.createElement("option"); node.value = value; node.textContent = label; return node;
 }
 
-function populateFigureOptions(): void {
-  figureSelect.replaceChildren(...figureIndex.figures.map((entry) => option(entry.id, entry.name)));
-  figureSelect.value = figureIndex.figures.some((entry) => entry.id === "fighter") ? "fighter" : figureIndex.figures[0].id;
+function currentWeapon(): WeaponId {
+  return WEAPONS.find((entry) => entry.id === loadout.weapon)?.id ?? "unarmed";
 }
 
 function populateClipOptions(preferred?: string): void {
-  const names = Object.keys(catalog.clips).sort((a, b) => {
-    const lane = { shipped: 0, authored: 1, study: 2 };
-    return lane[catalog.lanes[a]] - lane[catalog.lanes[b]] || a.localeCompare(b);
+  const weapon = currentWeapon();
+  const entries = previewClipOptions(weapon).filter((entry) => catalog.clips[entry.clip]);
+  const groups: PreviewClipOption["group"][] = ["generic", weapon, "authored"];
+  const groupLabels: Record<PreviewClipOption["group"], string> = {
+    generic: "Generic",
+    unarmed: "Unarmed",
+    sword: "Sword",
+    authored: "Authored",
+  };
+  const children = groups.flatMap((group) => {
+    const options = entries.filter((entry) => entry.group === group);
+    if (options.length === 0) return [];
+    const section = document.createElement("optgroup");
+    section.label = groupLabels[group];
+    for (const entry of options) {
+      section.appendChild(option(entry.clip, `${entry.slot.replace(/^./, (letter) => letter.toUpperCase())} — ${entry.clip}`));
+    }
+    return [section];
   });
-  clipSelect.replaceChildren(...names.map((name) => option(name, `${catalog.lanes[name]} — ${name}`)));
-  clipSelect.value = preferred && names.includes(preferred) ? preferred : names.includes("bnrIdleNormal") ? "bnrIdleNormal" : names[0];
+  const names: string[] = entries.map((entry) => entry.clip);
+  if (names.length === 0) throw new Error(`catalog has no clips for '${weapon}' preview moveset`);
+  clipSelect.replaceChildren(...children);
+  const fallback = defaultPreviewClip(weapon);
+  clipSelect.value = preferred && names.includes(preferred) ? preferred : names.includes(fallback) ? fallback : names[0];
 }
 
 function makeFloor(width: number, y: number): SVGPathElement {
@@ -73,7 +122,7 @@ function makeFloor(width: number, y: number): SVGPathElement {
 }
 
 async function buildSingle(): Promise<void> {
-  singleNode = await assembleFigure(figureSelect.value);
+  singleNode = await assembleFigure(loadout.figure);
   singleLayer.replaceChildren(singleNode.root);
 }
 
@@ -107,11 +156,14 @@ function renderFacts(): void {
 
 function render(): void {
   const clip = currentClip(); frame = Math.min(frame, previewLastFrame(clip)); const pose = sampleClip(clip, frame);
+  const selectedBone = selectedSlot === null
+    ? null
+    : singleNode.rig.bones.find((bone) => bone.slot === selectedSlot)?.name ?? null;
   applyPose(singleNode, pose); placeFigure(singleNode, 180, 260, 2.2, facing(), depthProfileFor(singleNode, clip.name, catalog.origins[clip.name] ?? clip.name));
-  updateSkeletonOverlay(singleNode, skeletonToggle.checked, labelMode); singleSvg.classList.toggle("show-rig", rigToggle.checked);
+  updateSkeletonOverlay(singleNode, skeletonToggle.checked, labelMode, selectedBone); singleSvg.classList.toggle("show-rig", rigToggle.checked);
   for (const entry of gallery) {
     applyPose(entry.node, pose); placeFigure(entry.node, 120, 224, 1.55, facing(), depthProfileFor(entry.node, clip.name, catalog.origins[clip.name] ?? clip.name));
-    updateSkeletonOverlay(entry.node, skeletonToggle.checked, labelMode); entry.svg.classList.toggle("show-rig", rigToggle.checked);
+    updateSkeletonOverlay(entry.node, skeletonToggle.checked, labelMode, selectedBone); entry.svg.classList.toggle("show-rig", rigToggle.checked);
     const missing = missingBones(entry.node); entry.facts.textContent = `${entry.node.bones.size} bones · ${missing.length ? `missing ${missing.join(", ")}` : "clip complete"}`;
     entry.facts.classList.toggle("has-warning", missing.length > 0);
   }
@@ -131,8 +183,57 @@ function setClipOffset(offset: number): void {
 function togglePlayback(): void { playing = !playing; accumulator = 0; lastTime = performance.now(); render(); }
 function step(): void { playing = false; frame = advancePreviewFrame(currentClip(), frame); render(); }
 
-populateFigureOptions(); populateClipOptions(); await Promise.all([buildSingle(), buildGallery()]); render();
-figureSelect.addEventListener("change", () => void buildSingle().then(() => { resetPlayback(); render(); }));
+function renderPanel(): void {
+  renderLoadoutPanel(loadoutElements, loadoutLibrary, { node: singleNode, loadout, selectedSlot, busy: loadoutBusy }, {
+    chooseFigure: (figureId) => {
+      if (figureId === loadout.figure) return;
+      runLoadoutChange(async () => {
+        const nextLoadout = figureLoadout(figureId);
+        const nextNode = await assembleFigure(figureId);
+        singleNode = nextNode;
+        loadout = nextLoadout;
+        selectedSlot = null;
+        singleLayer.replaceChildren(singleNode.root);
+      });
+    },
+    choosePart: (slot, reference) => {
+      selectedSlot = slot;
+      if (loadout.parts[slot] === reference) { renderPanel(); render(); return; }
+      runLoadoutChange(async () => {
+        const next = { ...loadout, parts: { ...loadout.parts, [slot]: reference } };
+        await applyLoadout(singleNode, next);
+        loadout = next;
+      });
+    },
+    toggleCosmetic: (reference, enabled) => runLoadoutChange(async () => {
+      const cosmetics = enabled
+        ? [...loadout.cosmetics, reference]
+        : loadout.cosmetics.filter((entry) => entry !== reference);
+      const next = { ...loadout, cosmetics };
+      await applyLoadout(singleNode, next);
+      loadout = next;
+    }),
+    selectSlot: (slot) => { selectedSlot = slot; renderPanel(); render(); },
+  });
+}
+
+function runLoadoutChange(change: () => Promise<void>): void {
+  if (loadoutBusy) return;
+  loadoutBusy = true;
+  renderPanel();
+  void change().then(() => {
+    populateClipOptions(clipSelect.value);
+    required<HTMLElement>("#dev-status").textContent = "loadout ready";
+  }, (error: unknown) => {
+    required<HTMLElement>("#dev-status").textContent = `loadout error: ${(error as Error).message}`;
+  }).finally(() => {
+    loadoutBusy = false;
+    renderPanel();
+    render();
+  });
+}
+
+populateClipOptions(); await Promise.all([buildSingle(), buildGallery()]); renderPanel(); render();
 clipSelect.addEventListener("change", () => { resetPlayback(); render(); });
 compareToggle.addEventListener("change", render); facingToggle.addEventListener("change", render); rigToggle.addEventListener("change", render); skeletonToggle.addEventListener("change", render);
 required<HTMLButtonElement>("#previous-clip").addEventListener("click", () => setClipOffset(-1));
@@ -140,7 +241,8 @@ required<HTMLButtonElement>("#next-clip").addEventListener("click", () => setCli
 required<HTMLButtonElement>("#step-frame").addEventListener("click", step); required<HTMLButtonElement>("#replay").addEventListener("click", () => { resetPlayback(); render(); });
 scrub.addEventListener("input", () => { frame = Number(scrub.value); playing = false; accumulator = 0; render(); });
 window.addEventListener("keydown", (event) => {
-  if (event.repeat || event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+  if (event.repeat || event.target instanceof HTMLButtonElement || event.target instanceof HTMLInputElement
+    || event.target instanceof HTMLSelectElement) return;
   const action = keybindAction("preview", event.code);
   if (action === "togglePlayback") togglePlayback();
   else if (action === "previousClip") setClipOffset(-1);

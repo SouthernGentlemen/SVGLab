@@ -19,7 +19,9 @@
 .part-label-layer.show-bones .part-label-guide--bone,
 .part-label-layer.show-bones .part-label--bone,
 .part-label-layer.show-cosmetics .part-label-guide--cosmetic,
-.part-label-layer.show-cosmetics .part-label--cosmetic {
+.part-label-layer.show-cosmetics .part-label--cosmetic,
+.part-label-layer.show-highlight .part-label-guide--bone.is-highlighted,
+.part-label-layer.show-highlight .part-label--bone.is-highlighted {
   display: inline;
 }
 
@@ -77,3 +79,14 @@
 }
 
 .part-label-guide--cosmetic { stroke: rgba(255, 202, 143, .78); }
+
+.part-label-guide--bone.is-highlighted {
+  stroke: #55e5d5;
+  stroke-width: 1.25;
+}
+
+.part-label--bone.is-highlighted {
+  fill: #55e5d5;
+  stroke-width: 4px;
+  font-weight: 800;
+}
