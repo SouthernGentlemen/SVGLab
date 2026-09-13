@@ -11,9 +11,9 @@ keyframes, and combat remains authoritative for world movement and move timing.
 
 The checked-in source subset comes from Bandai-Namco-Research-Motiondataset-1 at the pinned
 revision recorded in `motions/bandai-namco-motiondataset-1.json`. It is licensed CC BY-NC 4.0.
-Read the vendored [notice](../third_party/bandai-namco-motiondataset-1/NOTICE.md) and
-[licence](../third_party/bandai-namco-motiondataset-1/LICENSE) before adding source material or
-distributing an adaptation.
+Read the root [licence and attribution index](../LICENSE.md) before adding source material or
+distributing an adaptation. The selected BVH inputs live in the normal capture layout at
+`motions/capture/bandai-namco-motiondataset-1/`.
 
 The upstream collection process smoothed capture noise, normalized actor proportions,
 trimmed non-acting material, annotated content and style, and published BVH at 30 FPS. Its
@@ -39,8 +39,10 @@ clean-source, explicit-retarget, inspect-output shape with a deterministic local
 8. Unwrap angles, close approved loop seams, and reduce channels under manifest tolerances.
 
 The manifest is the authored record of source files, frame ranges, loop decisions, projection,
-and tolerances. `src/clips/generated/bandai-namco.ts` is reproducible output and must not be
-edited by hand. Run `npm run check:motions` to detect drift.
+and tolerances. Its content/style label dictionary also makes the upstream numeric annotations
+legible and checks those names against each BVH filename. `src/clips/generated/bandai-namco.ts`
+is reproducible output and must not be edited by hand. Run `npm run check:motions` to detect
+drift.
 
 Bandai Namco-derived clips are the shipped capture lane. A guarded lead-in presents idle,
 the walk presents ground movement, a grounded bow descent presents the compact stance, the
@@ -82,7 +84,7 @@ sweep together from about -9 to -130 degrees. The capture is a two-handed sword 
 
 Take 001 is three overhead cuts from a near-stationary guard. Take 002 travels 126 cm and cuts
 while stepping, which step 6 of the pipeline would flatten into a slash in place, so only take
-001 is vendored.
+001 is pinned.
 
 The take yields four clips, each from its own window:
 
@@ -103,11 +105,12 @@ The loop seam is a search result, not a guess. Scanning every window in the two 
 between cuts for a seam under the manifest's 8 degree tolerance leaves 469 candidates;
 frames 250–309 is the longest, so the guard loop is the full two seconds of settled stance.
 
-### Sources worth vendoring next
+### Sources worth pinning next
 
 Neither capture holds a prop, so the blade is reconstructed from the body rather than recorded.
 These record sword motion directly and are the preferred candidates for the next import. Keep
-the original file and its licence beside it, add a manifest entry, and generate from that source.
+the original file under a source-id subdirectory of `motions/capture/`, add its attribution and
+licence link to `LICENSE.md`, add a manifest entry, and generate from that source.
 
 - **Touché** (University of Bath / Ninja Theory) — <https://researchdata.bath.ac.uk/754/>.
   Vicon Bonita, ~26,000 frames at 30 fps, 24 joints, and **the position of both sword tips**.

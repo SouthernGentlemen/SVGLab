@@ -25,38 +25,11 @@ npm run verify                           # all gates, typecheck, tests and produ
 The Worker is deliberately local-only. There is no account id, route, persistent binding,
 deployment script or production authentication surface.
 
-## Repository map
-
-```
-characters/<id>/       source atlas + trace sidecar; generated one-SVG-per-slot parts
-cosmetics/<set>/       source wardrobe atlas + manifest; generated SVG pieces
-docs/                  atlas, motion and authoring guides; Hexframe provenance record
-figures/               authored manifests selecting a rig, parts and fitted cosmetics
-motions/               capture manifest and tracked hand-authored clip source
-pipelines/blender/     thin Python armature, export and joint-probe scripts
-pipelines/dev/         local process lifecycle and disk-owning live-reload sidecar
-pipelines/exchange/    measured BVH/art export and import
-pipelines/guards/      rig, socket, exchange, wardrobe, footprint, cruft and local-only gates
-pipelines/motion/      BVH parse, planar retarget, reduction and deterministic catalog build
-pipelines/render/      agent-readable clip and figure review sheets plus schemas
-pipelines/sprite/      in-project PNG decode, segmentation, fitting and flat-colour tracing
-pipelines/wardrobe/    cosmetic atlas tracing and authored trace profiles
-rigs/                  rig contract, generated authoring schemas and footprint ratchet
-src/clips/             clip types, generated catalogs, movesets, playback and runtime loading
-src/kernel/            sealed deterministic state, movement, collision and hit resolution
-src/render/            fetched figure assembly, placement, arena and skeleton overlay
-src/rig/               rig validation, forward kinematics and the one sampler
-src/shell/             stage, animation preview, controls, styles and local Worker
-tests/                 Vitest suites arranged by the same concerns
-third_party/           pinned Bandai Namco capture subset, annotations, licence and notice
-dist/                  untracked production build; disposable
-out/                   untracked render, study and Blender work; never removed by reset
-```
-
 Generated art names a bone but carries no skeleton. The rig owns joints, anchors, depth slots,
 socket expectations, paint order and exchange axes; a figure is only a manifest of choices.
 The browser fetches those choices, so raster atlases and SVG part payloads never enter a shell
-chunk.
+chunk. The authoritative repository layout lives in `AGENTS.md`; dataset provenance and path
+coverage live in [`LICENSE.md`](LICENSE.md).
 
 ## Guides
 
@@ -71,11 +44,11 @@ chunk.
 
 ## Final footprint
 
-- 199 tracked files; 183 outside the pinned `third_party/` subset.
-- 10,538 lines of TypeScript and 452 lines of Blender Python.
+- 198 tracked files, including six pinned BVH inputs under `motions/capture/`.
+- 10,863 lines of TypeScript and 452 lines of Blender Python.
 - Zero runtime dependencies. Development uses only `@cloudflare/workers-types`, `@types/node`,
   `typescript`, `vite`, `vitest` and `wrangler`.
-- 43,158 raw / 15,617 gzip bytes across three production shell chunks. Art remains
+- 45,183 raw / 16,242 gzip bytes across three production shell chunks. Art remains
   fetched and is not part of those chunks.
 - Ten gates in `verify`, plus typecheck, 119 tests across 27 files, and the production build.
 

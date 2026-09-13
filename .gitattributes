@@ -1,1 +1,1 @@
-third_party/bandai-namco-motiondataset-1/data/*.bvh whitespace=-trailing-space
+motions/capture/bandai-namco-motiondataset-1/*.bvh whitespace=-trailing-space

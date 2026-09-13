@@ -3,7 +3,7 @@
  *
  * Adapted from Bandai-Namco-Research-Motiondataset-1 at revision 74ead3ba1ae4696404e6086233779f60de8bf9ef.
  * Source data: https://github.com/BandaiNamcoResearchInc/Bandai-Namco-Research-Motiondataset
- * License: CC BY-NC 4.0; see third_party/bandai-namco-motiondataset-1/LICENSE and NOTICE.md.
+ * Licence and attribution: see LICENSE.md.
  * Changes: selected, trimmed, projected to 2D, retargeted to SVGLab's eleven-bone rig,
  * resampled to 60 Hz, and reduced to sparse linear keyframes.
  */

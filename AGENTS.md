@@ -144,10 +144,14 @@ in a diff where someone has to look at it. Minimal is enforced as a direction wh
 still moving; thresholds go in when there is something to base them on rather than a number
 picked before anything was measured.
 
-**C8 — Provenance is in the name.** `bnr*` clips are CC BY-NC 4.0 adaptations of Bandai Namco
-material and record the clip they derive from; `lab*` clips are original to this repository and
-claim no origin. The vendored `LICENSE` and `NOTICE.md` stay beside the source subset. No
-commercial use, ever.
+**C8 — Provenance is in the name and one root index.** `bnr*` clips are CC BY-NC 4.0
+adaptations of Bandai Namco material and record the clip they derive from; `lab*` clips are
+original to this repository and claim no origin. `LICENSE.md` is the single attribution and
+licence index: it names each dataset, its pinned revision, rights holder, licence and every
+repo path the terms cover. Character and cosmetic SVGs inherit the provenance of the atlas
+that generated them. Per-file and per-directory licence copies are forbidden. Bandai Namco
+material is noncommercial-only; the Fire Emblem material has no established redistribution
+licence, and unresolved provenance is stated rather than guessed.
 
 **C9 — Determinism.** Same input, same bytes, every stage, every run. A changed output file
 means the input changed.
@@ -165,7 +169,8 @@ characters/<id>/       atlas build inputs and generated SVG parts
 cosmetics/<set>/       wardrobe atlas, manifest and generated SVG pieces
 docs/                  focused authoring guides and the Hexframe provenance audit
 figures/               authored rig, part and cosmetic selections
-motions/               capture manifest and authored clip source
+LICENSE.md              single dataset attribution, licence and covered-path index
+motions/               capture manifests, pinned BVH inputs and authored clip source
 pipelines/             deterministic CLIs: dev, exchange, guards, motion, render, sprite, wardrobe
 pipelines/blender/     the thin Python armature, export and joint-probe scripts Blender runs
 rigs/                  rig contract, authoring schemas and footprint baseline
@@ -175,7 +180,6 @@ src/render/            fetched figure assembly, placement, arena and skeleton ov
 src/rig/               contract loader, forward kinematics and the one sampler
 src/shell/             stage, preview, controls, styles and the local Worker
 tests/                 Vitest coverage arranged by the same concerns
-third_party/           pinned capture subset, annotations, licence and notice
 out/                   untracked exchange, Blender, render and study output; never reset
 ```
 

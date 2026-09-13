@@ -42,7 +42,7 @@ describe("authored clip lane", () => {
       mkdirSync(join(root, "motions", "authored"), { recursive: true });
       copyFileSync("motions/bandai-namco-motiondataset-1.json", join(root, "motions", "bandai-namco-motiondataset-1.json"));
       symlinkSync(join(process.cwd(), "rigs"), join(root, "rigs"), "dir");
-      symlinkSync(join(process.cwd(), "third_party"), join(root, "third_party"), "dir");
+      symlinkSync(join(process.cwd(), "motions", "capture"), join(root, "motions", "capture"), "dir");
       writeFileSync(join(root, "motions", "authored", "bnrIdleNormal.json"), JSON.stringify({
         key: "bnrIdleNormal",
         derivedFrom: "bnrIdleNormal",

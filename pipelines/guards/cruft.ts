@@ -21,9 +21,10 @@ export interface DeclaredEntryRule {
 
 /** Inputs discovered by Git, npm, Vite or a build pipeline rather than by a literal import. */
 export const DECLARED_ENTRY_RULES: readonly DeclaredEntryRule[] = [
-  { pattern: ".gitattributes", reason: "Git applies the vendored BVH whitespace policy" },
+  { pattern: ".gitattributes", reason: "Git applies the pinned BVH whitespace policy" },
   { pattern: ".gitignore", reason: "Git keeps generated and disposable state untracked" },
   { pattern: "AGENTS.md", reason: "repository contract" },
+  { pattern: "LICENSE.md", reason: "root dataset attribution and licence index" },
   { pattern: "README.md", reason: "documentation root" },
   { pattern: "package.json", reason: "npm command and dependency manifest" },
   { pattern: "package-lock.json", reason: "reproducible development-tool lock" },
@@ -41,10 +42,10 @@ export const DECLARED_ENTRY_RULES: readonly DeclaredEntryRule[] = [
   { pattern: "figures/*.json", reason: "runtime and render-pipeline figure manifest discovered by id" },
   { pattern: "motions/*.json", reason: "motion build manifest discovered by the catalog builder" },
   { pattern: "motions/authored/*.json", reason: "authored motion source discovered by clip key" },
+  { pattern: "motions/capture/*/*.bvh", reason: "pinned capture input discovered through a motion manifest" },
   { pattern: "rigs/*.rig.json", reason: "versioned rig contract discovered by rig id" },
   { pattern: "rigs/*.schema.json", reason: "committed agent-authoring schema checked by check:rig" },
   { pattern: "rigs/footprint.baseline.json", reason: "committed C7 byte ratchet input" },
-  { pattern: "third_party/**", reason: "pinned vendored source, annotations, licence and notice required by C8" },
 ];
 
 interface PackageManifest {

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { buildCatalog } from "../../pipelines/motion/catalog.ts";
@@ -47,6 +47,9 @@ describe("Bandai Namco motion catalog", () => {
     expect(Buffer.byteLength(JSON.stringify(catalog.studies))).toBe(59_523);
     expect(catalog.manifest.defaults.rotationPrecision).toBe(1);
     expect(catalog.manifest.defaults.positionPrecision).toBe(2);
+    expect(catalog.manifest.labels.content["12"]).toBe("punch");
+    expect(catalog.manifest.labels.content["14"]).toBe("slash");
+    expect(catalog.manifest.labels.style["0"]).toBe("normal");
     for (const clip of [...Object.values(catalog.bandaiNamco), ...Object.values(catalog.studies)]) {
       for (const keyframe of clip.keyframes) {
         for (const pose of Object.values(keyframe.bones)) {
@@ -118,11 +121,15 @@ describe("Bandai Namco motion catalog", () => {
     }
   });
 
-  it("retains attribution and noncommercial terms beside the vendored source", () => {
-    const notice = readFileSync("third_party/bandai-namco-motiondataset-1/NOTICE.md", "utf8");
-    const license = readFileSync("third_party/bandai-namco-motiondataset-1/LICENSE", "utf8");
-    expect(notice).toContain("74ead3ba1ae4696404e6086233779f60de8bf9ef");
-    expect(notice).toContain("CC BY-NC 4.0");
-    expect(license).toContain("Attribution-NonCommercial 4.0 International");
+  it("retains attribution and noncommercial terms in the root licence index", () => {
+    const license = readFileSync("LICENSE.md", "utf8");
+    expect(license).toContain("74ead3ba1ae4696404e6086233779f60de8bf9ef");
+    expect(license).toContain("Creative Commons Attribution-NonCommercial 4.0 International");
+    expect(license).toContain("https://creativecommons.org/licenses/by-nc/4.0/legalcode");
+    expect(license).toContain("motions/capture/bandai-namco-motiondataset-1/*.bvh");
+    expect(license).toContain("characters/{barst,kiran,yuliya}/atlas.png");
+    expect(license).toContain("cosmetics/royal-guard/atlas.png");
+    expect(license).toContain("cosmetics/field-kit/atlas.png");
+    expect(existsSync("third_party")).toBe(false);
   });
 });

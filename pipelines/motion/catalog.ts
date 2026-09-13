@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { hierarchyOrder, validateRig } from "../../src/rig/contract.ts";
 import type { Clip, Easing, Keyframe } from "../../src/clips/types.ts";
@@ -33,6 +33,10 @@ export interface MotionManifest {
   readonly sourceRoot: string;
   readonly sourceFps: number;
   readonly output: string;
+  readonly labels: {
+    readonly content: Readonly<Record<string, string>>;
+    readonly style: Readonly<Record<string, string>>;
+  };
   readonly defaults: Pick<RetargetDefinition, "targetFps" | "targetLegLength" | "frontSourceSide"
     | "angleTolerance" | "positionTolerance" | "rotationPrecision" | "positionPrecision" | "maxLoopSeamDegrees">;
   readonly clips: readonly ManifestClip[];
@@ -79,12 +83,11 @@ export function buildCatalog(root: string): MotionCatalog {
 
   for (const definition of manifest.clips) {
     const sourcePath = join(root, manifest.sourceRoot, definition.source);
-    const annotation = JSON.parse(readFileSync(sourcePath.replace(/\.bvh$/, ".json"), "utf8")) as {
-      content: number;
-      style: number;
-    };
-    if (annotation.content !== definition.content || annotation.style !== definition.style) {
-      throw new Error(`${definition.key}: source annotation does not match the manifest`);
+    const sourceLabels = /^dataset-\d+_(.+)_([^_]+)_\d+$/.exec(basename(definition.source, ".bvh"));
+    const contentLabel = manifest.labels.content[String(definition.content)];
+    const styleLabel = manifest.labels.style[String(definition.style)];
+    if (!sourceLabels || sourceLabels[1] !== contentLabel || sourceLabels[2] !== styleLabel) {
+      throw new Error(`${definition.key}: manifest labels do not match source '${definition.source}'`);
     }
     const bvh = parseBvh(readFileSync(sourcePath, "utf8"), definition.source);
     if (Math.abs(bvh.frameTime - 1 / manifest.sourceFps) > 0.000001) {
