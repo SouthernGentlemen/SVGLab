@@ -1,7 +1,7 @@
 # Motion import
 
-The deterministic retarget/catalog build and Blender round trip described here are live in
-M2/M3. The combat section describes the M4 target.
+The deterministic retarget, catalog build, Blender round trip and combat binding described here
+are the shipped system.
 
 SVGLab can turn selected 3D BVH captures into readable clips for its eleven-bone SVG rig.
 The raw capture remains build-time input; the browser receives only generated TypeScript
@@ -11,8 +11,9 @@ keyframes, and combat remains authoritative for world movement and move timing.
 
 The checked-in source subset comes from Bandai-Namco-Research-Motiondataset-1 at the pinned
 revision recorded in `motions/bandai-namco-motiondataset-1.json`. It is licensed CC BY-NC 4.0.
-Read `third_party/bandai-namco-motiondataset-1/NOTICE.md` and `LICENSE` before adding source
-material or distributing an adaptation.
+Read the vendored [notice](../third_party/bandai-namco-motiondataset-1/NOTICE.md) and
+[licence](../third_party/bandai-namco-motiondataset-1/LICENSE) before adding source material or
+distributing an adaptation.
 
 The upstream collection process smoothed capture noise, normalized actor proportions,
 trimmed non-acting material, annotated content and style, and published BVH at 30 FPS. Its
@@ -41,12 +42,19 @@ The manifest is the authored record of source files, frame ranges, loop decision
 and tolerances. `src/clips/generated/bandai-namco.ts` is reproducible output and must not be
 edited by hand. Run `npm run check:motions` to detect drift.
 
-Bandai Namco-derived clips are the entire animation catalog. A guarded lead-in presents idle,
+Bandai Namco-derived clips are the shipped capture lane. A guarded lead-in presents idle,
 the walk presents ground movement, a grounded bow descent presents the compact stance, the
 dash presents airborne and hit-reaction states, the selected punch presents the basic attack,
 and a trimmed sword cut presents the sword slash. The run, dash, sword guard, and full sword
 cut remain shipped; the two attack studies rebuild into `out/` for authoring and never enter
 shipped source.
+
+That lane split and its precision are measured together. Compacting the nine shipped captures
+at one decimal for rotation and two for position produced 37,710 raw / 5,115 gzip bytes. The
+two studies alone were 59,523 raw bytes, so keeping them would have consumed 97% of the former
+61,440-byte catalog budget. A flat one-decimal format failed the exchange when the pelvis moved
+exactly 0.150 units; two-decimal position passed, while one-decimal rotation displaced the
+worst joint only 0.1138 units on the 104-unit figure.
 
 For the strike, source frames 24–44 select the first punch, its 30 FPS timing is warped to the
 existing 20-tick move, and source frame 30 maps to tick 6 inside the authoritative active
@@ -110,16 +118,16 @@ the original file and its licence beside it, add a manifest entry, and generate 
 
 ## The sword slash move
 
-`SWORD_SLASH` in `src/combat/content.ts` is the second authored move, and it is authored as
+`SWORD_SLASH` in `src/kernel/content.ts` is the second authored move, and it is authored as
 combat data rather than derived from the clip: 14 ticks of startup, 4 active, 12 of recovery,
 with a blade hitbox reaching further than the fist for more damage, hitstun, and hitstop. `K`
 commits to it, `J` still commits to the basic strike, and both land in the same `attack` state,
 so the simulation only has to look up which frame data is running.
 
-Presentation follows the committed move rather than the button: `animationSnapshot` reads
-`fighter.move` and picks the sword clip for `sword`. The clip is warped onto the move's ticks,
-never the other way around — combat still owns movement, the active window, the hitbox,
-damage, hitstop, and whether contact succeeds.
+Presentation follows the committed move rather than the button: `src/render/arena.ts` reads the
+active move's `animation` and samples that clip at the move frame. The clip is warped onto the
+move's ticks, never the other way around — combat still owns movement, the active window, the
+hitbox, damage, hitstop, and whether contact succeeds.
 
 `bnrSwordGuardNormal` and `bnrSwordCutNormal` remain preview-only. No combat state models a
 drawn sword or a heavier committed swing yet, and adding one is a combat-content change with
@@ -144,7 +152,7 @@ One BVH per clip, baked at one frame per 60 Hz tick through the same sampler
 `src/rig/sample.ts` uses, so the file plays exactly what the lab plays rather than an
 approximation of it. The skeleton is read from `rigs/fighter.rig.json`, never restated: same
 eleven bones, same parents, same rest offsets. Beside the clips, `art/<bone>.svg` carries each
-bone's literal-painted M1 part selected by a figure manifest, and `setup.py` puts the two
+bone's literal-painted part selected by a figure manifest, and `setup.py` puts the two
 together. Export defaults to `figures/barst.json` and prints the choice; pass `--figure kiran`
 (or another manifest) to select a different figure.
 
@@ -208,7 +216,8 @@ to within 1 degree and 0.15 units — the same tolerances the retarget already r
 
 ### Where imported clips live
 
-`motions/authored/<clip>.json` is tracked source, not build output: it is the one place a hand
+[`motions/authored/<clip>.json`](../motions/authored/README.md) is tracked source, not build
+output: it is the one place a hand
 edit survives. `npm run build:motions` turns the directory into
 `src/clips/generated/authored.ts`, and `npm run check:motions` fails when the two disagree.
 
@@ -220,9 +229,9 @@ against — which is what `npm run import:motions -- out/blender/bnrSwordCutNorm
 default. Pass `--key` to land a tweak beside the original instead.
 
 Imported clips inherit the presentation decisions made for the clip they came from: arm
-layering and the rigid weapon track both fall back to the origin, and the preview lists any
-clip no moveset slot claims in an `authored` group labelled with its origin. So a tweak is
-watchable immediately, with the right limb depth and the blade still in both hands.
+layering falls back to the origin, and the preview lists any clip no moveset slot claims in an
+`authored` group labelled with its origin. So a tweak is watchable immediately with the right
+limb depth, even though rigid props remain deliberately outside this repository's scope.
 
 ### Reviewing a change
 

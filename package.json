@@ -27,12 +27,14 @@
     "blender": "node pipelines/exchange/export.ts --blend",
     "check:exchange": "node pipelines/guards/exchange.ts",
     "check:footprint": "node pipelines/guards/footprint.ts",
+    "check:cruft": "node pipelines/guards/cruft.ts",
     "check:blender": "node pipelines/guards/blender.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run check:rig && npm run check:sprites && npm run check:sockets && npm run check:motions && npm run check:exchange && npm run check:wardrobe && npm run build && npm run check:footprint && npm run typecheck && npm test && npm run assert-local-only && npm run check:blender"
+    "verify": "npm run check:rig && npm run check:sprites && npm run check:sockets && npm run check:motions && npm run check:exchange && npm run check:wardrobe && npm run check:cruft && npm run build && npm run check:footprint && npm run typecheck && npm test && npm run assert-local-only && npm run check:blender"
   },
+  "dependencies": {},
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260911.1",
     "@types/node": "^24.0.0",
