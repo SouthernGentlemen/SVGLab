@@ -514,6 +514,19 @@
         }
       }
     },
+    "byClip": {
+      "bnrIdleNormal": "both-front",
+      "bnrCrouchNormal": "anatomical",
+      "bnrWalkNormal": "locomotion",
+      "bnrRunNormal": "locomotion",
+      "bnrDashNormal": "locomotion",
+      "bnrStrikeNormal": "punch",
+      "bnrSwordGuardNormal": "both-front",
+      "bnrSwordSlashNormal": "punch",
+      "bnrSwordCutNormal": "punch",
+      "bnrSlashStudyNormal": "punch",
+      "bnrPunchStudyNormal": "punch"
+    },
     "default": "anatomical"
   },
   "footprint": {

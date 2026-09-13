@@ -74,6 +74,30 @@ export interface Naming {
   readonly maxLength: number;
 }
 
+export type DepthSide = "far" | "near";
+
+export interface DepthProfile {
+  readonly underLowerBody: DepthSide | null;
+  readonly behindTorso: DepthSide | null;
+  readonly foreground: readonly DepthSide[];
+  readonly head: "above-arms" | "below-arms";
+}
+
+export interface DepthSides {
+  readonly arms: { readonly far: string; readonly near: string };
+  readonly legs: { readonly far: string; readonly near: string };
+}
+
+export interface DepthProfiles {
+  readonly profiles: Readonly<Record<string, DepthProfile>>;
+  readonly sides: {
+    readonly facingRight: DepthSides;
+    readonly facingLeft: DepthSides;
+  };
+  readonly byClip: Readonly<Record<string, string>>;
+  readonly default: string;
+}
+
 export interface RigContract {
   readonly contract: number;
   readonly id: string;
@@ -84,6 +108,7 @@ export interface RigContract {
   readonly depthSlots: readonly string[];
   readonly paintOrder: readonly string[];
   readonly documentOrder: Readonly<Record<string, readonly string[]>>;
+  readonly depthProfiles: DepthProfiles;
   readonly sockets: Sockets;
   readonly wardrobe: Wardrobe;
   readonly footprint: { readonly mode: string; readonly invariants: readonly string[]; readonly baseline: string };

@@ -66,6 +66,30 @@ function studySource(clip: ReturnType<typeof buildCatalog>["studies"][string]): 
   return `${JSON.stringify(artifact)}\n`;
 }
 
+export function writeMotionCatalog(catalog: ReturnType<typeof buildCatalog>, root = ROOT, writeGenerated = true): {
+  readonly outputs: readonly string[];
+  readonly studyFiles: readonly string[];
+} {
+  const outputs: ReadonlyArray<readonly [string, string]> = [
+    [catalog.manifest.output, bandaiNamcoSource(catalog)],
+    [AUTHORED_OUTPUT, authoredSource(catalog)],
+  ];
+  for (const [relativePath, contents] of writeGenerated ? outputs : []) {
+    const path = join(root, relativePath);
+    mkdirSync(dirname(path), { recursive: true });
+    if (!existsSync(path) || readFileSync(path, "utf8") !== contents) writeFileSync(path, contents);
+  }
+  const studyFiles: string[] = [];
+  for (const [key, clip] of Object.entries(catalog.studies)) {
+    const path = join(root, "out", `${key}.json`);
+    const contents = studySource(clip);
+    mkdirSync(dirname(path), { recursive: true });
+    if (!existsSync(path) || readFileSync(path, "utf8") !== contents) writeFileSync(path, contents);
+    studyFiles.push(relative(root, path));
+  }
+  return { outputs: outputs.map(([path]) => path), studyFiles };
+}
+
 export function main(argv: readonly string[]): number {
   const check = argv.includes("--check");
   const asJson = argv.includes("--json");
@@ -80,19 +104,10 @@ export function main(argv: readonly string[]): number {
       const path = join(ROOT, relativePath);
       if (check) {
         if (!existsSync(path) || readFileSync(path, "utf8") !== contents) stale.push(relativePath);
-      } else {
-        mkdirSync(dirname(path), { recursive: true });
-        writeFileSync(path, contents);
       }
     }
-
-    const studyFiles: string[] = [];
-    for (const [key, clip] of Object.entries(catalog.studies)) {
-      const path = join(ROOT, "out", `${key}.json`);
-      mkdirSync(dirname(path), { recursive: true });
-      writeFileSync(path, studySource(clip));
-      studyFiles.push(relative(ROOT, path));
-    }
+    const written = writeMotionCatalog(catalog, ROOT, !check);
+    const studyFiles = [...written.studyFiles];
 
     const report = {
       ok: stale.length === 0,

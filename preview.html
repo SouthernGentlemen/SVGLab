@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>SVGLab — preview loop</title>
+  </head>
+  <body>
+    <main class="preview-shell">
+      <header class="top-overlay preview-topbar">
+        <div class="brand"><p>Unsafe local instrument</p><h1>Figure <span>/</span> Preview</h1></div>
+        <div class="runtime-status">
+          <span class="status-dot" aria-hidden="true"></span><span id="dev-status">catalog ready</span>
+          <a class="preview-link" href="/">Fight stage</a>
+        </div>
+      </header>
+
+      <aside class="preview-controls glass" aria-label="Figure preview controls">
+        <p class="overlay-label">FIGURE + CLIP</p>
+        <div class="preview-field"><label for="figure">Figure</label><select id="figure"></select></div>
+        <div class="preview-field"><label for="clip">Clip</label><select id="clip"></select></div>
+        <div class="preview-field"><label for="part-slot">Swap part</label><select id="part-slot"></select></div>
+        <div class="preview-field"><label for="part-source">Part source</label><select id="part-source"></select></div>
+        <p id="part-status" class="note">Choose a source to re-fetch one part without reloading.</p>
+
+        <div class="toggle-grid preview-toggles">
+          <label><input id="compare" type="checkbox" /> Compare all figures</label>
+          <label><input id="face-left" type="checkbox" /> Face left</label>
+          <label><input id="show-rig" type="checkbox" /> Bone pivots</label>
+          <label><input id="show-skeleton" type="checkbox" /> Skeleton overlay</label>
+        </div>
+
+        <div class="preview-button-grid">
+          <button id="previous-clip" type="button">Previous <kbd>[</kbd></button>
+          <button id="next-clip" type="button">Next <kbd>]</kbd></button>
+          <button id="play-pause" class="primary-button" type="button">Pause <kbd>Space</kbd></button>
+          <button id="step-frame" type="button">Step <kbd>.</kbd></button>
+          <button id="replay" type="button">Replay <kbd>R</kbd></button>
+        </div>
+
+        <div class="preview-scrub">
+          <div><label for="frame-scrub">Frame</label><output id="frame-output">0</output></div>
+          <input id="frame-scrub" type="range" min="0" max="60" step="1" value="0" />
+        </div>
+        <p class="preview-shortcuts">Keyboard: <kbd>Space</kbd> pause · <kbd>[</kbd>/<kbd>]</kbd> clip · <kbd>.</kbd> step · <kbd>R</kbd> replay · <kbd>C</kbd> compare · <kbd>F</kbd> facing · <kbd>G</kbd> pivots · <kbd>K</kbd> skeleton</p>
+      </aside>
+
+      <section class="preview-stage glass" aria-label="Figure animation preview">
+        <div class="preview-stage-header">
+          <div><p class="overlay-label">LIVE FETCHED VECTOR PREVIEW</p><h2 id="stage-title">Loading…</h2></div>
+          <span id="playback-state" class="tick-chip">playing</span>
+        </div>
+        <div id="single-view" class="single-view">
+          <svg id="single-svg" viewBox="0 0 360 320" role="img" aria-label="Selected figure animation">
+            <path class="preview-floor" d="M58 262H302" /><g id="single-rig"></g>
+          </svg>
+        </div>
+        <div id="compare-view" class="compare-view" hidden></div>
+      </section>
+
+      <aside class="preview-readout glass" aria-label="Clip and rig facts">
+        <section>
+          <p class="overlay-label">CLIP</p>
+          <dl class="preview-facts">
+            <div><dt>Lane</dt><dd id="clip-lane">shipped</dd></div>
+            <div><dt>Clip</dt><dd id="clip-name">—</dd></div>
+            <div><dt>Frame</dt><dd id="clip-frame">0</dd></div>
+            <div><dt>Duration</dt><dd id="clip-duration">0</dd></div>
+            <div><dt>Source loop</dt><dd id="clip-loop">—</dd></div>
+            <div><dt>Easing</dt><dd id="clip-easing">—</dd></div>
+          </dl><p id="clip-note" class="note"></p>
+        </section>
+        <section>
+          <p class="overlay-label">RIG CHECK</p>
+          <dl class="preview-facts">
+            <div><dt>Figure</dt><dd id="rig-name">—</dd></div>
+            <div><dt>Bones</dt><dd id="bone-count">0</dd></div>
+            <div><dt>Fetched parts</dt><dd id="part-count">0</dd></div>
+            <div><dt>Missing clip bones</dt><dd id="missing-count">0</dd></div>
+          </dl><p id="missing-bones" class="note rig-note">Loading.</p>
+        </section>
+      </aside>
+    </main>
+    <script type="module" src="/src/shell/preview.ts"></script>
+  </body>
+</html>

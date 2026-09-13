@@ -23,6 +23,7 @@ const FIGURES = join(ROOT, "figures");
 const CHARACTERS = join(ROOT, "characters");
 const CLIPS = join(ROOT, "src", "clips", "generated");
 const RIGS = join(ROOT, "rigs");
+const DIST = join(ROOT, "dist");
 const BASELINE = join(RIGS, "footprint.baseline.json");
 
 export interface Size {
@@ -35,6 +36,7 @@ export interface FootprintMeasurements {
   readonly parts: Readonly<Record<string, Size>>;
   readonly figures: Readonly<Record<string, Size>>;
   readonly catalogs?: Readonly<Record<string, Size>>;
+  readonly shells?: Readonly<Record<string, Size>>;
 }
 
 export interface FigureManifest {
@@ -69,6 +71,15 @@ function typescriptFiles(directory: string): string[] {
   if (!existsSync(directory)) return [];
   return readdirSync(directory).filter((name) => name.endsWith(".ts")).sort()
     .map((name) => join(directory, name));
+}
+
+function shellChunks(): Readonly<Record<string, Size>> {
+  const directory = join(DIST, "assets");
+  if (!existsSync(directory)) throw new Error("dist/assets is missing — run npm run build before check:footprint");
+  return Object.fromEntries(readdirSync(directory).filter((name) => name.endsWith(".js")).sort().map((name) => {
+    const logical = name.replace(/-[A-Za-z0-9_-]{8,}\.js$/, ".js");
+    return [`dist/assets/${logical}`, bytes(join(directory, name))];
+  }));
 }
 
 function svgFiles(directory: string): string[] {
@@ -145,11 +156,11 @@ export function measureFootprint(): FootprintMeasurements {
     }
     figures[portable(path)] = { raw, gzip };
   }
-  return { contract: 1, parts, figures, catalogs };
+  return { contract: 1, parts, figures, catalogs, shells: shellChunks() };
 }
 
 function compareSection(
-  section: "parts" | "figures" | "catalogs",
+  section: "parts" | "figures" | "catalogs" | "shells",
   actual: Readonly<Record<string, Size>>,
   baseline: Readonly<Record<string, Size>>,
 ): Growth[] {
@@ -178,6 +189,7 @@ export function compareFootprint(
     ...compareSection("parts", actual.parts, baseline.parts ?? {}),
     ...compareSection("figures", actual.figures, baseline.figures ?? {}),
     ...compareSection("catalogs", actual.catalogs ?? {}, baseline.catalogs ?? {}),
+    ...compareSection("shells", actual.shells ?? {}, baseline.shells ?? {}),
   ];
 }
 
@@ -203,6 +215,17 @@ export function checkInvariants(): string[] {
   for (const path of sourceFiles(srcRoot)) {
     const source = readFileSync(path, "utf8");
     if (/\?raw["']|data:image|\.png["')]/i.test(source)) failures.push(`${portable(path)} inlines or references raster art`);
+  }
+  const builtFiles = (directory: string): string[] => !existsSync(directory) ? [] : readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    return entry.isDirectory() ? builtFiles(path) : [path];
+  });
+  for (const path of builtFiles(DIST)) {
+    if (/\.(?:png|jpe?g|gif|webp|bmp|avif|ico)$/i.test(path)) failures.push(`${portable(path)} is raster shipped to the page`);
+    if (path.endsWith(".js")) {
+      const source = readFileSync(path, "utf8");
+      if (/data:image|<svg[^>]+data-bone=|\?raw/i.test(source)) failures.push(`${portable(path)} inlines art into a shell chunk`);
+    }
   }
   return failures;
 }
@@ -240,6 +263,9 @@ export function main(argv: readonly string[]): number {
       for (const [path, size] of Object.entries(measurements.catalogs ?? {})) {
         console.log(`${path.padEnd(46)} ${String(size.raw).padStart(7)} raw  ${String(size.gzip).padStart(6)} gzip`);
       }
+      for (const [path, size] of Object.entries(measurements.shells ?? {})) {
+        console.log(`${path.padEnd(46)} ${String(size.raw).padStart(7)} raw  ${String(size.gzip).padStart(6)} gzip`);
+      }
       for (const failure of invariants) console.error(`check:footprint: ${failure}`);
       for (const item of growth) {
         if (item.kind === "new" || item.kind === "missing") {
@@ -251,7 +277,8 @@ export function main(argv: readonly string[]): number {
       }
       if (write) console.log(`check:footprint: wrote ${portable(BASELINE)}`);
       else if (ok) console.log(`check:footprint: ${Object.keys(measurements.parts).length} parts, `
-        + `${Object.keys(measurements.figures).length} figures and ${Object.keys(measurements.catalogs ?? {}).length} catalogs did not grow`);
+        + `${Object.keys(measurements.figures).length} figures, ${Object.keys(measurements.catalogs ?? {}).length} catalogs and `
+        + `${Object.keys(measurements.shells ?? {}).length} shell chunks did not grow`);
     }
     return ok ? 0 : 1;
   } catch (error) {

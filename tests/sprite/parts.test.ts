@@ -59,8 +59,8 @@ describe("atlas-built body parts and figure manifests", () => {
   it("records every part and assembled figure in the footprint ratchet", () => {
     const actual = measureFootprint();
     const baseline = JSON.parse(readFileSync("rigs/footprint.baseline.json", "utf8")) as FootprintMeasurements;
-    expect(Object.keys(actual.parts)).toHaveLength(IDS.length * 11);
-    expect(Object.keys(actual.figures)).toHaveLength(IDS.length);
+    expect(Object.keys(actual.parts)).toHaveLength((IDS.length + 1) * 11);
+    expect(Object.keys(actual.figures)).toHaveLength(IDS.length + 1);
     expect(compareFootprint(actual, baseline)).toEqual([]);
     expect(actual.figures["figures/yuliya.json"].raw).toBe(113_690);
     expect(actual.parts["characters/yuliya/parts/head.svg"].raw).toBe(51_711);

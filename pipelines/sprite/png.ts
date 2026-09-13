@@ -11,12 +11,12 @@
 import { inflateSync } from "node:zlib";
 import { readFileSync } from "node:fs";
 
-const SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const SIGNATURE = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 export interface DecodedPng {
   readonly width: number;
   readonly height: number;
-  readonly data: Buffer;
+  readonly data: Uint8Array;
 }
 
 function paeth(a: number, b: number, c: number): number {
@@ -29,9 +29,9 @@ function paeth(a: number, b: number, c: number): number {
 }
 
 /** Reverses the per-scanline filter PNG applies before compression. */
-function unfilter(raw: Buffer, width: number, height: number, channels: number): Buffer {
+function unfilter(raw: Uint8Array, width: number, height: number, channels: number): Uint8Array {
   const stride = width * channels;
-  const out = Buffer.alloc(stride * height);
+  const out = new Uint8Array(stride * height);
   let pos = 0;
   for (let y = 0; y < height; y++) {
     const filter = raw[pos++];
@@ -55,24 +55,43 @@ function unfilter(raw: Buffer, width: number, height: number, channels: number):
   return out;
 }
 
-/** @returns {{ width: number, height: number, data: Buffer }} RGBA, 4 bytes per pixel. */
+function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function readU32(data: Uint8Array, offset: number): number {
+  return new DataView(data.buffer, data.byteOffset, data.byteLength).getUint32(offset);
+}
+
+function ascii(data: Uint8Array, from: number, to: number): string {
+  return String.fromCharCode(...data.subarray(from, to));
+}
+
+function concatenate(chunks: readonly Uint8Array[]): Uint8Array {
+  const result = new Uint8Array(chunks.reduce((total, chunk) => total + chunk.length, 0));
+  let offset = 0;
+  for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
+  return result;
+}
+
+/** @returns RGBA, four bytes per pixel. */
 export function decodePng(path: string): DecodedPng {
-  const file = readFileSync(path);
-  if (!file.subarray(0, 8).equals(SIGNATURE)) throw new Error(`${path} is not a PNG`);
+  const file: Uint8Array = readFileSync(path);
+  if (!equalBytes(file.subarray(0, 8), SIGNATURE)) throw new Error(`${path} is not a PNG`);
 
   let width = 0;
   let height = 0;
   let colorType = 0;
-  const idat: Buffer[] = [];
+  const idat: Uint8Array[] = [];
   let offset = 8;
   while (offset < file.length) {
-    const length = file.readUInt32BE(offset);
-    const type = file.toString("ascii", offset + 4, offset + 8);
+    const length = readU32(file, offset);
+    const type = ascii(file, offset + 4, offset + 8);
     const body = file.subarray(offset + 8, offset + 8 + length);
     offset += 12 + length;
     if (type === "IHDR") {
-      width = body.readUInt32BE(0);
-      height = body.readUInt32BE(4);
+      width = readU32(body, 0);
+      height = readU32(body, 4);
       const depth = body[8];
       colorType = body[9];
       if (depth !== 8) throw new Error(`${path}: only 8-bit PNGs are supported, got ${depth}`);
@@ -83,10 +102,10 @@ export function decodePng(path: string): DecodedPng {
   }
 
   const channels = colorType === 6 ? 4 : 3;
-  const pixels = unfilter(inflateSync(Buffer.concat(idat)), width, height, channels);
+  const pixels = unfilter(inflateSync(concatenate(idat)), width, height, channels);
   if (channels === 4) return { width, height, data: pixels };
 
-  const rgba = Buffer.alloc(width * height * 4);
+  const rgba = new Uint8Array(width * height * 4);
   for (let i = 0, j = 0; i < pixels.length; i += 3, j += 4) {
     rgba[j] = pixels[i];
     rgba[j + 1] = pixels[i + 1];

@@ -45,6 +45,50 @@
       "raw": 9259,
       "gzip": 2928
     },
+    "characters/fighter/parts/arm_lower_l.svg": {
+      "raw": 139,
+      "gzip": 143
+    },
+    "characters/fighter/parts/arm_lower_r.svg": {
+      "raw": 146,
+      "gzip": 148
+    },
+    "characters/fighter/parts/arm_upper_l.svg": {
+      "raw": 134,
+      "gzip": 140
+    },
+    "characters/fighter/parts/arm_upper_r.svg": {
+      "raw": 135,
+      "gzip": 141
+    },
+    "characters/fighter/parts/head.svg": {
+      "raw": 241,
+      "gzip": 180
+    },
+    "characters/fighter/parts/leg_lower_l.svg": {
+      "raw": 138,
+      "gzip": 143
+    },
+    "characters/fighter/parts/leg_lower_r.svg": {
+      "raw": 128,
+      "gzip": 137
+    },
+    "characters/fighter/parts/leg_upper_l.svg": {
+      "raw": 135,
+      "gzip": 139
+    },
+    "characters/fighter/parts/leg_upper_r.svg": {
+      "raw": 125,
+      "gzip": 131
+    },
+    "characters/fighter/parts/pelvis.svg": {
+      "raw": 136,
+      "gzip": 137
+    },
+    "characters/fighter/parts/torso.svg": {
+      "raw": 166,
+      "gzip": 150
+    },
     "characters/kiran/parts/arm_lower_l.svg": {
       "raw": 4991,
       "gzip": 1647
@@ -139,6 +183,10 @@
       "raw": 64111,
       "gzip": 20622
     },
+    "figures/fighter.json": {
+      "raw": 1623,
+      "gzip": 1589
+    },
     "figures/kiran.json": {
       "raw": 81112,
       "gzip": 25756
@@ -156,6 +204,20 @@
     "src/clips/generated/bandai-namco.ts": {
       "raw": 37695,
       "gzip": 5105
+    }
+  },
+  "shells": {
+    "dist/assets/preview.js": {
+      "raw": 6225,
+      "gzip": 2473
+    },
+    "dist/assets/skeleton.js": {
+      "raw": 13557,
+      "gzip": 5048
+    },
+    "dist/assets/stage.js": {
+      "raw": 16201,
+      "gzip": 5956
     }
   }
 }
