@@ -147,5 +147,15 @@
       "raw": 113690,
       "gzip": 35722
     }
+  },
+  "catalogs": {
+    "src/clips/generated/authored.ts": {
+      "raw": 741,
+      "gzip": 444
+    },
+    "src/clips/generated/bandai-namco.ts": {
+      "raw": 37695,
+      "gzip": 5105
+    }
   }
 }

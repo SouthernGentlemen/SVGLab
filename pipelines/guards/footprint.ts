@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * check:footprint — C7's byte ratchet for every shipped part and assembled figure.
+ * check:footprint — C7's byte ratchet for every shipped part, figure and clip catalog.
  *
  *   node pipelines/guards/footprint.ts          # fail if anything grew
  *   node pipelines/guards/footprint.ts --write  # accept today's measurements as the baseline
@@ -21,6 +21,7 @@ import type { Rig } from "../../src/rig/types.ts";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const FIGURES = join(ROOT, "figures");
 const CHARACTERS = join(ROOT, "characters");
+const CLIPS = join(ROOT, "src", "clips", "generated");
 const RIGS = join(ROOT, "rigs");
 const BASELINE = join(RIGS, "footprint.baseline.json");
 
@@ -33,6 +34,7 @@ export interface FootprintMeasurements {
   readonly contract: 1;
   readonly parts: Readonly<Record<string, Size>>;
   readonly figures: Readonly<Record<string, Size>>;
+  readonly catalogs?: Readonly<Record<string, Size>>;
 }
 
 export interface FigureManifest {
@@ -60,6 +62,12 @@ function bytes(path: string): Size {
 function jsonFiles(directory: string): string[] {
   if (!existsSync(directory)) return [];
   return readdirSync(directory).filter((name) => name.endsWith(".json")).sort()
+    .map((name) => join(directory, name));
+}
+
+function typescriptFiles(directory: string): string[] {
+  if (!existsSync(directory)) return [];
+  return readdirSync(directory).filter((name) => name.endsWith(".ts")).sort()
     .map((name) => join(directory, name));
 }
 
@@ -121,9 +129,10 @@ export function readFigure(path: string): FigureManifest {
   return figure;
 }
 
-/** Measure parts individually, then a figure as the sum of the files it asks the renderer to fetch. */
+/** Measure generated files individually, then a figure as the sum of the parts it asks the renderer to fetch. */
 export function measureFootprint(): FootprintMeasurements {
   const parts = Object.fromEntries(svgFiles(CHARACTERS).map((path) => [portable(path), bytes(path)]));
+  const catalogs = Object.fromEntries(typescriptFiles(CLIPS).map((path) => [portable(path), bytes(path)]));
   const figures: Record<string, Size> = {};
   for (const path of jsonFiles(FIGURES)) {
     const figure = readFigure(path);
@@ -136,11 +145,11 @@ export function measureFootprint(): FootprintMeasurements {
     }
     figures[portable(path)] = { raw, gzip };
   }
-  return { contract: 1, parts, figures };
+  return { contract: 1, parts, figures, catalogs };
 }
 
 function compareSection(
-  section: "parts" | "figures",
+  section: "parts" | "figures" | "catalogs",
   actual: Readonly<Record<string, Size>>,
   baseline: Readonly<Record<string, Size>>,
 ): Growth[] {
@@ -168,6 +177,7 @@ export function compareFootprint(
   return [
     ...compareSection("parts", actual.parts, baseline.parts ?? {}),
     ...compareSection("figures", actual.figures, baseline.figures ?? {}),
+    ...compareSection("catalogs", actual.catalogs ?? {}, baseline.catalogs ?? {}),
   ];
 }
 
@@ -227,6 +237,9 @@ export function main(argv: readonly string[]): number {
       for (const [path, size] of Object.entries(measurements.figures)) {
         console.log(`${path.padEnd(24)} ${String(size.raw).padStart(7)} raw  ${String(size.gzip).padStart(6)} gzip`);
       }
+      for (const [path, size] of Object.entries(measurements.catalogs ?? {})) {
+        console.log(`${path.padEnd(46)} ${String(size.raw).padStart(7)} raw  ${String(size.gzip).padStart(6)} gzip`);
+      }
       for (const failure of invariants) console.error(`check:footprint: ${failure}`);
       for (const item of growth) {
         if (item.kind === "new" || item.kind === "missing") {
@@ -237,7 +250,8 @@ export function main(argv: readonly string[]): number {
         }
       }
       if (write) console.log(`check:footprint: wrote ${portable(BASELINE)}`);
-      else if (ok) console.log(`check:footprint: ${Object.keys(measurements.parts).length} parts and ${Object.keys(measurements.figures).length} figures did not grow`);
+      else if (ok) console.log(`check:footprint: ${Object.keys(measurements.parts).length} parts, `
+        + `${Object.keys(measurements.figures).length} figures and ${Object.keys(measurements.catalogs ?? {}).length} catalogs did not grow`);
     }
     return ok ? 0 : 1;
   } catch (error) {

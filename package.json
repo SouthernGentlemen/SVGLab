@@ -9,11 +9,13 @@
     "build:parts": "node pipelines/sprite/build.ts",
     "check:sprites": "node pipelines/sprite/build.ts --check",
     "check:sockets": "node pipelines/guards/sockets.ts",
+    "build:motions": "node pipelines/motion/build.ts",
+    "check:motions": "node pipelines/motion/build.ts --check",
     "check:footprint": "node pipelines/guards/footprint.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run check:rig && npm run check:sprites && npm run check:sockets && npm run check:footprint && npm run typecheck && npm test"
+    "verify": "npm run check:rig && npm run check:sprites && npm run check:sockets && npm run check:motions && npm run check:footprint && npm run typecheck && npm test"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

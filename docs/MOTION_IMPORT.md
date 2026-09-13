@@ -1,5 +1,8 @@
 # Motion import
 
+The deterministic retarget and catalog build described here are live in M2. The combat and
+Blender round-trip sections describe the M3/M4 target; those commands and files do not exist yet.
+
 SVGLab can turn selected 3D BVH captures into readable clips for its eleven-bone SVG rig.
 The raw capture remains build-time input; the browser receives only generated TypeScript
 keyframes, and combat remains authoritative for world movement and move timing.
@@ -35,14 +38,15 @@ clean-source, explicit-retarget, inspect-output shape with a deterministic local
 8. Unwrap angles, close approved loop seams, and reduce channels under manifest tolerances.
 
 The manifest is the authored record of source files, frame ranges, loop decisions, projection,
-and tolerances. `src/animation/generated/bandai-namco.ts` is reproducible output and must not be
+and tolerances. `src/clips/generated/bandai-namco.ts` is reproducible output and must not be
 edited by hand. Run `npm run check:motions` to detect drift.
 
 Bandai Namco-derived clips are the entire animation catalog. A guarded lead-in presents idle,
 the walk presents ground movement, a grounded bow descent presents the compact stance, the
 dash presents airborne and hit-reaction states, the selected punch presents the basic attack,
-and a trimmed sword cut presents the sword slash. The run, dash, sword guard, full sword cut,
-and both attack studies also remain directly inspectable in the preview.
+and a trimmed sword cut presents the sword slash. The run, dash, sword guard, and full sword
+cut remain shipped; the two attack studies rebuild into `out/` for authoring and never enter
+shipped source.
 
 For the strike, source frames 24–44 select the first punch, its 30 FPS timing is warped to the
 existing 20-tick move, and source frame 30 maps to tick 6 inside the authoritative active
@@ -137,8 +141,8 @@ npm run build:motions                       # fold the result into the catalog
 ### What the export contains
 
 One BVH per clip, baked at one frame per 60 Hz tick through the same sampler
-`src/animation/sample.ts` uses, so the file plays exactly what the lab plays rather than an
-approximation of it. The skeleton is read from `src/svg/fighter.svg`, never restated: same
+`src/rig/sample.ts` uses, so the file plays exactly what the lab plays rather than an
+approximation of it. The skeleton is read from `rigs/fighter.rig.json`, never restated: same
 eleven bones, same parents, same rest offsets. Beside the clips, `art/<bone>.svg` carries each
 bone's own drawing with its class names resolved to explicit paint, and `setup.py` puts the two
 together.
@@ -205,7 +209,7 @@ to within 1 degree and 0.15 units — the same tolerances the retarget already r
 
 `motions/authored/<clip>.json` is tracked source, not build output: it is the one place a hand
 edit survives. `npm run build:motions` turns the directory into
-`src/animation/generated/authored.ts`, and `npm run check:motions` fails when the two disagree.
+`src/clips/generated/authored.ts`, and `npm run check:motions` fails when the two disagree.
 
 The key carries provenance. A `bnr*` clip is still an adaptation of Bandai Namco material under
 CC BY-NC 4.0 and names the manifest clip it came from; a `lab*` clip was authored here on
