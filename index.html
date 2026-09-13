@@ -45,9 +45,18 @@
           <span id="dev-status">Cloudflare local</span><a class="preview-link" href="/preview">Preview</a>
           <span class="tick-chip">tick <strong id="tick">0</strong></span>
           <span class="tick-chip" id="run-state">running</span>
-          <button id="debug-toggle" class="icon-button" type="button" aria-expanded="false" aria-controls="debug-overlay">Debug <kbd>`</kbd></button>
+          <button id="pause" class="runtime-control" type="button">Pause</button>
+          <button id="step" class="runtime-control" type="button" disabled>Step</button>
+          <button id="reset" class="runtime-control" type="button">Reset</button>
+          <button id="debug-toggle" class="icon-button" type="button" aria-expanded="false" aria-controls="debug-overlay">Debug</button>
+          <button class="icon-button keybind-toggle" type="button" popovertarget="keybind-popover" aria-label="Keyboard shortcuts" title="Keyboard shortcuts"><span aria-hidden="true">⚙</span></button>
         </div>
       </header>
+
+      <div id="keybind-popover" class="keybind-popover glass" popover>
+        <p class="overlay-label">KEYBOARD</p>
+        <ul id="keybind-list"></ul>
+      </div>
 
       <section class="fight-hud" aria-label="Fight status">
         <div class="health-block">
@@ -61,24 +70,6 @@
           <div class="health-track"><i id="dummy-health-bar"></i></div>
           <b id="dummy-health">100</b>
         </div>
-      </section>
-
-      <section class="controls-overlay glass" aria-label="Lab controls">
-        <p class="overlay-label">FIGHT CONTROLS</p>
-        <div class="wasd" aria-label="WASD movement controls">
-          <kbd>W</kbd>
-          <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
-        </div>
-        <div class="control-copy">
-          <strong>Move / jump / crouch</strong>
-          <span><kbd>J</kbd> strike</span>
-          <span><kbd>K</kbd> sword</span>
-        </div>
-        <button id="attack" class="primary-button" type="button">Strike <kbd>J</kbd></button>
-        <button id="slash" class="primary-button" type="button">Sword <kbd>K</kbd></button>
-        <button id="pause" type="button">Pause <kbd>P</kbd></button>
-        <button id="step" type="button" disabled>Step <kbd>.</kbd></button>
-        <button id="reset" type="button">Reset <kbd>R</kbd></button>
       </section>
 
       <section class="timeline-overlay glass" aria-label="Move frame timeline">
@@ -106,7 +97,8 @@
             <label><input data-toggle="hurtboxes" type="checkbox" checked /> Hurtboxes</label>
             <label><input data-toggle="hitboxes" type="checkbox" checked /> Hitboxes</label>
             <label><input data-toggle="origins" type="checkbox" checked /> Origins</label>
-            <label><input data-toggle="rig" type="checkbox" /> Bone pivots</label>\n            <label><input data-toggle="skeleton" type="checkbox" /> Skeleton</label>
+            <label><input data-toggle="rig" type="checkbox" /> Bone pivots</label>
+            <label><input data-toggle="skeleton" type="checkbox" /> Skeleton</label>
             <label><input id="dummy-invulnerable" type="checkbox" /> Dummy invulnerable</label>
           </div>
           <div class="skin-grid">
@@ -128,7 +120,6 @@
           <section>
             <p class="overlay-label">SVG PRESENTATION</p>
             <div id="animation-state" class="readout"></div>
-            <p id="animation-note" class="note"></p>
           </section>
           <section>
             <p class="overlay-label">RECENT COMBAT EVENTS</p>
@@ -136,10 +127,7 @@
           </section>
         </div>
       </aside>
-
-      <div class="focus-note">Simulation owns movement and contact · SVG owns presentation · <kbd>`</kbd> debug overlay</div>
     </main>
     <script type="module" src="/src/shell/stage.ts"></script>
   </body>
 </html>
-

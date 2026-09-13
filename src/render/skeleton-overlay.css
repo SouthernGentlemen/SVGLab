@@ -7,6 +7,22 @@
   display: inline;
 }
 
+.skeleton-debug-segment,
+.skeleton-debug-joint,
+.part-label-guide,
+.part-label {
+  display: none;
+}
+
+.skeleton-debug-overlay.show-skeleton .skeleton-debug-segment,
+.skeleton-debug-overlay.show-skeleton .skeleton-debug-joint,
+.part-label-layer.show-bones .part-label-guide--bone,
+.part-label-layer.show-bones .part-label--bone,
+.part-label-layer.show-cosmetics .part-label-guide--cosmetic,
+.part-label-layer.show-cosmetics .part-label--cosmetic {
+  display: inline;
+}
+
 .skeleton-debug-segment {
   fill: none;
   stroke: #fff36a;
@@ -32,3 +48,32 @@
   stroke-width: 1.8;
 }
 
+.part-label-layer,
+.part-label-guide,
+.part-label {
+  pointer-events: none;
+}
+
+.part-label-guide {
+  stroke: rgba(247, 251, 255, .65);
+  stroke-width: .65;
+  vector-effect: non-scaling-stroke;
+}
+
+.part-label {
+  fill: #f7fbff;
+  stroke: rgba(3, 5, 9, .98);
+  stroke-width: 3px;
+  paint-order: stroke fill;
+  font: 600 7px/1 ui-monospace, "SFMono-Regular", monospace;
+  letter-spacing: .02em;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, .2));
+}
+
+.part-label--cosmetic {
+  fill: #ffca8f;
+  font-weight: 700;
+}
+
+.part-label-guide--cosmetic { stroke: rgba(255, 202, 143, .78); }
