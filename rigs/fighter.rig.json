@@ -450,6 +450,12 @@
         "layer": "over",
         "follows": "bone",
         "note": "Rides the pelvis."
+      },
+      "weapon": {
+        "anchor": "forearm-front.grip",
+        "layer": "under",
+        "follows": "bone",
+        "note": "One rigid one-handed prop. It follows the front forearm and is deliberately not mirrored; a two-handed hold needs arm IK rather than a second copy of the art."
       }
     },
     "kindsNote": "Kinds are expected to be added and tweaked as pieces are drawn. That is a change to this file with a guard behind it, never a change to the renderer."

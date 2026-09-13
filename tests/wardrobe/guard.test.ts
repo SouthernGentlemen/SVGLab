@@ -10,6 +10,7 @@ import type { WardrobeSet } from "../../pipelines/wardrobe/types.ts";
 const rig = loadBuildRig();
 const original = loadWardrobeSet("royal-guard");
 const fieldKit = loadWardrobeSet("field-kit");
+const armory = loadWardrobeSet("armory");
 const figures = Object.fromEntries(["barst", "fighter", "kiran", "yuliya"].map((id) => [
   id,
   JSON.parse(readFileSync(`figures/${id}.json`, "utf8")) as WardrobeFigure,
@@ -35,6 +36,15 @@ describe("wardrobe guard", () => {
       fitted: ["barst", "fighter", "kiran", "yuliya"],
       hides: ["head"],
     });
+  });
+
+  it("fits the one-handed weapon to every figure without claiming to hide body art", () => {
+    expect(validateWardrobe("armory", armory, rig, figures, readAsset)).toEqual([{
+      piece: "longsword",
+      kind: "weapon",
+      fitted: ["barst", "fighter", "kiran", "yuliya"],
+      hides: [],
+    }]);
   });
 
   it("accepts a replacement whose drawn extent really covers the hidden art", () => {

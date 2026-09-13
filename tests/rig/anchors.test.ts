@@ -45,6 +45,15 @@ describe("anchors, depth slots and cosmetic kinds", () => {
     expect(anchorPoint(rig, "forearm-back.grip")).toEqual(anchorPoint(rig, "forearm-front.grip"));
   });
 
+  it("defines a single non-mirrored one-handed weapon placement", () => {
+    expect(rig.contract.wardrobe.kinds.weapon).toMatchObject({
+      anchor: "forearm-front.grip",
+      layer: "under",
+      follows: "bone",
+    });
+    expect(rig.contract.wardrobe.kinds.weapon.mirror).toBeUndefined();
+  });
+
   it("carries an anchor into world space through the pose", () => {
     const rest = forwardKinematics(rig, {});
     const neck = inBone(rest.get("torso")!, anchorPoint(rig, "torso.neck"));

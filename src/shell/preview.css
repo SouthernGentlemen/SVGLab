@@ -92,9 +92,7 @@ body { overflow: auto; }
 .wardrobe-piece[aria-pressed="true"] .wardrobe-piece__state { color: #ffbd8c; }
 .wardrobe-piece:disabled { opacity: .5; border-style: dashed; }
 .wardrobe-piece:disabled .wardrobe-piece__state { max-width: 55px; color: #d58c92; text-align: right; }
-.weapon-readout { min-height: 47px; padding: 9px 10px; display: grid; gap: 3px; border: 1px dashed #30394d; border-radius: 3px; background: rgba(12, 18, 29, .56); }
-.weapon-readout strong { color: #b8c2d3; font-size: 9px; }
-.weapon-readout span { color: #657087; font: 7px ui-monospace, "SFMono-Regular", monospace; }
+.weapon-readout { min-height: 47px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
 .preview-playback { display: grid; gap: 14px; }
 .preview-field { display: grid; gap: 6px; }
 .preview-field label,

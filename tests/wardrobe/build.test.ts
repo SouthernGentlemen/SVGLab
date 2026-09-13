@@ -7,6 +7,7 @@ import { outputPath, renderWardrobe, wardrobeIds } from "../../pipelines/wardrob
 describe("wardrobe build", () => {
   it("traces one generated vector file per authored island", () => {
     const expected = {
+      armory: ["longsword"],
       "field-kit": ["full-helm", "field-belt", "trail-cloak", "long-hair"],
       "royal-guard": ["hood", "pauldron", "skirt"],
     } as const;

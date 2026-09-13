@@ -34,15 +34,17 @@ disagree, one of them is a bug — say which.
 
 ## Scope
 
-**In scope**: the six concerns, the local Worker that serves them, and the guards that keep
-them honest.
+**In scope**: the six concerns, the local Worker that serves them, the guards that keep them
+honest, and one-handed rigid weapons fitted through the wardrobe pipeline. A weapon is one
+piece of rig-unit art at `forearm-front.grip`; it follows that forearm and is never mirrored.
 
 **Out of scope**: accounts, production authentication, databases, analytics, campaign or
 progression systems, inventory, economy, matchmaking, CI/CD, release trains, and change IDs.
 Cloudflare is a local runtime plus a dev deploy target and nothing more: no production
 environment, account id, route, or persistent binding. Rigid props (weapons) are deliberately
-absent; the rig carries `forearm-front.grip` and `forearm-back.grip` so they can return without
-reshaping it.
+limited to that one-handed placement. Two-handed holds remain out of scope: mirroring one
+placement would draw two weapons, while a real shared grip needs the arm IK this rig does not
+provide. `forearm-back.grip` remains available for that later problem without reshaping the rig.
 
 Reset and teardown scripts may delete generated output and disposable runtime state only.
 Never authored source, never a `.blend` someone is editing.
@@ -218,7 +220,7 @@ npm run check:cruft       reachability, docs, scripts and runtime dependencies
 npm run check:blender     Blender kinematics and real export round trip
 npm run assert-local-only reject production Cloudflare/deployment configuration
 npm run typecheck         validate the strip-only TypeScript dialect
-npm run test              run 130 tests across 30 files
+npm run test              run 136 tests across 30 files
 npm run test:watch        run Vitest in watch mode
 npm run verify            all ten gates, typecheck, tests and production build
 ```

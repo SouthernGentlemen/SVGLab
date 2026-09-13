@@ -82,3 +82,17 @@ so the provenance remains explicitly unresolved.
 
 `lab*` clips are original to SVGLab and claim no third-party origin. They are not covered by
 the Bandai Namco CC BY-NC 4.0 licence merely because both kinds of clip share a generated file.
+
+## Repository-authored weapon art
+
+- **Upstream URL:** This repository: <https://github.com/SouthernGentlemen/SVGLab>
+- **Pinned revision:** The authored atlas is versioned directly by this repository's Git history.
+- **Copyright holder:** The contributors recorded in that history.
+- **Licence:** No separate licence grant has been declared for repository-authored art.
+- **Repository paths covered:**
+  - `cosmetics/armory/atlas.png`
+  - `cosmetics/armory/*.svg`
+
+The armory atlas is original to SVGLab. Its longsword uses the deleted preview implementation's
+56-unit blade and 15-unit handle as rig-scale measurements; it does not copy that implementation,
+its two-arm IK, or its hand-authored weapon trajectories.

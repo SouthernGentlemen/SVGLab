@@ -38,6 +38,21 @@ describe("agent review sheets", () => {
     expect(source).not.toContain("<image");
   });
 
+  it("renders an equipped wardrobe weapon in both facing directions", () => {
+    const catalog = buildCatalog(ROOT);
+    const figure = loadFigure(ROOT, "barst", ["cosmetics/armory/longsword.svg"]);
+    const clip = catalog.clips.bnrSwordSlashNormal;
+    const profile = depthProfileName(figure.rig, clip.name, clip.name);
+    const source = renderSheet(figure, "weapon probe", "both facings", 2, [
+      { label: "right", pose: sampleClip(clip, 14), profile, facing: 1 },
+      { label: "left", pose: sampleClip(clip, 14), profile, facing: -1 },
+    ]);
+
+    expect(source.match(/data-cosmetic="cosmetics\/armory\/longsword.svg"/g)).toHaveLength(2);
+    expect(source).toContain('<g transform="scale(-1 1)">');
+    expect(source.match(/data-anchor=/g)).toBeNull();
+  });
+
   it("flattens every depth profile to each bone exactly once", () => {
     const figure = loadFigure(ROOT, "fighter");
     for (const profile of Object.keys(figure.rig.contract.depthProfiles.profiles)) {

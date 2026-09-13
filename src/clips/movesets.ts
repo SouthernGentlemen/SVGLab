@@ -9,6 +9,11 @@ export const WEAPONS = [
 
 export type WeaponId = (typeof WEAPONS)[number]["id"];
 
+/** This one-handed slice has one equipped family; wardrobe owns which sword art supplies it. */
+export function loadoutWeaponId(reference: string | null): WeaponId {
+  return reference === null ? "unarmed" : "sword";
+}
+
 export interface AnimationMoveSet {
   readonly id: string;
   readonly name: string;

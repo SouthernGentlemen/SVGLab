@@ -39,6 +39,7 @@ export interface SheetCell {
   readonly label: string;
   readonly pose: Pose;
   readonly profile: string;
+  readonly facing?: -1 | 1;
   readonly parts?: ReadonlySet<string>;
   readonly cosmetics?: ReadonlySet<string>;
 }
@@ -70,7 +71,7 @@ function svgContents(source: string, reference: string): string {
   return match[1];
 }
 
-export function loadFigure(root: string, requested: string): LoadedFigure {
+export function loadFigure(root: string, requested: string, additionalCosmetics: readonly string[] = []): LoadedFigure {
   const candidate = figurePath(requested);
   const path = isAbsolute(candidate) ? candidate : resolve(root, candidate);
   if (!existsSync(path)) throw new Error(`figure manifest '${portable(root, path)}' does not exist`);
@@ -90,7 +91,11 @@ export function loadFigure(root: string, requested: string): LoadedFigure {
   }
 
   const sets = new Map<string, WardrobeSet>();
-  const cosmetics = manifest.cosmetics.map((reference): LoadedCosmetic => {
+  const cosmeticReferences = [...manifest.cosmetics, ...additionalCosmetics];
+  if (new Set(cosmeticReferences).size !== cosmeticReferences.length) {
+    throw new Error(`${portable(root, path)} repeats a requested cosmetic`);
+  }
+  const cosmetics = cosmeticReferences.map((reference): LoadedCosmetic => {
     const { pieceId, setPath } = cosmeticReference(reference);
     let set = sets.get(setPath);
     if (!set) {
@@ -158,14 +163,16 @@ export function assembleFigureBones(
 function figureGroup(figure: LoadedFigure, cell: SheetCell): string {
   const placed = forwardKinematics(figure.rig, cell.pose);
   const assembly = assembleFigureBones(figure, cell.parts, cell.cosmetics);
+  const facing = cell.facing ?? 1;
 
-  return visualPaintOrder(figure.rig, 1, cell.profile).map((boneName) => {
+  const bones = visualPaintOrder(figure.rig, facing, cell.profile).map((boneName) => {
     const world = placed.get(boneName)!;
     const rotation = world.rotation * 180 / Math.PI;
     const layers = [...assembly.get(boneName)!.layers].map(([layer, contents]) =>
       `<g data-depth="${layer}">${contents}</g>`).join("");
     return `<g data-bone="${boneName}" transform="translate(${number(world.x)} ${number(world.y)}) rotate(${number(rotation)})">${layers}</g>`;
   }).join("");
+  return facing === -1 ? `<g transform="scale(-1 1)">${bones}</g>` : bones;
 }
 
 /** A deterministic vector sheet: labels and source art stay searchable in the output. */

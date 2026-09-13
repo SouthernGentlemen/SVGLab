@@ -11,6 +11,7 @@ import type { WardrobeSet } from "../../src/render/wardrobe.ts";
 describe("contract-based cosmetic placement", () => {
   const rig = loadBuildRig();
   const set = loadWardrobeSet("royal-guard");
+  const armory = loadWardrobeSet("armory");
   const asset = (piece: string) => inspectCosmetic(
     readFileSync(`cosmetics/royal-guard/${piece}.svg`, "utf8"),
     piece,
@@ -36,6 +37,20 @@ describe("contract-based cosmetic placement", () => {
       { anchor: "torso.shoulder-back", mirrored: true },
     ]);
     expect(new Set(placements.map((placement) => placement.scale)).size).toBe(1);
+  });
+
+  it("binds one sword to the front grip without invoking cosmetic mirroring", () => {
+    const source = readFileSync("cosmetics/armory/longsword.svg", "utf8");
+    const sword = inspectCosmetic(source, "longsword", "longsword.svg");
+    const placements = resolveCosmeticPlacements(rig, armory, "longsword", sword.height);
+    expect(placements).toMatchObject([{
+      bone: "forearm-front",
+      anchor: "forearm-front.grip",
+      point: [0, 18],
+      layer: "under",
+      mirrored: false,
+    }]);
+    expect(placements[0].scale).toBeCloseTo(73 / 74, 10);
   });
 
   it("drops hidden part slots only while the claiming cosmetic is enabled", () => {

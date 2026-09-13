@@ -6,6 +6,7 @@ import {
   SWORD_MOVESET,
   UNARMED_MOVESET,
   defaultPreviewClip,
+  loadoutWeaponId,
   previewClipNames,
 } from "../../src/clips/movesets.ts";
 
@@ -35,5 +36,11 @@ describe("weapon-aware animation movesets", () => {
     expect(defaultPreviewClip("unarmed")).toBe(UNARMED_MOVESET.clips.neutral);
     expect(defaultPreviewClip("sword")).toBe(SWORD_MOVESET.clips.neutral);
     for (const clip of new Set([...unarmed, ...sword])) expect(CLIPS[clip]).toBeDefined();
+  });
+
+  it("switches an occupied wardrobe weapon slot to the sword moveset", () => {
+    expect(loadoutWeaponId(null)).toBe("unarmed");
+    expect(loadoutWeaponId("cosmetics/armory/longsword.svg")).toBe("sword");
+    expect(defaultPreviewClip(loadoutWeaponId("cosmetics/armory/longsword.svg"))).toBe("bnrSwordGuardNormal");
   });
 });

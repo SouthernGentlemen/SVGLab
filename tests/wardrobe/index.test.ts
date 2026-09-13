@@ -15,10 +15,18 @@ const emptyCatalog = (): RuntimeCatalog => ({ contract: 1, clips: {}, origins: {
 describe("wardrobe discovery index", () => {
   it("projects every shipped set and piece with browser-facing metadata", () => {
     const index = buildWardrobeIndex(ROOT);
-    expect(index.sets.map((set) => set.id)).toEqual(["field-kit", "royal-guard"]);
-    expect(index.sets.flatMap((set) => set.pieces)).toHaveLength(7);
-    expect(index.sets[0]).toMatchObject({ id: "field-kit", name: "Field kit", rig: "fighter" });
-    expect(index.sets[0].pieces.find((piece) => piece.id === "full-helm")).toEqual({
+    expect(index.sets.map((set) => set.id)).toEqual(["armory", "field-kit", "royal-guard"]);
+    expect(index.sets.flatMap((set) => set.pieces)).toHaveLength(8);
+    expect(index.sets[0]).toMatchObject({ id: "armory", name: "Armory", rig: "fighter" });
+    expect(index.sets[0].pieces).toEqual([{
+      id: "longsword",
+      reference: "cosmetics/armory/longsword.svg",
+      kind: "weapon",
+      height: 73,
+      fitted: ["barst", "fighter", "kiran", "yuliya"],
+      hides: [],
+    }]);
+    expect(index.sets[1].pieces.find((piece) => piece.id === "full-helm")).toEqual({
       id: "full-helm",
       reference: "cosmetics/field-kit/full-helm.svg",
       kind: "mask",
@@ -26,7 +34,7 @@ describe("wardrobe discovery index", () => {
       fitted: ["barst", "fighter", "kiran", "yuliya"],
       hides: ["head"],
     });
-    expect(index.sets[1].pieces.find((piece) => piece.id === "hood")?.hides).toEqual([]);
+    expect(index.sets[2].pieces.find((piece) => piece.id === "hood")?.hides).toEqual([]);
   });
 
   it("serves the identical live projection through the dev Worker", async () => {

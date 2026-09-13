@@ -212,8 +212,8 @@
       "gzip": 9121
     },
     "dist/assets/preview.js": {
-      "raw": 46846,
-      "gzip": 9843
+      "raw": 48460,
+      "gzip": 10261
     },
     "dist/assets/stage.js": {
       "raw": 15756,
@@ -221,6 +221,10 @@
     }
   },
   "cosmetics": {
+    "cosmetics/armory/longsword.svg": {
+      "raw": 5321,
+      "gzip": 1833
+    },
     "cosmetics/field-kit/field-belt.svg": {
       "raw": 1605,
       "gzip": 609

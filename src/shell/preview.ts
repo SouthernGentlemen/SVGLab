@@ -3,7 +3,7 @@ import "./preview.css";
 import "../render/skeleton-overlay.css";
 import { sampleClip } from "../rig/sample.ts";
 import { advancePreviewFrame, previewLastFrame } from "../clips/playback.ts";
-import { WEAPONS, defaultPreviewClip, previewClipOptions } from "../clips/movesets.ts";
+import { defaultPreviewClip, loadoutWeaponId, previewClipOptions } from "../clips/movesets.ts";
 import type { PreviewClipOption, WeaponId } from "../clips/movesets.ts";
 import { fetchRuntimeCatalog, watchRuntimeCatalog } from "../clips/runtime.ts";
 import type { RuntimeCatalog } from "../clips/runtime.ts";
@@ -87,7 +87,7 @@ function option(value: string, label: string): HTMLOptionElement {
 }
 
 function currentWeapon(): WeaponId {
-  return WEAPONS.find((entry) => entry.id === loadout.weapon)?.id ?? "unarmed";
+  return loadoutWeaponId(loadout.weapon);
 }
 
 function populateClipOptions(preferred?: string): void {
@@ -137,6 +137,13 @@ async function buildGallery(): Promise<void> {
     return { id: entry.id, node, svg, facts };
   }));
   compareView.replaceChildren(...gallery.map((entry) => entry.svg.parentElement!));
+}
+
+async function applyGalleryWeapon(weapon: string | null): Promise<void> {
+  await Promise.all(gallery.map((entry) => applyLoadout(entry.node, {
+    ...figureLoadout(entry.id),
+    weapon,
+  })));
 }
 
 function referencedBones(): Set<string> {
@@ -194,6 +201,7 @@ function renderPanel(): void {
         loadout = nextLoadout;
         selectedSlot = null;
         singleLayer.replaceChildren(singleNode.root);
+        await applyGalleryWeapon(null);
       });
     },
     choosePart: (slot, reference) => {
@@ -213,16 +221,26 @@ function renderPanel(): void {
       await applyLoadout(singleNode, next);
       loadout = next;
     }),
+    chooseWeapon: (reference) => {
+      if (reference === loadout.weapon) return;
+      runLoadoutChange(async () => {
+        const next = { ...loadout, weapon: reference };
+        await applyLoadout(singleNode, next);
+        await applyGalleryWeapon(reference);
+        loadout = next;
+      }, false);
+    },
     selectSlot: (slot) => { selectedSlot = slot; renderPanel(); render(); },
   });
 }
 
-function runLoadoutChange(change: () => Promise<void>): void {
+function runLoadoutChange(change: () => Promise<void>, preserveClip = true): void {
   if (loadoutBusy) return;
   loadoutBusy = true;
   renderPanel();
   void change().then(() => {
-    populateClipOptions(clipSelect.value);
+    populateClipOptions(preserveClip ? clipSelect.value : undefined);
+    if (!preserveClip) resetPlayback();
     required<HTMLElement>("#dev-status").textContent = "loadout ready";
   }, (error: unknown) => {
     required<HTMLElement>("#dev-status").textContent = `loadout error: ${(error as Error).message}`;

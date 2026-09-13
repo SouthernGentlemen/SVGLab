@@ -33,6 +33,7 @@ export interface LoadoutPanelActions {
   readonly chooseFigure: (figureId: string) => void;
   readonly choosePart: (slot: string, reference: string) => void;
   readonly toggleCosmetic: (reference: string, enabled: boolean) => void;
+  readonly chooseWeapon: (reference: string | null) => void;
   readonly selectSlot: (slot: string) => void;
 }
 
@@ -203,12 +204,69 @@ function renderWardrobe(
   root.replaceChildren(...sections);
 }
 
-function renderWeapon(root: HTMLElement, loadout: Loadout): void {
-  const value = document.createElement("strong");
-  value.textContent = loadout.weapon ? words(loadout.weapon) : "Nothing equipped";
-  const note = document.createElement("span");
-  note.textContent = loadout.weapon ? "Current loadout weapon" : "No weapon in this loadout";
-  root.replaceChildren(value, note);
+function weaponButton(
+  name: string,
+  detail: string,
+  reference: string | null,
+  selected: boolean,
+  disabled: boolean,
+  stateLabel: string,
+  chooseWeapon: LoadoutPanelActions["chooseWeapon"],
+): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "wardrobe-piece weapon-choice";
+  button.setAttribute("aria-pressed", String(selected));
+  button.disabled = disabled;
+  const copy = document.createElement("span");
+  const title = document.createElement("strong");
+  title.textContent = name;
+  const source = document.createElement("small");
+  source.textContent = detail;
+  copy.appendChild(title);
+  copy.appendChild(source);
+  const state = document.createElement("span");
+  state.className = "wardrobe-piece__state";
+  state.textContent = stateLabel;
+  button.appendChild(copy);
+  button.appendChild(state);
+  button.addEventListener("click", () => chooseWeapon(reference));
+  return button;
+}
+
+function renderWeapon(
+  root: HTMLElement,
+  library: LoadoutPanelLibrary,
+  state: LoadoutPanelState,
+  actions: LoadoutPanelActions,
+): void {
+  const choices = [weaponButton(
+    "Unarmed",
+    "No weapon",
+    null,
+    state.loadout.weapon === null,
+    state.busy,
+    state.loadout.weapon === null ? "equipped" : "available",
+    actions.chooseWeapon,
+  )];
+  for (const set of library.wardrobe.sets) {
+    for (const piece of set.pieces.filter((candidate) => candidate.kind === "weapon")) {
+      const fit = cosmeticFit(state.node.rig, indexedSet(set), piece.id, state.node.figureId);
+      const selected = state.loadout.weapon === piece.reference;
+      const button = weaponButton(
+        words(piece.id),
+        set.name,
+        piece.reference,
+        selected,
+        state.busy || fit !== "ok",
+        fit === "ok" ? (selected ? "equipped" : "stored") : fit,
+        actions.chooseWeapon,
+      );
+      if (fit !== "ok") button.title = `Unavailable: ${fit} for ${state.node.manifest.name}`;
+      choices.push(button);
+    }
+  }
+  root.replaceChildren(...choices);
 }
 
 export function renderLoadoutPanel(
@@ -224,5 +282,5 @@ export function renderLoadoutPanel(
   });
   renderBody(elements.body, library, state, actions);
   renderWardrobe(elements.wardrobe, library, state, actions);
-  renderWeapon(elements.weapon, state.loadout);
+  renderWeapon(elements.weapon, library, state, actions);
 }
