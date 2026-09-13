@@ -26,6 +26,14 @@ function copyRuntimeAssets() {
       for (const character of readdirSync(join(ROOT, "characters"), { withFileTypes: true }).filter((entry) => entry.isDirectory())) {
         cpSync(join(ROOT, "characters", character.name, "parts"), join(dist, "characters", character.name, "parts"), { recursive: true });
       }
+      for (const wardrobe of readdirSync(join(ROOT, "cosmetics"), { withFileTypes: true }).filter((entry) => entry.isDirectory())) {
+        const target = join(dist, "cosmetics", wardrobe.name);
+        mkdirSync(target, { recursive: true });
+        cpSync(join(ROOT, "cosmetics", wardrobe.name, "set.json"), join(target, "set.json"));
+        for (const file of readdirSync(join(ROOT, "cosmetics", wardrobe.name)).filter((name) => name.endsWith(".svg"))) {
+          cpSync(join(ROOT, "cosmetics", wardrobe.name, file), join(target, file));
+        }
+      }
 
       const source = buildCatalog(ROOT);
       const lanes = Object.fromEntries([

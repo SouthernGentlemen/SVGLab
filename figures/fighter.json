@@ -15,5 +15,9 @@
     "arm_lower_l": "characters/fighter/parts/arm_lower_l.svg",
     "head": "characters/fighter/parts/head.svg"
   },
-  "cosmetics": []
+  "cosmetics": [
+    "cosmetics/royal-guard/hood.svg",
+    "cosmetics/royal-guard/pauldron.svg",
+    "cosmetics/royal-guard/skirt.svg"
+  ]
 }

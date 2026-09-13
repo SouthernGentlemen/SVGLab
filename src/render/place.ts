@@ -20,7 +20,9 @@ function restoreDocumentOrder(node: FigureNode): void {
   for (const bone of node.rig.bones) {
     const group = node.bones.get(bone.name)!;
     for (const entry of node.rig.contract.documentOrder[bone.name]) {
-      group.appendChild(entry === "@part" ? node.art.get(bone.name)! : node.bones.get(entry)!);
+      if (entry === "@part") {
+        for (const slot of node.rig.contract.depthSlots) group.appendChild(node.depthLayers.get(bone.name)!.get(slot)!);
+      } else group.appendChild(node.bones.get(entry)!);
     }
   }
 }
@@ -46,6 +48,7 @@ function arrangeDepth(node: FigureNode, facing: VisualFacing, profileName: strin
   if (!pelvis || !torso || !head) throw new Error("fighter rig is missing pelvis, torso or head");
 
   const torsoArt = node.art.get("torso")!;
+  const torsoPart = node.depthLayers.get("torso")!.get("part")!;
   torsoArt.toggleAttribute("transform", false);
   if (facing === -1) torsoArt.setAttribute("transform", "scale(-1 1)");
 
@@ -59,7 +62,7 @@ function arrangeDepth(node: FigureNode, facing: VisualFacing, profileName: strin
     pelvis.insertBefore(underlay, pelvis.firstChild);
   }
   if (profile.behindTorso) {
-    torso.insertBefore(node.bones.get(sideBone(profile.behindTorso, sides.arms))!, torsoArt);
+    torso.insertBefore(node.bones.get(sideBone(profile.behindTorso, sides.arms))!, torsoPart);
   }
   if (profile.head === "below-arms") torso.appendChild(head);
   for (const side of profile.foreground) torso.appendChild(node.bones.get(sideBone(side, sides.arms))!);

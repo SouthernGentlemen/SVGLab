@@ -80,11 +80,7 @@ character with no costume builds from the PNG alone.
     "default": { "colours": 3, "epsilon": 3.0, "places": 1, "minRegionArea": 48 },
     "bySlot": { "head": { "colours": 12, "epsilon": 1.2, "places": 1, "minRegionArea": 12 } }
   },
-  "pivots": { "head": [0.5, 1.0] },     // where a joint really is, as a fraction of the part
-  "props": [                            // costume islands, bound to a bone
-    { "slot": "prop_07", "bone": "torso", "x": -14, "y": 34 },
-    { "slot": "prop_10", "bone": "head", "x": -10, "y": -24, "under": true }
-  ]
+  "pivots": { "head": [0.5, 1.0] }      // where a joint really is, as a fraction of the part
 }
 ```
 
@@ -102,11 +98,11 @@ and minimum flat-colour region area. An entry in `bySlot` overrides only the val
 Heads keep more colours and a tighter curve because that is where the face lives; the body uses
 three colours because that is where the bytes live.
 
-**`props`** bind a costume island to a bone. `x` and `y` are written in **atlas pixels**,
-because that is the frame you are looking at when lining a cape up against a torso; the build
-scales them along with the art. `under` paints the piece behind the bone's own art.
-They remain baked into their owning body-part file in M1 so the existing atlases retain their
-appearance. M6 promotes them to independently anchored cosmetics.
+Costume islands in band 3 are source candidates, not part bindings. The part build reports and
+leaves them unused. Selected art is copied into `cosmetics/<set>/atlas.png`; its authored
+`set.json` gives every island a kind and a height in rig units. The wardrobe build traces that
+island once, while the renderer gets its anchor, depth slot and mirroring rule from the rig.
+No character sidecar accepts the old atlas-pixel `x`/`y` placement format.
 
 ## What the tracer is doing
 
