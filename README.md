@@ -77,7 +77,7 @@ chunk.
   `typescript`, `vite`, `vitest` and `wrangler`.
 - 43,158 raw / 15,617 gzip bytes across three production shell chunks. Art remains
   fetched and is not part of those chunks.
-- Ten gates in `verify`, plus typecheck, 116 tests across 26 files, and the production build.
+- Ten gates in `verify`, plus typecheck, 117 tests across 26 files, and the production build.
 
 These are measured repository and `dist/assets` totals, not budgets. Per-asset raw and gzip
 sizes remain ratcheted in `rigs/footprint.baseline.json`; a decrease passes and an increase must

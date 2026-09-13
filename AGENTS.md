@@ -78,8 +78,8 @@ It also carries the four things that make every piece interchangeable:
   what it needs, and lists in `fitted` the figures it actually suits rather than pretending to
   suit all of them. A piece may `hide` a slot, which drops that part's art instead of painting
   over it. Placement and hide coverage are mechanical; whether a piece suits a silhouette is
-  still a visual judgement. No shipped cosmetic currently uses `hides`, so that valid path is
-  covered by the guard's fixtures rather than production data.
+  still a visual judgement. The field kit's full helm hides `head`; the guard checks that
+  production piece against every figure it claims to fit, alongside its rejection fixtures.
 
 **A figure is a manifest, not a document.** `figures/<name>.json` names which part fills each
 slot, which cosmetics are worn and which rig it targets. The art it names may come from any
@@ -214,7 +214,7 @@ npm run check:cruft       reachability, docs, scripts and runtime dependencies
 npm run check:blender     Blender kinematics and real export round trip
 npm run assert-local-only reject production Cloudflare/deployment configuration
 npm run typecheck         validate the strip-only TypeScript dialect
-npm run test              run 116 tests across 26 files
+npm run test              run 117 tests across 26 files
 npm run test:watch        run Vitest in watch mode
 npm run verify            all ten gates, typecheck, tests and production build
 ```

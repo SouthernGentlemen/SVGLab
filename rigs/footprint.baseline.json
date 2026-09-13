@@ -180,20 +180,20 @@
   },
   "figures": {
     "figures/barst.json": {
-      "raw": 87839,
-      "gzip": 28766
+      "raw": 75171,
+      "gzip": 24378
     },
     "figures/fighter.json": {
-      "raw": 25351,
-      "gzip": 9733
+      "raw": 9729,
+      "gzip": 4159
     },
     "figures/kiran.json": {
-      "raw": 89538,
-      "gzip": 29351
+      "raw": 79479,
+      "gzip": 25948
     },
     "figures/yuliya.json": {
-      "raw": 100132,
-      "gzip": 32699
+      "raw": 87726,
+      "gzip": 28686
     }
   },
   "catalogs": {
@@ -221,6 +221,22 @@
     }
   },
   "cosmetics": {
+    "cosmetics/field-kit/field-belt.svg": {
+      "raw": 1605,
+      "gzip": 609
+    },
+    "cosmetics/field-kit/full-helm.svg": {
+      "raw": 4853,
+      "gzip": 1448
+    },
+    "cosmetics/field-kit/long-hair.svg": {
+      "raw": 2930,
+      "gzip": 1072
+    },
+    "cosmetics/field-kit/trail-cloak.svg": {
+      "raw": 3253,
+      "gzip": 1122
+    },
     "cosmetics/royal-guard/hood.svg": {
       "raw": 9455,
       "gzip": 3147

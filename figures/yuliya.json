@@ -16,8 +16,8 @@
     "head": "characters/yuliya/parts/head.svg"
   },
   "cosmetics": [
-    "cosmetics/royal-guard/hood.svg",
     "cosmetics/royal-guard/pauldron.svg",
-    "cosmetics/royal-guard/skirt.svg"
+    "cosmetics/field-kit/trail-cloak.svg",
+    "cosmetics/field-kit/long-hair.svg"
   ]
 }

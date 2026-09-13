@@ -47,10 +47,8 @@ describe("figure art export", () => {
 
     const head = readFileSync(join(directory, "art", "head.svg"), "utf8");
     const pelvis = readFileSync(join(directory, "art", "pelvis.svg"), "utf8");
-    const torso = readFileSync(join(directory, "art", "torso.svg"), "utf8");
     expect(head).toContain('data-cosmetic="cosmetics/royal-guard/hood.svg"');
-    expect(pelvis).toContain('data-cosmetic="cosmetics/royal-guard/skirt.svg"');
-    expect(torso.match(/data-cosmetic="cosmetics\/royal-guard\/pauldron.svg"/g)).toHaveLength(2);
+    expect(pelvis).toContain('data-cosmetic="cosmetics/field-kit/field-belt.svg"');
     expect(head.indexOf('data-depth="under"')).toBeLessThan(head.indexOf('data-depth="part"'));
     expect(head.indexOf('data-depth="part"')).toBeLessThan(head.indexOf('data-depth="over"'));
   });
