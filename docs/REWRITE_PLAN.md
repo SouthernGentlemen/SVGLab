@@ -463,14 +463,27 @@ found the parts of it that are missing.
 > The rig path is `rigs/<name>.rig.json` and a figure names its rig, so a second skeleton costs
 > a file rather than a fork.
 
-**C7 — "one character" stops being a meaningful unit.** As eleven part files a figure is
-64,100 / 81,101 / 113,690 raw and 20,549 / 25,693 / 35,681 gzip. yuliya clears the 35,840 gzip
-budget by 159 bytes.
+**C7 — the byte thresholds are guesses and should stop pretending otherwise.** 150 KB, 120 KB,
+60 KB, 1 MB were picked before anything was measured. Spike 7 shows what that costs: yuliya
+clears the 35,840 gzip figure by 159 bytes, so a tenth cosmetic fails a build against a number
+nobody chose on evidence. And "one character" is no longer even the unit — as eleven part files
+a figure is 64,100 / 81,101 / 113,690 raw.
 
-> **C7** measures *a figure* — the set of parts and cosmetics that assemble one — not a file,
-> and states both a per-figure bound (120 KB raw, 35 KB gzip) and a per-part bound so no single
-> part can be pathological. The measured largest part is yuliya's head at 51,711 bytes; a 64 KB
-> per-part bound leaves room without inviting it.
+> **C7 keeps its invariants as hard gates and turns its numbers into a ratchet.**
+>
+> Hard, and unchanged: zero runtime dependencies; art is never inlined into the bundle; no
+> raster ever reaches the shipped page. Those are architectural and a number cannot express
+> them — they are also what actually fixed the shell chunk, from 1,497,551 bytes to 44,427.
+>
+> The byte counts become a measured footprint with a committed baseline.
+> `check:footprint` prints every figure, every part, the catalog, the shell chunk and tracked
+> source, raw and gzip, and **fails when a number grows against the baseline** rather than when
+> it crosses a threshold. Growth is accepted by committing the new baseline, which puts the
+> increase in the diff where someone has to look at it.
+>
+> That is what "minimal" means while the shape is still moving: the direction is enforced, the
+> destination is not invented. Real thresholds go in when there is something to base them on.
+> `C7 — Footprint is a gate` stays true; the gate is "it did not get bigger".
 
 One more worth naming, though it contradicts nothing: gate 7's cost is 1.72 s, while building a
 reviewable `.blend` per clip is 13.97 s. Those stay two commands — `check:blender` is the gate,
@@ -517,12 +530,14 @@ Per-slot `trace` profiles in each `characters/<id>/atlas.json`.
 
 **Gate on.** `check:sprites`, `check:sockets`, and the figure half of `check:footprint`.
 
-**Done when.** A rebuild reproduces every committed part byte for byte; each figure is inside
-120 KB raw and 35 KB gzip and no single part exceeds the per-part bound — measured 64,100 /
-81,101 / 113,690 raw, largest part 51,711; emitted parts carry `data-bone` and no
+**Done when.** A rebuild reproduces every committed part byte for byte; `check:footprint`
+records a baseline for every figure and every part — measured 64,100 / 81,101 / 113,690 raw,
+largest part 51,711 — and fails on growth; emitted parts carry `data-bone` and no
 `data-x`/`data-y`; and **`check:sockets` assembles every part with every other part in its slot
 across every sheet and asserts the overlap at each joint**, which is 36 pairings per joint
-today and is the gate that makes the swap claim true rather than hoped for.
+today and is the gate that makes the swap claim true rather than hoped for. The sweep is
+all-pairs and stays all-pairs: a slow check that is actually exhaustive beats a fast one that
+approximates the claim it exists to prove.
 
 **Defers.** Cosmetics — M6. A figure at this point is body parts only.
 
@@ -536,8 +551,9 @@ today and is the gate that makes the swap claim true rather than hoped for.
 **Gate on.** `check:motions`, and the catalog half of `check:footprint`.
 
 **Done when.** Every kept clip is reproduced byte-identically; contact ticks are asserted
-against their move's active window; loop seams close; the shipped catalog is ≤ 60 KB —
-measured 37,710 — and every build also writes the studies to `out/`, where a Blender project
+against their move's active window; loop seams close; the shipped catalog is baselined at
+its measured 37,710 bytes and cannot grow without that showing in a diff; and every build also
+writes the studies to `out/`, where a Blender project
 is pointed and where nothing in the bundle can reach them.
 
 **Defers.** Blender, the exchange, and anything that reads a clip on a page.
@@ -587,9 +603,9 @@ names, and builds the posable node. Swapping a part is re-fetching one file.
 **Done when.** An edit saved in Blender shows up in the browser with no hand-run command
 (measured 185 ms save → page); the sidecar also serves the study clips out of `out/`, so the
 same file is reviewable in Blender and in the live preview without entering the catalog; parts
-are fetched on demand and no raster and no part SVG reaches the bundle; a part can be swapped
-in the preview without a reload; the shell chunk is ≤ 150 KB raw and ≤ 50 KB gzip — measured
-44,427 / 9,589, against a 1,497,551 / 408,778 baseline.
+are fetched on demand and **no raster and no part SVG reaches the bundle** — that invariant
+stays a hard gate, and it is what took the shell chunk from 1,497,551 bytes to a measured
+44,427 / 9,589; a part can be swapped in the preview without a reload.
 
 **Defers.** Editing poses in the page. The loop is Blender → disk → page; the sidecar's
 disk-write path exists and is proved but nothing in the page uses it yet.
@@ -604,16 +620,40 @@ differently from body parts and because nothing before this milestone can show o
 `pipelines/guards/wardrobe.ts`. `tests/wardrobe/*`. A cosmetic section in
 `figures/<name>.json`.
 
-A cosmetic declares `{ anchor, layer, height, align?, rotate?, hides? }` — an anchor name and a
-height in rig units, never a pixel offset in the sheet it was drawn on.
+A cosmetic declares `{ kind, anchor?, layer?, height?, align?, rotate?, hides?, fitted? }` — an
+anchor name and a height in rig units, never a pixel offset in the sheet it was drawn on.
+
+**`kind` is the important field.** There is no one set of rules that suits every cosmetic, and
+there does not need to be: a hat behaves like every other hat, a skirt like every other skirt.
+A kind is a named bundle of defaults and rules in the wardrobe contract, and a piece overrides
+what it needs:
+
+| kind | anchor | layer | notes |
+| --- | --- | --- | --- |
+| `hat` | `head.crown` | `over` | follows the head; usually `hides` nothing |
+| `mask` | `head.face` | `over` | follows the head |
+| `hair` | `head.nape` | `under` | behind the head art, in front of the torso |
+| `skirt` | `pelvis.waist` | `outer` | hangs from the pelvis; does **not** follow either leg |
+| `cloak` | `torso.neck` | `under` | behind the whole figure |
+| `pauldron` | `torso.shoulder-front` / `-back` | `over` | a mirrored pair, one per side |
+| `belt` | `pelvis.waist` | `over` | follows the pelvis |
+
+Kinds are expected to be added and tweaked as pieces are drawn. The contract's job is to make
+that a data change with a guard behind it, not a renderer change.
+
+`fitted` is the honest escape hatch: a piece that only works on some figures lists them, and
+the guard reports which figures a wardrobe covers instead of the renderer pretending a collar
+drawn for a narrow neck sits on a broad one. No one-size-fits-all is expected yet.
 
 **Gate on.** `check:wardrobe`.
 
-**Done when.** One cosmetic set renders correctly on every shipped figure without per-figure
-tuning — the measured failure it replaces is the same piece landing at −18.35, −14.00 and −8.72
-on three bodies; `hides` removes the part underneath rather than painting over it; the guard
-rejects an unknown anchor, an unknown depth slot, a `hides` naming a slot the figure does not
-have, and a cosmetic whose drawn extent does not cover what it claims to hide.
+**Done when.** A hat, a skirt and a pauldron — three kinds with genuinely different rules —
+each render on every figure their `fitted` list claims, with no per-figure tuning inside the
+renderer; the measured failure this replaces is one piece landing at −18.35, −14.00 and −8.72
+on three bodies. `hides` removes the part underneath rather than painting over it. The guard
+rejects an unknown kind, an unknown anchor, an unknown depth slot, a `hides` naming a slot the
+figure does not have, and a cosmetic whose drawn extent does not cover what it claims to hide;
+and it reports, per wardrobe, which figures every piece is fitted for.
 
 **Defers.** Rigid props. Weapons stay out of scope; `forearm.grip` exists so they can return
 without reshaping anything.
@@ -654,8 +694,8 @@ The milestones are already ordered, and the dependencies are real rather than co
    retarget (M2), the Blender armature (M3), the renderer (M5) and every cosmetic (M6). Spikes
    6 and 7 found it restated in five files, with three different numbers for one place on the
    forearm; every milestone after M0 removes one of those restatements.
-2. **M1 before M2** only because `check:footprint` is easier to land one budget at a time.
-   They are otherwise independent and could be swapped.
+2. **M1 before M2** only because `check:footprint` wants a baseline to exist before more
+   things are added to it. They are otherwise independent and could be swapped.
 3. **M3 needs M2** — there is nothing to export until clips exist.
 4. **M4 is independent of M1–M3** and could be done at any point after M0. It is placed fourth
    because M5 wants a kernel to drive.
@@ -917,6 +957,19 @@ contract problem.
 
 ## Decided
 
+**Footprint is a ratchet, not a threshold.** The numbers in C7 were picked before anything was
+measured. `check:footprint` records a baseline and fails on growth; the invariants it was
+really protecting — zero runtime dependencies, art never inlined, no raster on the page — stay
+hard gates. Minimal is enforced as a direction until there is something to base a number on.
+
+**Slow checks are accepted.** `check:sockets` stays an exhaustive all-pairs sweep.
+
+**Cosmetics are typed by kind, and kinds are expected to change.** A hat behaves like every
+other hat and a skirt like every other skirt, but there is no one set of rules for both. A kind
+is a named bundle of defaults in the wardrobe contract; adding or tweaking one is a data change
+with a guard behind it. A piece that only suits some figures says so in `fitted` rather than
+being forced to suit all of them.
+
 **The flat-colour look is accepted.** Per-slot knobs at head c12/e1.2 and everything else
 c3/e3.0, 1dp coordinates. Figures land at 64,790 / 81,791 / 114,371 bytes with faces intact;
 body shading gradients flatten and that reads as a deliberate style. C7's 120 KB stands.
@@ -992,17 +1045,12 @@ state). That split is what M0 wants anyway, so it is done early rather than twic
   construction and five runs agreed, but floating-point summation order across architectures is
   the classic way that promise breaks. Worth one check on a second machine before relying on
   it.
-- **`check:sockets` is quadratic in the number of sheets.** Three sheets is 36 pairings per
-  joint and runs instantly. Ten sheets is 400 per joint. The guard will need to compare each
-  part against the declared socket bounds rather than against every other part, with the
-  all-pairs sweep kept as a slower full check. I have not written either.
-- **yuliya clears the gzip budget by 159 bytes as eleven separate files.** Splitting costs ~4%
-  gzip because each file compresses alone, and that is the whole remaining margin. A tenth
-  cosmetic or a busier sheet crosses it. Either the budget counts a figure's parts compressed
-  together as they would be over one connection, or 35 KB is the wrong number.
+- **`check:sockets` is quadratic in the number of sheets** — 36 pairings per joint at three
+  sheets, 400 at ten. Slow checks are accepted, so it stays all-pairs; but nothing has been
+  written yet and I do not know where it stops being tolerable in practice.
 - **Cosmetic fit is unproven beyond placement.** I showed one piece landing identically on
-  three bodies. I did not show that a cosmetic drawn for one silhouette reads on another, and
-  no guard in the plan checks it.
+  three bodies. I did not show that a cosmetic drawn for one silhouette reads on another. The
+  `fitted` list is a way to say so honestly rather than a way to fix it.
 - **I have not run the whole `verify` chain end to end in the proposed shape**, only each gate
   against today's code. The interactions — particularly `check:footprint` reading a catalog
   that `check:motions` has just rebuilt — are planned, not measured.
