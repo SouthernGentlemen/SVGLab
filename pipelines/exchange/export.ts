@@ -7,8 +7,10 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "nod
 import { fileURLToPath } from "node:url";
 
 import type { Clip } from "../../src/clips/types.ts";
+import type { FigureManifest } from "../../src/render/manifest.ts";
 import type { Rig } from "../../src/rig/types.ts";
 import { buildCatalog } from "../motion/catalog.ts";
+import { validateAuthoredFigure } from "../render/manifest.ts";
 import { findBlender } from "../dev/find-blender.ts";
 import { boneArtSvg } from "./art.ts";
 import { clipToBvh } from "./bvh-write.ts";
@@ -17,14 +19,6 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const DEFAULT_OUT = join("out", "blender");
 const VALUE_FLAGS = new Set(["out", "figure"]);
 const BOOLEAN_FLAGS = new Set(["json", "blend"]);
-
-export interface FigureManifest {
-  readonly contract: number;
-  readonly name: string;
-  readonly rig: string;
-  readonly parts: Readonly<Record<string, string>>;
-  readonly cosmetics?: readonly unknown[];
-}
 
 interface Arguments {
   readonly clips: readonly string[];
@@ -83,18 +77,7 @@ function figurePath(requested: string | null): string {
 export function readFigure(requested: string | null, rig: Rig): { id: string; path: string; manifest: FigureManifest } {
   const path = figurePath(requested);
   if (!existsSync(path)) throw new Error(`figure manifest '${portable(path)}' does not exist`);
-  const manifest = JSON.parse(readFileSync(path, "utf8")) as FigureManifest;
-  if (manifest.contract !== 1 || typeof manifest.name !== "string" || !manifest.name) {
-    throw new Error(`${portable(path)} is not a supported figure manifest`);
-  }
-  if (manifest.rig !== rig.contract.id) {
-    throw new Error(`${portable(path)} targets rig '${manifest.rig}', not '${rig.contract.id}'`);
-  }
-  const expected = [...new Set(rig.bones.map((bone) => bone.slot))].sort();
-  const actual = Object.keys(manifest.parts ?? {}).sort();
-  if (JSON.stringify(expected) !== JSON.stringify(actual)) {
-    throw new Error(`${portable(path)} does not select exactly one part for every rig slot`);
-  }
+  const manifest = validateAuthoredFigure(JSON.parse(readFileSync(path, "utf8")) as unknown, portable(path), rig);
   for (const bone of rig.bones) {
     const reference = manifest.parts[bone.slot];
     const partPath = resolve(ROOT, reference);

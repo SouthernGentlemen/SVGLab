@@ -4,16 +4,13 @@ import { inspectCosmetic, placementTransform, resolveCosmeticPlacements } from "
 import type { CosmeticPlacement } from "../../pipelines/wardrobe/place.ts";
 import type { CosmeticPiece, WardrobeSet } from "../../pipelines/wardrobe/types.ts";
 import { validateWardrobeSet } from "../../pipelines/wardrobe/types.ts";
+import { cosmeticReference, figurePath, inspectPart, validateFigure } from "./manifest.ts";
+import type { FigureManifest } from "./manifest.ts";
+
+export { inspectPart, validateFigure } from "./manifest.ts";
+export type { FigureManifest } from "./manifest.ts";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-
-export interface FigureManifest {
-  readonly contract: number;
-  readonly name: string;
-  readonly rig: string;
-  readonly parts: Readonly<Record<string, string>>;
-  readonly cosmetics: readonly string[];
-}
 
 export interface FigureIndexEntry {
   readonly id: string;
@@ -66,32 +63,6 @@ async function fetchJson(url: string, fetcher: Fetcher): Promise<unknown> {
   return JSON.parse(await fetchText(url, fetcher)) as unknown;
 }
 
-export function validateFigure(value: unknown, id = "figure"): FigureManifest {
-  if (typeof value !== "object" || value === null) throw new Error(`${id}: manifest is not an object`);
-  const figure = value as FigureManifest;
-  if (figure.contract !== 1) throw new Error(`${id}: unsupported figure contract ${figure.contract}`);
-  if (typeof figure.name !== "string" || !figure.name) throw new Error(`${id}: manifest has no name`);
-  if (typeof figure.rig !== "string" || !figure.rig) throw new Error(`${id}: manifest has no rig`);
-  if (typeof figure.parts !== "object" || figure.parts === null || Array.isArray(figure.parts)) {
-    throw new Error(`${id}: manifest has no parts map`);
-  }
-  if (!Array.isArray(figure.cosmetics) || figure.cosmetics.some((reference) => typeof reference !== "string")) {
-    throw new Error(`${id}: manifest has no cosmetics list`);
-  }
-  if (new Set(figure.cosmetics).size !== figure.cosmetics.length) throw new Error(`${id}: repeats a cosmetic`);
-  return figure;
-}
-
-export function inspectPart(source: string, expectedBone: string, reference: string): void {
-  const names = [...source.matchAll(/\bdata-bone\s*=\s*(["'])([^"']+)\1/g)].map((match) => match[2]);
-  if (names.length !== 1 || names[0] !== expectedBone) {
-    throw new Error(`${reference}: expected exactly data-bone="${expectedBone}"`);
-  }
-  if (/\bdata-[xy]\s*=/.test(source)) {
-    throw new Error(`${reference}: carries a skeleton offset; offsets belong only to the rig`);
-  }
-}
-
 /** The hierarchy's actual paint order must be the explicit order C1 declares. */
 export function assemblyPaintOrder(rig: Rig): string[] {
   const order: string[] = [];
@@ -125,21 +96,11 @@ function cosmeticChildren(source: string, pieceId: string, reference: string): S
   return [...parsed.documentElement.children].map((child) => document.importNode(child, true) as SVGElement);
 }
 
-function cosmeticReference(reference: string): { pieceId: string; setPath: string } {
-  const match = reference.match(/^cosmetics\/([a-z][a-z0-9-]*)\/([a-z][a-z0-9-]*)\.svg$/);
-  if (!match) throw new Error(`invalid cosmetic reference '${reference}'`);
-  return { pieceId: match[2], setPath: `cosmetics/${match[1]}/set.json` };
-}
-
 function replacePartArt(layer: SVGGElement, source: string, bone: string, reference: string): void {
   const guide = document.createElementNS(SVG_NS, "circle");
   guide.classList.add("joint-guide");
   guide.setAttribute("r", bone === "pelvis" || bone === "torso" ? "2.5" : "2.2");
   layer.replaceChildren(...partChildren(source, bone, reference), guide);
-}
-
-function figurePath(reference: string): string {
-  return reference.endsWith(".json") || reference.includes("/") ? reference : `figures/${reference}.json`;
 }
 
 export async function loadFigureManifest(

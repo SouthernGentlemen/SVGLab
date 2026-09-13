@@ -198,8 +198,8 @@
   },
   "catalogs": {
     "src/clips/generated/authored.ts": {
-      "raw": 741,
-      "gzip": 444
+      "raw": 1676,
+      "gzip": 651
     },
     "src/clips/generated/bandai-namco.ts": {
       "raw": 37695,
@@ -209,15 +209,15 @@
   "shells": {
     "dist/assets/preview.js": {
       "raw": 6870,
-      "gzip": 2692
+      "gzip": 2696
     },
     "dist/assets/skeleton.js": {
-      "raw": 20037,
-      "gzip": 6948
+      "raw": 20087,
+      "gzip": 6963
     },
     "dist/assets/stage.js": {
       "raw": 16201,
-      "gzip": 5956
+      "gzip": 5958
     }
   },
   "cosmetics": {

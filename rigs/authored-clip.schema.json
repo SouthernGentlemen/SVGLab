@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://svglab.local/rigs/authored-clip.schema.json",
+  "title": "SVGLab authored clip",
+  "description": "Authored source at 60 Hz. build:motions also checks frame order, duration bounds, loop closure, file-name agreement, provenance, and rig references.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "key",
+    "derivedFrom",
+    "loop",
+    "duration",
+    "easing",
+    "note",
+    "keyframes"
+  ],
+  "properties": {
+    "key": {
+      "type": "string",
+      "pattern": "^(bnr|lab)[A-Za-z0-9]+$"
+    },
+    "derivedFrom": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "loop": {
+      "type": "boolean"
+    },
+    "duration": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Duration in integer 60 Hz ticks."
+    },
+    "easing": {
+      "enum": [
+        "linear",
+        "smoothstep"
+      ]
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "keyframes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "frame",
+          "bones"
+        ],
+        "properties": {
+          "frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bones": {
+            "type": "object",
+            "propertyNames": {
+              "enum": [
+                "arm-back",
+                "arm-front",
+                "forearm-back",
+                "forearm-front",
+                "head",
+                "leg-back",
+                "leg-front",
+                "pelvis",
+                "shin-back",
+                "shin-front",
+                "torso"
+              ]
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/bonePose"
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "key": {
+            "pattern": "^lab"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      },
+      "then": {
+        "properties": {
+          "derivedFrom": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "key": {
+            "pattern": "^bnr"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      },
+      "then": {
+        "properties": {
+          "derivedFrom": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "bonePose": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "rotation": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}

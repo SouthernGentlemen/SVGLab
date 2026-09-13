@@ -13,6 +13,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { hierarchyOrder, validateRig } from "../../src/rig/contract.ts";
+import { syncSchemas } from "../render/schemas.ts";
 
 const args = process.argv.slice(2);
 const asJson = args.includes("--json");
@@ -61,8 +62,12 @@ for (const path of paths) {
   }
 }
 
+const schemas = syncSchemas(process.cwd(), true);
+const staleSchemas = schemas.filter((schema) => schema.changed);
+failed ||= staleSchemas.length > 0;
+
 if (asJson) {
-  console.log(JSON.stringify({ ok: !failed, rigs: reports }, null, 2));
+  console.log(JSON.stringify({ ok: !failed, rigs: reports, schemas, staleSchemas: staleSchemas.length }, null, 2));
 } else {
   for (const report of reports) {
     if (report.ok) {
@@ -72,6 +77,11 @@ if (asJson) {
       console.error(`${report.path}  ${report.error}`);
     }
   }
+  for (const schema of staleSchemas) {
+    console.error(`${schema.path} is stale (${schema.byteDelta >= 0 ? "+" : ""}${schema.byteDelta} bytes) — `
+      + "run node pipelines/render/schemas.ts and review the schema diff");
+  }
+  if (staleSchemas.length === 0) console.log(`check:rig: ${schemas.length} authored schemas match the validator rules`);
 }
 
 process.exit(failed ? 1 : 0);

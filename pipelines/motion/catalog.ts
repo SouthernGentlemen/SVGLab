@@ -12,6 +12,10 @@ export const MANIFEST_PATH = join("motions", "bandai-namco-motiondataset-1.json"
 export const AUTHORED_DIR = join("motions", "authored");
 export const AUTHORED_OUTPUT = join("src", "clips", "generated", "authored.ts");
 export const EASINGS = ["linear", "smoothstep"] as const;
+export const AUTHORED_KEY_PATTERN_SOURCE = "^(bnr|lab)[A-Za-z0-9]+$";
+export const POSE_PROPERTIES = ["x", "y", "rotation"] as const;
+export const AUTHORED_CLIP_FIELDS = ["key", "derivedFrom", "loop", "duration", "easing", "note", "keyframes"] as const;
+export const KEYFRAME_FIELDS = ["frame", "bones"] as const;
 
 export type ClipLane = "shipped" | "study";
 
@@ -137,7 +141,9 @@ export function validateAuthoredClip(
   }
 
   if (!candidate || typeof candidate !== "object") fail("is not an object");
-  if (typeof candidate.key !== "string" || !/^(bnr|lab)[A-Za-z0-9]+$/.test(candidate.key)) {
+  const unknown = Object.keys(candidate).filter((field) => !(AUTHORED_CLIP_FIELDS as readonly string[]).includes(field));
+  if (unknown.length > 0) fail(`has unknown fields: ${unknown.join(", ")}`);
+  if (typeof candidate.key !== "string" || !new RegExp(AUTHORED_KEY_PATTERN_SOURCE).test(candidate.key)) {
     fail("key must be a bnr* adaptation or a lab* original");
   }
   if (context.file !== undefined && context.file !== `${candidate.key}.json`) {
@@ -145,7 +151,9 @@ export function validateAuthoredClip(
   }
 
   const derived = candidate.key.startsWith("bnr");
-  if (derived && typeof candidate.derivedFrom !== "string") fail("a bnr* clip must name the clip it was derived from");
+  if (derived && (typeof candidate.derivedFrom !== "string" || candidate.derivedFrom === "")) {
+    fail("a bnr* clip must name the clip it was derived from");
+  }
   if (!derived && candidate.derivedFrom !== null) fail("a lab* clip must set derivedFrom to null");
   if (derived && context.bandaiNamco && !(candidate.derivedFrom! in context.bandaiNamco)) {
     fail(`derivedFrom '${candidate.derivedFrom}' is not a manifest clip`);
@@ -161,17 +169,23 @@ export function validateAuthoredClip(
 
   let previous = -1;
   for (const keyframe of candidate.keyframes) {
+    if (typeof keyframe !== "object" || keyframe === null || Array.isArray(keyframe)) fail("has a keyframe that is not an object");
+    const unknownKeyframe = Object.keys(keyframe).filter((field) => !(KEYFRAME_FIELDS as readonly string[]).includes(field));
+    if (unknownKeyframe.length > 0) fail(`keyframe has unknown fields: ${unknownKeyframe.join(", ")}`);
     if (!Number.isInteger(keyframe.frame)) fail("keyframe frames must be whole ticks");
     if (keyframe.frame <= previous) fail(`keyframe ${keyframe.frame} is out of order`);
     if (keyframe.frame < 0 || keyframe.frame > candidate.duration!) {
       fail(`keyframe ${keyframe.frame} is outside 0-${candidate.duration}`);
     }
     previous = keyframe.frame;
-    if (!keyframe.bones || typeof keyframe.bones !== "object") fail(`keyframe ${keyframe.frame} has no bones`);
+    if (!keyframe.bones || typeof keyframe.bones !== "object" || Array.isArray(keyframe.bones)) {
+      fail(`keyframe ${keyframe.frame} has no bones`);
+    }
     for (const [bone, pose] of Object.entries(keyframe.bones)) {
       if (context.rig && !context.rig.byName.has(bone)) fail(`keyframe ${keyframe.frame} poses unknown bone '${bone}'`);
+      if (typeof pose !== "object" || pose === null || Array.isArray(pose)) fail(`keyframe ${keyframe.frame} has invalid pose for '${bone}'`);
       for (const [property, propertyValue] of Object.entries(pose as Record<string, unknown>)) {
-        if (!["x", "y", "rotation"].includes(property)) {
+        if (!(POSE_PROPERTIES as readonly string[]).includes(property)) {
           fail(`keyframe ${keyframe.frame} sets unknown property '${property}'`);
         }
         if (!Number.isFinite(propertyValue)) {

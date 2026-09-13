@@ -70,6 +70,6 @@ describe("BVH exchange", () => {
   });
 
   it("keeps every synthetic and validation regression case green", () => {
-    expect(checkExchange()).toMatchObject({ ok: true, clips: 11, failures: [] });
+    expect(checkExchange()).toMatchObject({ ok: true, clips: 12, failures: [] });
   });
 });
