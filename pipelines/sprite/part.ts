@@ -25,16 +25,6 @@ export interface AtlasOptions {
   readonly pivots?: Readonly<Record<string, readonly [number, number]>>;
   readonly height?: unknown;
   readonly proportions?: unknown;
-  readonly props?: readonly AtlasProp[];
-}
-
-export interface AtlasProp {
-  readonly slot: string;
-  readonly bone: string;
-  readonly x?: number;
-  readonly y?: number;
-  readonly rotate?: number;
-  readonly under?: boolean;
 }
 
 export interface BuiltPart {
@@ -98,7 +88,6 @@ export function buildParts(atlasPath: string, options: AtlasOptions, rig: Rig): 
   const {
     trace = {},
     pivots = {},
-    props = [],
     name = "",
   } = options;
 
@@ -114,30 +103,6 @@ export function buildParts(atlasPath: string, options: AtlasOptions, rig: Rig): 
   const traceIsland = (slot: string, island: Island, origin: { readonly x: number; readonly y: number }, scale: number) => (
     tracePart(cutIsland(atlas, labels, island), origin, { ...traceOptionsFor(trace, slot), scale })
   );
-
-  // A costume island is not a body part: a cape, a skirt or a hood has no joint of its own,
-  // it rides a bone that does. The sidecar says which bone and where, and anything it does
-  // not claim is left out of the file rather than shipped as dead weight. M6 promotes these
-  // bindings to independent cosmetics; until then they remain baked into their owner's part.
-  const bindings = new Map(props.map((prop) => [prop.slot, prop]));
-  const over: Record<string, string> = {};
-  const under: Record<string, string> = {};
-  for (const [slot, prop] of bindings) {
-    const island = slots.get(slot);
-    if (!island) throw new Error(`${name}: the atlas has no ${slot} to bind`);
-    const bone = rig.byName.get(prop.bone);
-    if (!bone) throw new Error(`${name}: ${slot} is bound to unknown bone ${prop.bone}`);
-    const scale = scales[bone.slot];
-    const { paths } = traceIsland(slot, island, { x: island.w / 2, y: island.h / 2 }, scale);
-    // Offsets are written in atlas pixels, because that is the frame an author is looking at
-    // when they line a cape up against a torso. The art around them is emitted at the
-    // character's authored size, so the offset has to come along.
-    const place = (value?: number): number => Math.round((value ?? 0) * scale * 100) / 100;
-    const transform = `translate(${place(prop.x)} ${place(prop.y)})${prop.rotate ? ` rotate(${prop.rotate})` : ""}`;
-    const markup = `<g transform="${transform}">${renderPaths(paths)}</g>`;
-    const target = prop.under ? under : over;
-    target[prop.bone] = (target[prop.bone] ?? "") + markup;
-  }
 
   let palette = 0;
   const parts = new Map<string, BuiltPart>();
@@ -166,7 +131,7 @@ export function buildParts(atlasPath: string, options: AtlasOptions, rig: Rig): 
     parts.set(slot, {
       bone: bone.name,
       slot,
-      art: `${under[bone.name] ?? ""}${renderPaths(traced.paths)}${hand}${over[bone.name] ?? ""}`,
+      art: `${renderPaths(traced.paths)}${hand}`,
       colours: traced.palette.length,
     });
   }
@@ -174,11 +139,11 @@ export function buildParts(atlasPath: string, options: AtlasOptions, rig: Rig): 
   const used = new Set([
     ...rig.bones.map((bone) => bone.slot),
     ...rig.bones.flatMap((bone) => bone.hand ? [bone.hand] : []),
-    ...bindings.keys(),
   ]);
   const unused = [...slots.keys()].filter((slot) => !used.has(slot));
+  const props = [...slots.keys()].filter((slot) => slot.startsWith("prop_")).length;
 
-  return { parts, scales, palette, props: bindings.size, unused, slots };
+  return { parts, scales, palette, props, unused, slots };
 }
 
 /** Serialises one built part. The rig offset is absent on purpose: C1 owns it. */

@@ -21,6 +21,7 @@ import type { Rig } from "../../src/rig/types.ts";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const FIGURES = join(ROOT, "figures");
 const CHARACTERS = join(ROOT, "characters");
+const COSMETICS = join(ROOT, "cosmetics");
 const CLIPS = join(ROOT, "src", "clips", "generated");
 const RIGS = join(ROOT, "rigs");
 const DIST = join(ROOT, "dist");
@@ -34,6 +35,7 @@ export interface Size {
 export interface FootprintMeasurements {
   readonly contract: 1;
   readonly parts: Readonly<Record<string, Size>>;
+  readonly cosmetics?: Readonly<Record<string, Size>>;
   readonly figures: Readonly<Record<string, Size>>;
   readonly catalogs?: Readonly<Record<string, Size>>;
   readonly shells?: Readonly<Record<string, Size>>;
@@ -44,7 +46,7 @@ export interface FigureManifest {
   readonly name: string;
   readonly rig: string;
   readonly parts: Readonly<Record<string, string>>;
-  readonly cosmetics?: readonly unknown[];
+  readonly cosmetics?: readonly string[];
 }
 
 export interface Growth {
@@ -143,6 +145,7 @@ export function readFigure(path: string): FigureManifest {
 /** Measure generated files individually, then a figure as the sum of the parts it asks the renderer to fetch. */
 export function measureFootprint(): FootprintMeasurements {
   const parts = Object.fromEntries(svgFiles(CHARACTERS).map((path) => [portable(path), bytes(path)]));
+  const cosmetics = Object.fromEntries(svgFiles(COSMETICS).map((path) => [portable(path), bytes(path)]));
   const catalogs = Object.fromEntries(typescriptFiles(CLIPS).map((path) => [portable(path), bytes(path)]));
   const figures: Record<string, Size> = {};
   for (const path of jsonFiles(FIGURES)) {
@@ -154,13 +157,18 @@ export function measureFootprint(): FootprintMeasurements {
       raw += size.raw;
       gzip += size.gzip;
     }
+    for (const reference of figure.cosmetics ?? []) {
+      const size = bytes(resolve(ROOT, reference));
+      raw += size.raw;
+      gzip += size.gzip;
+    }
     figures[portable(path)] = { raw, gzip };
   }
-  return { contract: 1, parts, figures, catalogs, shells: shellChunks() };
+  return { contract: 1, parts, cosmetics, figures, catalogs, shells: shellChunks() };
 }
 
 function compareSection(
-  section: "parts" | "figures" | "catalogs" | "shells",
+  section: "parts" | "cosmetics" | "figures" | "catalogs" | "shells",
   actual: Readonly<Record<string, Size>>,
   baseline: Readonly<Record<string, Size>>,
 ): Growth[] {
@@ -187,6 +195,7 @@ export function compareFootprint(
 ): Growth[] {
   return [
     ...compareSection("parts", actual.parts, baseline.parts ?? {}),
+    ...compareSection("cosmetics", actual.cosmetics ?? {}, baseline.cosmetics ?? {}),
     ...compareSection("figures", actual.figures, baseline.figures ?? {}),
     ...compareSection("catalogs", actual.catalogs ?? {}, baseline.catalogs ?? {}),
     ...compareSection("shells", actual.shells ?? {}, baseline.shells ?? {}),
@@ -200,7 +209,7 @@ export function checkInvariants(): string[] {
   if (packageJson.dependencies && Object.keys(packageJson.dependencies).length > 0) {
     failures.push("package.json has runtime dependencies; C7 requires zero");
   }
-  for (const path of svgFiles(CHARACTERS)) {
+  for (const path of [...svgFiles(CHARACTERS), ...svgFiles(COSMETICS)]) {
     const source = readFileSync(path, "utf8");
     if (/<image\b|data:image|\.png\b/i.test(source)) failures.push(`${portable(path)} contains raster art`);
   }
@@ -277,6 +286,7 @@ export function main(argv: readonly string[]): number {
       }
       if (write) console.log(`check:footprint: wrote ${portable(BASELINE)}`);
       else if (ok) console.log(`check:footprint: ${Object.keys(measurements.parts).length} parts, `
+        + `${Object.keys(measurements.cosmetics ?? {}).length} cosmetics, `
         + `${Object.keys(measurements.figures).length} figures, ${Object.keys(measurements.catalogs ?? {}).length} catalogs and `
         + `${Object.keys(measurements.shells ?? {}).length} shell chunks did not grow`);
     }

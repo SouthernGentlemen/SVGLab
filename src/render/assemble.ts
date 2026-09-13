@@ -1,5 +1,9 @@
 import { validateRig } from "../rig/contract.ts";
 import type { Rig } from "../rig/types.ts";
+import { inspectCosmetic, placementTransform, resolveCosmeticPlacements } from "../../pipelines/wardrobe/place.ts";
+import type { CosmeticPlacement } from "../../pipelines/wardrobe/place.ts";
+import type { CosmeticPiece, WardrobeSet } from "../../pipelines/wardrobe/types.ts";
+import { validateWardrobeSet } from "../../pipelines/wardrobe/types.ts";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -8,7 +12,7 @@ export interface FigureManifest {
   readonly name: string;
   readonly rig: string;
   readonly parts: Readonly<Record<string, string>>;
-  readonly cosmetics?: readonly unknown[];
+  readonly cosmetics: readonly string[];
 }
 
 export interface FigureIndexEntry {
@@ -26,9 +30,19 @@ export interface FigureNode {
   readonly root: SVGGElement;
   readonly bones: Map<string, SVGGElement>;
   readonly art: Map<string, SVGGElement>;
+  readonly depthLayers: Map<string, ReadonlyMap<string, SVGGElement>>;
   readonly sources: Map<string, string>;
+  readonly cosmetics: Map<string, CosmeticNode>;
   readonly manifest: FigureManifest;
   readonly rig: Rig;
+}
+
+export interface CosmeticNode {
+  readonly reference: string;
+  readonly piece: CosmeticPiece;
+  readonly placements: readonly CosmeticPlacement[];
+  readonly elements: readonly SVGGElement[];
+  enabled: boolean;
 }
 
 export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -61,6 +75,10 @@ export function validateFigure(value: unknown, id = "figure"): FigureManifest {
   if (typeof figure.parts !== "object" || figure.parts === null || Array.isArray(figure.parts)) {
     throw new Error(`${id}: manifest has no parts map`);
   }
+  if (!Array.isArray(figure.cosmetics) || figure.cosmetics.some((reference) => typeof reference !== "string")) {
+    throw new Error(`${id}: manifest has no cosmetics list`);
+  }
+  if (new Set(figure.cosmetics).size !== figure.cosmetics.length) throw new Error(`${id}: repeats a cosmetic`);
   return figure;
 }
 
@@ -98,6 +116,19 @@ function partChildren(source: string, expectedBone: string, reference: string): 
   if (parsed.querySelector("parsererror")) throw new Error(`${reference}: invalid SVG`);
   const svg = parsed.documentElement;
   return [...svg.children].map((child) => document.importNode(child, true) as SVGElement);
+}
+
+function cosmeticChildren(source: string, pieceId: string, reference: string): SVGElement[] {
+  inspectCosmetic(source, pieceId, reference);
+  const parsed = new DOMParser().parseFromString(source, "image/svg+xml");
+  if (parsed.querySelector("parsererror")) throw new Error(`${reference}: invalid SVG`);
+  return [...parsed.documentElement.children].map((child) => document.importNode(child, true) as SVGElement);
+}
+
+function cosmeticReference(reference: string): { pieceId: string; setPath: string } {
+  const match = reference.match(/^cosmetics\/([a-z][a-z0-9-]*)\/([a-z][a-z0-9-]*)\.svg$/);
+  if (!match) throw new Error(`invalid cosmetic reference '${reference}'`);
+  return { pieceId: match[2], setPath: `cosmetics/${match[1]}/set.json` };
 }
 
 function replacePartArt(layer: SVGGElement, source: string, bone: string, reference: string): void {
@@ -154,32 +185,108 @@ export async function assembleFigure(
 
   const root = document.createElementNS(SVG_NS, "g");
   root.classList.add("fighter", `fighter--${role}`);
-  root.dataset.figure = reference.replace(/^.*\//, "").replace(/\.json$/, "");
+  const figureId = reference.replace(/^.*\//, "").replace(/\.json$/, "");
+  root.dataset.figure = figureId;
   const bones = new Map<string, SVGGElement>();
   const art = new Map<string, SVGGElement>();
+  const depthLayers = new Map<string, ReadonlyMap<string, SVGGElement>>();
   const sources = new Map<string, string>();
+  const cosmetics = new Map<string, CosmeticNode>();
 
   for (const bone of rig.bones) {
     const group = document.createElementNS(SVG_NS, "g");
     group.dataset.bone = bone.name;
     group.dataset.paintOrder = String(rig.contract.paintOrder.indexOf(bone.name));
+    const layers = new Map<string, SVGGElement>();
+    for (const slot of rig.contract.depthSlots) {
+      const depth = document.createElementNS(SVG_NS, "g");
+      depth.dataset.depthSlot = slot;
+      layers.set(slot, depth);
+    }
     const layer = document.createElementNS(SVG_NS, "g");
     layer.dataset.part = bone.slot;
     const loaded = parts.get(bone.name)!;
     replacePartArt(layer, loaded.source, bone.name, loaded.reference);
+    layers.get("part")!.appendChild(layer);
     bones.set(bone.name, group);
     art.set(bone.name, layer);
+    depthLayers.set(bone.name, layers);
     sources.set(bone.name, loaded.reference);
   }
 
   for (const bone of rig.bones) {
     const group = bones.get(bone.name)!;
     for (const entry of rig.contract.documentOrder[bone.name]) {
-      group.appendChild(entry === "@part" ? art.get(bone.name)! : bones.get(entry)!);
+      if (entry === "@part") {
+        for (const slot of rig.contract.depthSlots) group.appendChild(depthLayers.get(bone.name)!.get(slot)!);
+      } else group.appendChild(bones.get(entry)!);
     }
   }
+
+  const sets = new Map<string, Promise<WardrobeSet>>();
+  await Promise.all(manifest.cosmetics.map(async (cosmeticPath) => {
+    const { pieceId, setPath } = cosmeticReference(cosmeticPath);
+    let setRequest = sets.get(setPath);
+    if (!setRequest) {
+      setRequest = fetchJson(assetUrl(setPath, baseUrl), fetcher)
+        .then((value) => validateWardrobeSet(value, setPath));
+      sets.set(setPath, setRequest);
+    }
+    const [set, source] = await Promise.all([
+      setRequest,
+      fetchText(assetUrl(cosmeticPath, baseUrl), fetcher),
+    ]);
+    if (set.rig !== rig.contract.id) throw new Error(`${setPath}: targets rig '${set.rig}', not '${rig.contract.id}'`);
+    const piece = set.pieces[pieceId];
+    if (!piece) throw new Error(`${cosmeticPath}: is not declared in ${setPath}`);
+    if (piece.fitted && !piece.fitted.includes(figureId)) {
+      throw new Error(`${cosmeticPath}: is not fitted for figure '${figureId}'`);
+    }
+    const asset = inspectCosmetic(source, pieceId, cosmeticPath);
+    const placements = resolveCosmeticPlacements(rig, set, pieceId, asset.height);
+    const children = cosmeticChildren(source, pieceId, cosmeticPath);
+    const elements = placements.map((placement) => {
+      const element = document.createElementNS(SVG_NS, "g");
+      element.dataset.cosmetic = cosmeticPath;
+      element.dataset.anchor = placement.anchor;
+      element.setAttribute("transform", placementTransform(placement));
+      appendAll(element, ...children.map((child) => child.cloneNode(true) as SVGElement));
+      depthLayers.get(placement.bone)!.get(placement.layer)!.appendChild(element);
+      return element;
+    });
+    cosmetics.set(cosmeticPath, { reference: cosmeticPath, piece, placements, elements, enabled: true });
+  }));
   root.appendChild(bones.get(rig.root)!);
-  return { root, bones, art, sources, manifest, rig };
+  const node = { root, bones, art, depthLayers, sources, cosmetics, manifest, rig };
+  refreshHiddenParts(node);
+  return node;
+}
+
+export function hiddenPartSlots(cosmetics: Iterable<CosmeticNode>): Set<string> {
+  return new Set([...cosmetics].filter((cosmetic) => cosmetic.enabled)
+    .flatMap((cosmetic) => cosmetic.piece.hides ?? []));
+}
+
+function refreshHiddenParts(node: FigureNode): void {
+  const hidden = hiddenPartSlots(node.cosmetics.values());
+  for (const bone of node.rig.bones) {
+    const layer = node.art.get(bone.name)!;
+    const parent = node.depthLayers.get(bone.name)!.get("part")!;
+    if (hidden.has(bone.slot)) layer.remove();
+    else if (layer.parentNode !== parent) parent.appendChild(layer);
+  }
+}
+
+/** Toggles already-fetched art; the figure hierarchy and current pose stay alive. */
+export function setCosmeticEnabled(node: FigureNode, reference: string, enabled: boolean): void {
+  const cosmetic = node.cosmetics.get(reference);
+  if (!cosmetic) throw new Error(`figure has no cosmetic '${reference}'`);
+  cosmetic.enabled = enabled;
+  for (const element of cosmetic.elements) {
+    if (enabled) element.removeAttribute("display");
+    else element.setAttribute("display", "none");
+  }
+  refreshHiddenParts(node);
 }
 
 /** Re-fetches exactly one asset and keeps the posed hierarchy alive. */

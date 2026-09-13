@@ -292,6 +292,7 @@ def main():
     directory = script_directory()
     path = clip_path(directory, clip)
     name = os.path.splitext(os.path.basename(path))[0]
+    bpy.ops.wm.read_factory_settings(use_empty=True)
 
     joints, frame_time, frames = read_bvh(path)
     if abs(frame_time - 1.0 / 60.0) > 0.0001:

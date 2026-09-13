@@ -16,6 +16,8 @@
     "build:parts": "node pipelines/sprite/build.ts",
     "check:sprites": "node pipelines/sprite/build.ts --check",
     "check:sockets": "node pipelines/guards/sockets.ts",
+    "build:cosmetics": "node pipelines/wardrobe/build.ts",
+    "check:wardrobe": "node pipelines/wardrobe/build.ts --check && node pipelines/guards/wardrobe.ts",
     "build:motions": "node pipelines/motion/build.ts",
     "check:motions": "node pipelines/motion/build.ts --check",
     "export:motions": "node pipelines/exchange/export.ts",
@@ -27,7 +29,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run check:rig && npm run check:sprites && npm run check:sockets && npm run check:motions && npm run check:exchange && npm run build && npm run check:footprint && npm run typecheck && npm test && npm run assert-local-only && npm run check:blender"
+    "verify": "npm run check:rig && npm run check:sprites && npm run check:sockets && npm run check:motions && npm run check:exchange && npm run check:wardrobe && npm run build && npm run check:footprint && npm run typecheck && npm test && npm run assert-local-only && npm run check:blender"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260911.1",

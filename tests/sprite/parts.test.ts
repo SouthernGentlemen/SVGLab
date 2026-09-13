@@ -52,7 +52,11 @@ describe("atlas-built body parts and figure manifests", () => {
       const figure = readFigure(`figures/${id}.json`);
       expect(figure.rig).toBe("fighter");
       expect(Object.keys(figure.parts).sort()).toEqual(rig.bones.map((bone) => bone.slot).sort());
-      expect(figure.cosmetics).toEqual([]);
+      expect(figure.cosmetics).toEqual([
+        "cosmetics/royal-guard/hood.svg",
+        "cosmetics/royal-guard/pauldron.svg",
+        "cosmetics/royal-guard/skirt.svg",
+      ]);
     }
   });
 
@@ -60,10 +64,11 @@ describe("atlas-built body parts and figure manifests", () => {
     const actual = measureFootprint();
     const baseline = JSON.parse(readFileSync("rigs/footprint.baseline.json", "utf8")) as FootprintMeasurements;
     expect(Object.keys(actual.parts)).toHaveLength((IDS.length + 1) * 11);
+    expect(Object.keys(actual.cosmetics ?? {})).toHaveLength(3);
     expect(Object.keys(actual.figures)).toHaveLength(IDS.length + 1);
     expect(compareFootprint(actual, baseline)).toEqual([]);
-    expect(actual.figures["figures/yuliya.json"].raw).toBe(113_690);
-    expect(actual.parts["characters/yuliya/parts/head.svg"].raw).toBe(51_711);
+    expect(actual.figures["figures/yuliya.json"].raw).toBe(100_132);
+    expect(actual.parts["characters/yuliya/parts/head.svg"].raw).toBe(44_558);
     expect(checkInvariants()).toEqual([]);
   });
 

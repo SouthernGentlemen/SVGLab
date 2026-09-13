@@ -5,7 +5,7 @@ import { sampleClip } from "../rig/sample.ts";
 import { advancePreviewFrame, previewLastFrame } from "../clips/playback.ts";
 import { fetchRuntimeCatalog, watchRuntimeCatalog } from "../clips/runtime.ts";
 import type { RuntimeCatalog } from "../clips/runtime.ts";
-import { assembleFigure, loadFigureIndex, loadFigureManifest, swapPart } from "../render/assemble.ts";
+import { assembleFigure, loadFigureIndex, loadFigureManifest, setCosmeticEnabled, swapPart } from "../render/assemble.ts";
 import type { FigureIndex, FigureManifest, FigureNode } from "../render/assemble.ts";
 import { applyPose, depthProfileFor, placeFigure } from "../render/place.ts";
 import { updateSkeletonOverlay } from "../render/skeleton-overlay.ts";
@@ -29,6 +29,8 @@ const figureSelect = required<HTMLSelectElement>("#figure");
 const clipSelect = required<HTMLSelectElement>("#clip");
 const partSlot = required<HTMLSelectElement>("#part-slot");
 const partSource = required<HTMLSelectElement>("#part-source");
+const cosmeticSelect = required<HTMLSelectElement>("#cosmetic");
+const cosmeticToggle = required<HTMLInputElement>("#cosmetic-enabled");
 const compareToggle = required<HTMLInputElement>("#compare");
 const facingToggle = required<HTMLInputElement>("#face-left");
 const rigToggle = required<HTMLInputElement>("#show-rig");
@@ -73,6 +75,18 @@ function populatePartOptions(): void {
   partSource.value = figureSelect.value;
 }
 
+function cosmeticLabel(reference: string): string {
+  return reference.slice(reference.lastIndexOf("/") + 1).replace(/\.svg$/, "");
+}
+
+function populateCosmeticOptions(): void {
+  const references = [...singleNode.cosmetics.keys()];
+  cosmeticSelect.replaceChildren(...references.map((reference) => option(reference, cosmeticLabel(reference))));
+  cosmeticSelect.disabled = references.length === 0;
+  cosmeticToggle.disabled = references.length === 0;
+  cosmeticToggle.checked = references.length > 0 && singleNode.cosmetics.get(cosmeticSelect.value)!.enabled;
+}
+
 function makeFloor(width: number, y: number): SVGPathElement {
   const floor = document.createElementNS(SVG_NS, "path"); floor.setAttribute("class", "preview-floor"); floor.setAttribute("d", `M24 ${y}H${width - 24}`); return floor;
 }
@@ -81,6 +95,7 @@ async function buildSingle(): Promise<void> {
   singleNode = await assembleFigure(figureSelect.value);
   singleLayer.replaceChildren(singleNode.root);
   populatePartOptions();
+  populateCosmeticOptions();
 }
 
 async function buildGallery(): Promise<void> {
@@ -151,6 +166,16 @@ partSource.addEventListener("change", () => {
   }, (error: unknown) => { required<HTMLElement>("#part-status").textContent = (error as Error).message; });
 });
 partSlot.addEventListener("change", () => { partSource.value = figureSelect.value; });
+cosmeticSelect.addEventListener("change", () => {
+  cosmeticToggle.checked = singleNode.cosmetics.get(cosmeticSelect.value)?.enabled ?? false;
+});
+cosmeticToggle.addEventListener("change", () => {
+  for (const node of [singleNode, ...gallery.map((entry) => entry.node)]) {
+    if (node.cosmetics.has(cosmeticSelect.value)) setCosmeticEnabled(node, cosmeticSelect.value, cosmeticToggle.checked);
+  }
+  required<HTMLElement>("#cosmetic-status").textContent = `${cosmeticLabel(cosmeticSelect.value)} ${cosmeticToggle.checked ? "enabled" : "removed"}; page and pose stayed live.`;
+  render();
+});
 compareToggle.addEventListener("change", render); facingToggle.addEventListener("change", render); rigToggle.addEventListener("change", render); skeletonToggle.addEventListener("change", render);
 required<HTMLButtonElement>("#previous-clip").addEventListener("click", () => setClipOffset(-1));
 required<HTMLButtonElement>("#next-clip").addEventListener("click", () => setClipOffset(1)); playPause.addEventListener("click", togglePlayback);

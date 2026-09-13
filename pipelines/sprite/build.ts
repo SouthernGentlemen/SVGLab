@@ -157,7 +157,7 @@ export function main(argv: readonly string[]): number {
         unused: built.unused,
       });
       if (!json && !stale) {
-        console.log(`${id.padEnd(10)} ${files.size} parts, ${rawBytes} bytes, ${built.palette} colours, ${built.props} costume pieces`
+        console.log(`${id.padEnd(10)} ${files.size} parts, ${rawBytes} bytes, ${built.palette} colours, ${built.props} costume islands left for wardrobe`
           + (built.unused.length ? `, ${built.unused.length} atlas islands unused` : ""));
       }
     } catch (error) {

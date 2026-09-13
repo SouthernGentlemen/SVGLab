@@ -106,8 +106,8 @@
       "gzip": 556
     },
     "characters/kiran/parts/head.svg": {
-      "raw": 39088,
-      "gzip": 11735
+      "raw": 37825,
+      "gzip": 11379
     },
     "characters/kiran/parts/leg_lower_l.svg": {
       "raw": 2395,
@@ -130,8 +130,8 @@
       "gzip": 1207
     },
     "characters/kiran/parts/torso.svg": {
-      "raw": 16852,
-      "gzip": 5178
+      "raw": 2813,
+      "gzip": 985
     },
     "characters/yuliya/parts/arm_lower_l.svg": {
       "raw": 4080,
@@ -150,8 +150,8 @@
       "gzip": 942
     },
     "characters/yuliya/parts/head.svg": {
-      "raw": 51711,
-      "gzip": 15630
+      "raw": 44558,
+      "gzip": 13429
     },
     "characters/yuliya/parts/leg_lower_l.svg": {
       "raw": 2786,
@@ -174,26 +174,26 @@
       "gzip": 1759
     },
     "characters/yuliya/parts/torso.svg": {
-      "raw": 33360,
-      "gzip": 10132
+      "raw": 3227,
+      "gzip": 1166
     }
   },
   "figures": {
     "figures/barst.json": {
-      "raw": 64111,
-      "gzip": 20622
+      "raw": 87839,
+      "gzip": 28766
     },
     "figures/fighter.json": {
-      "raw": 1623,
-      "gzip": 1589
+      "raw": 25351,
+      "gzip": 9733
     },
     "figures/kiran.json": {
-      "raw": 81112,
-      "gzip": 25756
+      "raw": 89538,
+      "gzip": 29351
     },
     "figures/yuliya.json": {
-      "raw": 113690,
-      "gzip": 35722
+      "raw": 100132,
+      "gzip": 32699
     }
   },
   "catalogs": {
@@ -208,16 +208,30 @@
   },
   "shells": {
     "dist/assets/preview.js": {
-      "raw": 6225,
-      "gzip": 2473
+      "raw": 6870,
+      "gzip": 2692
     },
     "dist/assets/skeleton.js": {
-      "raw": 13557,
-      "gzip": 5048
+      "raw": 20037,
+      "gzip": 6948
     },
     "dist/assets/stage.js": {
       "raw": 16201,
       "gzip": 5956
+    }
+  },
+  "cosmetics": {
+    "cosmetics/royal-guard/hood.svg": {
+      "raw": 9455,
+      "gzip": 3147
+    },
+    "cosmetics/royal-guard/pauldron.svg": {
+      "raw": 5139,
+      "gzip": 1937
+    },
+    "cosmetics/royal-guard/skirt.svg": {
+      "raw": 9134,
+      "gzip": 3060
     }
   }
 }
