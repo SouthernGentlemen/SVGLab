@@ -30,6 +30,7 @@
     "check:cruft": "node pipelines/guards/cruft.ts",
     "check:blender": "node pipelines/guards/blender.ts",
     "typecheck": "tsc --noEmit",
+    "pretest": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "npm run check:rig && npm run check:sprites && npm run check:sockets && npm run check:motions && npm run check:exchange && npm run check:wardrobe && npm run check:cruft && npm run build && npm run check:footprint && npm run typecheck && npm test && npm run assert-local-only && npm run check:blender"
