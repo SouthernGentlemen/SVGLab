@@ -214,7 +214,7 @@ npm run check:cruft       reachability, docs, scripts and runtime dependencies
 npm run check:blender     Blender kinematics and real export round trip
 npm run assert-local-only reject production Cloudflare/deployment configuration
 npm run typecheck         validate the strip-only TypeScript dialect
-npm run test              run 117 tests across 26 files
+npm run test              run 118 tests across 27 files
 npm run test:watch        run Vitest in watch mode
 npm run verify            all ten gates, typecheck, tests and production build
 ```
