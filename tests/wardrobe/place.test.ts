@@ -5,7 +5,8 @@ import { loadBuildRig } from "../../pipelines/sprite/build.ts";
 import { loadWardrobeSet } from "../../pipelines/wardrobe/build.ts";
 import { hiddenPartSlots } from "../../src/render/assemble.ts";
 import type { CosmeticNode } from "../../src/render/assemble.ts";
-import { inspectCosmetic, resolveCosmetic, resolveCosmeticPlacements } from "../../src/render/wardrobe.ts";
+import { cosmeticFit, inspectCosmetic, resolveCosmetic, resolveCosmeticPlacements } from "../../src/render/wardrobe.ts";
+import type { WardrobeSet } from "../../src/render/wardrobe.ts";
 
 describe("contract-based cosmetic placement", () => {
   const rig = loadBuildRig();
@@ -45,5 +46,18 @@ describe("contract-based cosmetic placement", () => {
     expect([...hiddenPartSlots([cosmetic])]).toEqual(["head"]);
     cosmetic.enabled = false;
     expect([...hiddenPartSlots([cosmetic])]).toEqual([]);
+  });
+
+  it("reports fit as a pure value", () => {
+    expect(cosmeticFit(rig, set, "hood", "barst")).toBe("ok");
+    const unfitted = structuredClone(set) as WardrobeSet;
+    (unfitted.pieces.hood as { fitted?: string[] }).fitted = ["kiran"];
+    expect(cosmeticFit(rig, unfitted, "hood", "barst")).toBe("not fitted");
+    expect(cosmeticFit(rig, set, "missing", "barst")).toBe("unknown piece");
+    const wrongRig = { ...set, rig: "other" };
+    expect(cosmeticFit(rig, wrongRig, "hood", "barst")).toBe("wrong rig");
+    const unknownKind = structuredClone(set) as WardrobeSet;
+    (unknownKind.pieces.hood as { kind: string }).kind = "tiara";
+    expect(cosmeticFit(rig, unknownKind, "hood", "barst")).toBe("unknown kind");
   });
 });

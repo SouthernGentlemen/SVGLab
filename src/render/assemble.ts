@@ -2,8 +2,8 @@ import { validateRig } from "../rig/contract.ts";
 import type { Rig } from "../rig/types.ts";
 import { cosmeticReference, figurePath, inspectPart, validateFigure } from "./manifest.ts";
 import type { FigureManifest } from "./manifest.ts";
-import { inspectCosmetic, placementTransform, resolveCosmeticPlacements, validateWardrobeSet } from "./wardrobe.ts";
-import type { CosmeticPiece, CosmeticPlacement, WardrobeSet } from "./wardrobe.ts";
+import { cosmeticFit, inspectCosmetic, placementTransform, resolveCosmeticPlacements, validateWardrobeSet } from "./wardrobe.ts";
+import type { CosmeticFit, CosmeticPiece, CosmeticPlacement, WardrobeIndex, WardrobeSet } from "./wardrobe.ts";
 
 export { inspectPart, validateFigure } from "./manifest.ts";
 export type { FigureManifest } from "./manifest.ts";
@@ -22,6 +22,7 @@ export interface FigureIndex {
 }
 
 export interface FigureNode {
+  readonly figureId: string;
   readonly root: SVGGElement;
   readonly bones: Map<string, SVGGElement>;
   readonly art: Map<string, SVGGElement>;
@@ -116,6 +117,60 @@ export async function loadFigureIndex(baseUrl = document.baseURI, fetcher: Fetch
   return value;
 }
 
+export async function loadWardrobeIndex(baseUrl = document.baseURI, fetcher: Fetcher = fetch): Promise<WardrobeIndex> {
+  const development = await fetcher(assetUrl("dev/wardrobe", baseUrl));
+  const response = development.ok
+    ? development
+    : await fetcher(assetUrl("cosmetics/index.json", baseUrl));
+  if (!response.ok) throw new Error(`wardrobe index is unavailable (${response.status})`);
+  const value = JSON.parse(await response.text()) as WardrobeIndex;
+  if (value.contract !== 1 || !Array.isArray(value.sets)) throw new Error("wardrobe index has an unsupported shape");
+  return value;
+}
+
+function rejectCosmeticFit(
+  fit: Exclude<CosmeticFit, "ok">,
+  rig: Rig,
+  set: WardrobeSet,
+  setPath: string,
+  pieceId: string,
+  reference: string,
+  figureId: string,
+): never {
+  if (fit === "wrong rig") throw new Error(`${setPath}: targets rig '${set.rig}', not '${rig.contract.id}'`);
+  if (fit === "unknown piece") throw new Error(`${reference}: is not declared in ${setPath}`);
+  if (fit === "unknown kind") {
+    throw new Error(`${set.name}/${pieceId}: names unknown kind '${set.pieces[pieceId]!.kind}'`);
+  }
+  throw new Error(`${reference}: is not fitted for figure '${figureId}'`);
+}
+
+function attachCosmetic(
+  node: FigureNode,
+  reference: string,
+  piece: CosmeticPiece,
+  placements: readonly CosmeticPlacement[],
+  children: readonly SVGElement[],
+): CosmeticNode {
+  const layers = placements.map((placement) => {
+    const layer = node.depthLayers.get(placement.bone)?.get(placement.layer);
+    if (!layer) throw new Error(`${reference}: cannot resolve depth layer '${placement.bone}/${placement.layer}'`);
+    return layer;
+  });
+  const elements = placements.map((placement, index) => {
+    const element = document.createElementNS(SVG_NS, "g");
+    element.dataset.cosmetic = reference;
+    element.dataset.anchor = placement.anchor;
+    element.setAttribute("transform", placementTransform(placement));
+    appendAll(element, ...children.map((child) => child.cloneNode(true) as SVGElement));
+    layers[index].appendChild(element);
+    return element;
+  });
+  const cosmetic = { reference, piece, placements, elements, enabled: true };
+  node.cosmetics.set(reference, cosmetic);
+  return cosmetic;
+}
+
 export async function assembleFigure(
   reference: string,
   role: "player" | "dummy" = "player",
@@ -182,6 +237,7 @@ export async function assembleFigure(
     }
   }
 
+  const node: FigureNode = { figureId, root, bones, art, depthLayers, sources, cosmetics, manifest, rig };
   const sets = new Map<string, Promise<WardrobeSet>>();
   await Promise.all(manifest.cosmetics.map(async (cosmeticPath) => {
     const { pieceId, setPath } = cosmeticReference(cosmeticPath);
@@ -195,28 +251,15 @@ export async function assembleFigure(
       setRequest,
       fetchText(assetUrl(cosmeticPath, baseUrl), fetcher),
     ]);
-    if (set.rig !== rig.contract.id) throw new Error(`${setPath}: targets rig '${set.rig}', not '${rig.contract.id}'`);
-    const piece = set.pieces[pieceId];
-    if (!piece) throw new Error(`${cosmeticPath}: is not declared in ${setPath}`);
-    if (piece.fitted && !piece.fitted.includes(figureId)) {
-      throw new Error(`${cosmeticPath}: is not fitted for figure '${figureId}'`);
-    }
+    const fit = cosmeticFit(rig, set, pieceId, figureId);
+    if (fit !== "ok") rejectCosmeticFit(fit, rig, set, setPath, pieceId, cosmeticPath, figureId);
+    const piece = set.pieces[pieceId]!;
     const asset = inspectCosmetic(source, pieceId, cosmeticPath);
     const placements = resolveCosmeticPlacements(rig, set, pieceId, asset.height);
     const children = cosmeticChildren(source, pieceId, cosmeticPath);
-    const elements = placements.map((placement) => {
-      const element = document.createElementNS(SVG_NS, "g");
-      element.dataset.cosmetic = cosmeticPath;
-      element.dataset.anchor = placement.anchor;
-      element.setAttribute("transform", placementTransform(placement));
-      appendAll(element, ...children.map((child) => child.cloneNode(true) as SVGElement));
-      depthLayers.get(placement.bone)!.get(placement.layer)!.appendChild(element);
-      return element;
-    });
-    cosmetics.set(cosmeticPath, { reference: cosmeticPath, piece, placements, elements, enabled: true });
+    attachCosmetic(node, cosmeticPath, piece, placements, children);
   }));
   root.appendChild(bones.get(rig.root)!);
-  const node = { root, bones, art, depthLayers, sources, cosmetics, manifest, rig };
   refreshHiddenParts(node);
   return node;
 }
@@ -245,6 +288,41 @@ export function setCosmeticEnabled(node: FigureNode, reference: string, enabled:
     if (enabled) element.removeAttribute("display");
     else element.setAttribute("display", "none");
   }
+  refreshHiddenParts(node);
+}
+
+/** Fetches and attaches one compatible piece without replacing the live figure tree. */
+export async function wearCosmetic(
+  node: FigureNode,
+  reference: string,
+  baseUrl = document.baseURI,
+  fetcher: Fetcher = fetch,
+): Promise<CosmeticFit> {
+  const current = node.cosmetics.get(reference);
+  if (current) {
+    if (!current.enabled) setCosmeticEnabled(node, reference, true);
+    return "ok";
+  }
+
+  const { pieceId, setPath } = cosmeticReference(reference);
+  const set = validateWardrobeSet(await fetchJson(assetUrl(setPath, baseUrl), fetcher), setPath);
+  const fit = cosmeticFit(node.rig, set, pieceId, node.figureId);
+  if (fit !== "ok") return fit;
+
+  const source = await fetchText(assetUrl(reference, baseUrl), fetcher);
+  const asset = inspectCosmetic(source, pieceId, reference);
+  const placements = resolveCosmeticPlacements(node.rig, set, pieceId, asset.height);
+  attachCosmetic(node, reference, set.pieces[pieceId]!, placements, cosmeticChildren(source, pieceId, reference));
+  refreshHiddenParts(node);
+  return "ok";
+}
+
+/** Detaches one piece without replacing the live figure tree. */
+export function removeCosmetic(node: FigureNode, reference: string): void {
+  const cosmetic = node.cosmetics.get(reference);
+  if (!cosmetic) return;
+  for (const element of cosmetic.elements) element.remove();
+  node.cosmetics.delete(reference);
   refreshHiddenParts(node);
 }
 

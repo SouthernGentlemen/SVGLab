@@ -24,6 +24,29 @@ export interface WardrobeSet {
   readonly pieces: Readonly<Record<string, CosmeticPiece>>;
 }
 
+export interface WardrobeIndexPiece {
+  readonly id: string;
+  readonly reference: string;
+  readonly kind: string;
+  readonly height: number;
+  readonly fitted: readonly string[];
+  readonly hides: readonly string[];
+}
+
+export interface WardrobeIndexSet {
+  readonly id: string;
+  readonly name: string;
+  readonly rig: string;
+  readonly pieces: readonly WardrobeIndexPiece[];
+}
+
+export interface WardrobeIndex {
+  readonly contract: 1;
+  readonly sets: readonly WardrobeIndexSet[];
+}
+
+export type CosmeticFit = "ok" | "not fitted" | "wrong rig" | "unknown kind" | "unknown piece";
+
 export interface CosmeticPlacement {
   readonly bone: string;
   readonly anchor: string;
@@ -101,6 +124,16 @@ export function validateWardrobeSet(value: unknown, id = "wardrobe"): WardrobeSe
     }
   }
   return set as WardrobeSet;
+}
+
+/** Fit is presentation data: callers decide whether a bad selection is fatal. */
+export function cosmeticFit(rig: Rig, set: WardrobeSet, pieceId: string, figureId: string): CosmeticFit {
+  if (set.rig !== rig.contract.id) return "wrong rig";
+  const piece = set.pieces[pieceId];
+  if (!piece) return "unknown piece";
+  if (!rig.contract.wardrobe.kinds[piece.kind]) return "unknown kind";
+  if (piece.fitted && !piece.fitted.includes(figureId)) return "not fitted";
+  return "ok";
 }
 
 function placementFailure(set: WardrobeSet, pieceId: string, message: string): never {

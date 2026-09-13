@@ -27,6 +27,11 @@ describe("architecture guardrails", () => {
     expect(source).toMatch(/\bsampleClip\b/); expect(source).toMatch(/\bapplyPose\b/);
   });
 
+  it("keeps loadout application on the presentation side of the kernel boundary", () => {
+    const source = readFileSync(join(ROOT, "src", "render", "loadout.ts"), "utf8");
+    expect(source).not.toMatch(/from ["'][^"']*kernel/); expect(source).not.toMatch(/\bCombatSimulation\b/);
+  });
+
   it("has no npm deployment surface", () => {
     const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { scripts: Record<string, string> };
     expect(Object.keys(pkg.scripts).some((name) => /deploy|publish/.test(name))).toBe(false);

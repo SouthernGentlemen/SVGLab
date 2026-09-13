@@ -11,6 +11,7 @@ import type { Clip } from "../../src/clips/types.ts";
 import type { Rig } from "../../src/rig/types.ts";
 import { buildCatalog } from "../motion/catalog.ts";
 import { writeMotionCatalog } from "../motion/build.ts";
+import { buildWardrobeIndex } from "../wardrobe/index.ts";
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -144,6 +145,9 @@ export async function startDevSidecar(options: SidecarOptions = {}): Promise<Dev
       const url = new URL(request.url ?? "/", "http://127.0.0.1");
       if (request.method === "GET" && url.pathname === "/dev/health") return sendJson(response, 200, { ok: true, revision });
       if (request.method === "GET" && url.pathname === "/dev/catalog") return sendJson(response, 200, current);
+      if (request.method === "GET" && url.pathname === "/dev/wardrobe") {
+        return sendJson(response, 200, buildWardrobeIndex(root));
+      }
       if (request.method === "GET" && url.pathname === "/dev/events") {
         response.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
         response.write(`event: catalog\ndata: ${JSON.stringify({ revision, clips: Object.keys(current.clips).length })}\n\n`);
