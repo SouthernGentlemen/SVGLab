@@ -120,6 +120,48 @@ export function validateRig(raw: unknown): Rig {
     fail("paintOrder is not a permutation of the bones");
   }
 
+  const documentPaint: string[] = [];
+  const visitDocument = (name: string): void => {
+    const entries = contract.documentOrder?.[name];
+    if (!Array.isArray(entries)) fail(`documentOrder has no entry for '${name}'`);
+    if (entries.filter((entry) => entry === "@part").length !== 1) {
+      fail(`documentOrder '${name}' must contain @part exactly once`);
+    }
+    const childrenInDocument = entries.filter((entry) => entry !== "@part");
+    const expectedChildren = byName.get(name)!.children;
+    if (childrenInDocument.length !== expectedChildren.length
+      || new Set(childrenInDocument).size !== childrenInDocument.length
+      || childrenInDocument.some((entry) => !expectedChildren.includes(entry))) {
+      fail(`documentOrder '${name}' is not its child list plus @part`);
+    }
+    for (const entry of entries) {
+      if (entry === "@part") documentPaint.push(name);
+      else visitDocument(entry);
+    }
+  };
+  visitDocument(contract.root);
+  if (JSON.stringify(documentPaint) !== JSON.stringify(contract.paintOrder)) {
+    fail("documentOrder does not produce paintOrder");
+  }
+
+  const depthProfiles = contract.depthProfiles;
+  if (!depthProfiles || !depthProfiles.profiles[depthProfiles.default]) fail("depthProfiles has no valid default");
+  const sideNames = new Set(["far", "near"]);
+  for (const [name, profile] of Object.entries(depthProfiles.profiles)) {
+    for (const side of [profile.underLowerBody, profile.behindTorso, ...profile.foreground]) {
+      if (side !== null && !sideNames.has(side)) fail(`depth profile '${name}' uses unknown side '${side}'`);
+    }
+    if (profile.head !== "above-arms" && profile.head !== "below-arms") fail(`depth profile '${name}' has invalid head order`);
+  }
+  for (const [clip, profile] of Object.entries(depthProfiles.byClip)) {
+    if (!depthProfiles.profiles[profile]) fail(`clip '${clip}' names unknown depth profile '${profile}'`);
+  }
+  for (const [facing, sides] of Object.entries(depthProfiles.sides)) {
+    for (const boneName of [sides.arms.far, sides.arms.near, sides.legs.far, sides.legs.near]) {
+      if (!byName.has(boneName)) fail(`depth side '${facing}' names unknown bone '${boneName}'`);
+    }
+  }
+
   if (!Array.isArray(contract.depthSlots) || contract.depthSlots.length === 0) fail("has no depthSlots");
   const slots = new Set(contract.depthSlots);
 

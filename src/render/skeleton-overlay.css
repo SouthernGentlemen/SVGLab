@@ -1,0 +1,34 @@
+.skeleton-debug-overlay {
+  display: none;
+  pointer-events: none;
+}
+
+.skeleton-debug-overlay.is-visible {
+  display: inline;
+}
+
+.skeleton-debug-segment {
+  fill: none;
+  stroke: #fff36a;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  opacity: .96;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .9));
+}
+
+.skeleton-debug-joint {
+  fill: #090d15;
+  stroke: #55e5d5;
+  stroke-width: 1.6;
+  opacity: 1;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .95));
+}
+
+.skeleton-debug-root {
+  fill: #ff9b51;
+  stroke: #fff36a;
+  stroke-width: 1.8;
+}
+
