@@ -1,51 +1,50 @@
 # Character atlases
 
-The hand-drawn fighter in `src/svg/fighter.svg` exists to be read: eleven bones, a few dozen
-path commands, and a comment explaining the pivots. It is a good teaching rig and a poor
-character. This is the other route — a character drawn as a sheet of loose body parts, traced
-into vectors and fitted to the same eleven bones.
+A character is drawn as a sheet of loose body parts, traced into vectors and fitted to the
+eleven bones in `rigs/fighter.rig.json`. Each traced part is its own SVG so a figure can choose
+the matching slot from any sheet.
 
 ```bash
-npm run build:characters        # rebuild every character
-npm run check:characters        # fail if a checked-in SVG no longer matches its atlas
-node scripts/build-characters.mjs barst --preview /tmp/preview   # posed, for authoring
+npm run build:parts                  # rebuild every character
+npm run check:sprites                # fail if a checked-in part no longer matches its atlas
+node pipelines/sprite/build.ts barst # rebuild one sheet
 ```
 
 ```
-characters/<id>/atlas.png       source art          — you draw this
-characters/<id>/atlas.json      placement decisions — you write this, if needed
-src/svg/characters/<id>.svg     the character       — generated
+characters/<id>/atlas.png          source art          — you draw this
+characters/<id>/atlas.json         trace decisions     — you write this
+characters/<id>/parts/<slot>.svg   one body part       — generated
+figures/<name>.json                rig + part choices  — you write this
 ```
 
-The generated SVG is build output. Editing it is pointless, because the next build overwrites
-the change, and `tests/characters.test.ts` fails the moment a checked-in file stops matching
-its atlas.
+The generated SVGs are build output. Editing one is pointless, because the next build overwrites
+the change, and `check:sprites` fails the moment a checked-in file stops matching its atlas.
 
 ## The atlas never reaches the game
 
 Everything the stage draws is vector. The atlases are build-time input: they live outside
 `src/`, nothing in the app imports them, and no raster follows a character into the bundle —
-`tests/architecture.test.ts` fails if one ever does, whether by an import, a `url()`, an
-`<image>` element or a `data:` URI pasted into an SVG.
+`check:footprint` fails if one ever does, whether by an import, an `<image>` element or a
+`data:` URI pasted into an SVG.
 
 That is not tidiness. A traced character scales to any stage size, stays legible under the
 debug overlay, and is a set of paths the rig can pose — which is the entire difference between
 a fighter and a picture of one.
 
-## Why the output is an authored fighter
+## Why the output is one file per part
 
-The tracer emits exactly the document `src/svg/fighter.svg` is: a `data-model="fighter"` group
-of nested `data-bone` groups with `data-x`/`data-y` rest offsets. Not a format of its own.
+The tracer emits eleven SVG documents. Each one names its `data-bone`, but carries no
+`data-x`/`data-y`: rest offsets belong only to the rig contract. A figure manifest selects one
+file for each slot, and those files may come from different sheets.
 
-That is the whole design. `src/svg/rig.ts` reads a traced character without knowing it was
-traced, every clip in `src/animation/clips.ts` plays on it unaltered, the debug overlay's bone
-pivots land in the right places, and the combat kernel — which must never learn what a fighter
-looks like — learns nothing. A skin is eleven bones with different art on them. Switch one
-mid-fight from the debug overlay and the simulation cannot tell.
+That is the whole design. The renderer will assemble the manifest against the same rig every
+clip uses, while the combat kernel — which must never learn what a fighter looks like — learns
+nothing. Swap one part and the simulation cannot tell.
 
-Those eleven bones also use identical rest offsets in every file: all skins share the same
-hips, knees, shoulders, elbows, neck, and overall height. The build scales each cut body part
-to fit that canonical rig while preserving the source part's aspect ratio and silhouette.
+All parts therefore share the same hips, knees, shoulders, elbows, neck, and overall height.
+The build scales each cut body part to fit that canonical rig while preserving the source
+part's aspect ratio and silhouette. `check:sockets` exhaustively assembles all 36 elbow and
+knee combinations across the three shipped sheets.
 
 ## The atlas layout
 
@@ -77,17 +76,20 @@ character with no costume builds from the PNG alone.
 ```jsonc
 {
   "name": "Yuliya",
+  "trace": {
+    "default": { "colours": 3, "epsilon": 3.0, "places": 1, "minRegionArea": 48 },
+    "bySlot": { "head": { "colours": 12, "epsilon": 1.2, "places": 1, "minRegionArea": 12 } }
+  },
   "pivots": { "head": [0.5, 1.0] },     // where a joint really is, as a fraction of the part
   "props": [                            // costume islands, bound to a bone
     { "slot": "prop_07", "bone": "torso", "x": -14, "y": 34 },
     { "slot": "prop_10", "bone": "head", "x": -10, "y": -24, "under": true }
-  ],
-  "pose": { "arm-front": { "rotation": 18 } }   // preview pose only, never shipped
+  ]
 }
 ```
 
 **Proportions are not a sidecar option.** They live once in
-`scripts/atlas/skeleton.mjs`: a 104-unit canonical rig plus standard display heights for the
+`rigs/fighter.rig.json`: a 104-unit canonical rig plus standard display heights for the
 cut parts. Allowing a skin to move its own shoulders or lengthen its own thighs makes shared
 animation cease to be shared. If the common body needs improvement, tune that one rig and
 visually check every skin and both facings.
@@ -95,18 +97,16 @@ visually check every skin and both facings.
 **`pivots`** override the joint for a part whose bounding box lies about it: a hood hangs well
 below the neck it pivots on. Most parts need nothing here.
 
+**`trace`** declares the default colour cap, simplification tolerance, coordinate precision
+and minimum flat-colour region area. An entry in `bySlot` overrides only the values it names.
+Heads keep more colours and a tighter curve because that is where the face lives; the body uses
+three colours because that is where the bytes live.
+
 **`props`** bind a costume island to a bone. `x` and `y` are written in **atlas pixels**,
 because that is the frame you are looking at when lining a cape up against a torso; the build
 scales them along with the art. `under` paints the piece behind the bone's own art.
-
-There is no per-skin draw-order control. The generated document carries the right-facing base
-order, then `src/svg/rig.ts` adjusts limb depth for facing and motion. Walk, run, and dash move
-the screen-leading arm into a torso-transformed underlay below the entire lower body, so neither
-the hip nor either leg can be cut through. Left-facing rigs counter-mirror the frontal chest art
-inside the mirrored skeleton so asymmetric shoulders and costume details keep their anatomical
-side. Idle keeps both arms visible with the head above them; punch clips put the guard hand above
-the chin. The bow/crouch keeps conventional far/body/near depth. Both legs remain behind pelvis
-and costume art while their crossing order swaps with facing.
+They remain baked into their owning body-part file in M1 so the existing atlases retain their
+appearance. M6 promotes them to independently anchored cosmetics.
 
 ## What the tracer is doing
 
@@ -136,12 +136,9 @@ that changes a file means the art changed.
 ## Adding a character
 
 1. Cut the atlas to the layout above, save it as `characters/<id>/atlas.png`.
-2. `node scripts/build-characters.mjs <id> --preview /tmp/preview`, then open the preview. The
-   generated SVG itself stacks every bone on the origin — `data-x`/`data-y` are inert until
-   `rig.ts` turns them into transforms — so the preview is what you judge.
-3. Write `atlas.json` for costume pieces and genuine crop-specific pivot corrections. Give it
-   a `pose`; a pivot a few pixels out is invisible on a neutral stand and obvious on a bent
-   elbow. Do not introduce skin-specific proportions.
-4. Add it to `SKINS` in `src/svg/characters/index.ts` and to `IDS` in
-   `tests/characters.test.ts`.
+2. Write `atlas.json` with the trace profile above, plus costume-piece bindings and genuine
+   crop-specific pivot corrections. Do not introduce skin-specific proportions.
+3. `node pipelines/sprite/build.ts <id>` and inspect an assembled render; a pivot a few pixels
+   out is invisible on a neutral stand and obvious on a bent elbow.
+4. Add `figures/<id>.json`, naming the rig and one part file for all eleven slots.
 5. `npm run verify`.

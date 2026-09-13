@@ -227,7 +227,7 @@ verdict on every path the old tree carried.
 - **M0 — clean head.** *Done.* This file; the rig contract with anchors, depth slots, sockets
   and cosmetic kinds; the one sampler; forward kinematics; clip types; an empty catalog;
   `check:rig`; typecheck; tests. The old tree is gone and every port comes from history.
-- **M1 — parts and figures.** Port the tracer with its reasoning intact: flat silhouette, one
+- **M1 — parts and figures.** *Done.* Port the tracer with its reasoning intact: flat silhouette, one
   path per nested patch of flat colour, hairline strokes closing seams, deterministic
   quantisation. Colour cap, coordinate precision, simplification tolerance and minimum region
   area are declared knobs, **per slot**, in the atlas sidecar. Emit one file per part. Done
