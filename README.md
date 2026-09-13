@@ -40,7 +40,7 @@ pipelines/guards/      rig, socket, exchange, wardrobe, footprint, cruft and loc
 pipelines/motion/      BVH parse, planar retarget, reduction and deterministic catalog build
 pipelines/render/      agent-readable clip and figure review sheets plus schemas
 pipelines/sprite/      in-project PNG decode, segmentation, fitting and flat-colour tracing
-pipelines/wardrobe/    cosmetic trace, contract validation and anchor-based placement
+pipelines/wardrobe/    cosmetic atlas tracing and authored trace profiles
 rigs/                  rig contract, generated authoring schemas and footprint ratchet
 src/clips/             clip types, generated catalogs, movesets, playback and runtime loading
 src/kernel/            sealed deterministic state, movement, collision and hit resolution
@@ -77,7 +77,7 @@ chunk.
   `typescript`, `vite`, `vitest` and `wrangler`.
 - 43,158 raw / 15,617 gzip bytes across three production shell chunks. Art remains
   fetched and is not part of those chunks.
-- Ten gates in `verify`, plus typecheck, 118 tests across 27 files, and the production build.
+- Ten gates in `verify`, plus typecheck, 119 tests across 27 files, and the production build.
 
 These are measured repository and `dist/assets` totals, not budgets. Per-asset raw and gzip
 sizes remain ratcheted in `rigs/footprint.baseline.json`; a decrease passes and an increase must

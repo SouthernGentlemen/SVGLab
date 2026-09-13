@@ -1,11 +1,9 @@
 import { validateRig } from "../rig/contract.ts";
 import type { Rig } from "../rig/types.ts";
-import { inspectCosmetic, placementTransform, resolveCosmeticPlacements } from "../../pipelines/wardrobe/place.ts";
-import type { CosmeticPlacement } from "../../pipelines/wardrobe/place.ts";
-import type { CosmeticPiece, WardrobeSet } from "../../pipelines/wardrobe/types.ts";
-import { validateWardrobeSet } from "../../pipelines/wardrobe/types.ts";
 import { cosmeticReference, figurePath, inspectPart, validateFigure } from "./manifest.ts";
 import type { FigureManifest } from "./manifest.ts";
+import { inspectCosmetic, placementTransform, resolveCosmeticPlacements, validateWardrobeSet } from "./wardrobe.ts";
+import type { CosmeticPiece, CosmeticPlacement, WardrobeSet } from "./wardrobe.ts";
 
 export { inspectPart, validateFigure } from "./manifest.ts";
 export type { FigureManifest } from "./manifest.ts";
