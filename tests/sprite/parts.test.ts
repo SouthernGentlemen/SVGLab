@@ -48,26 +48,26 @@ describe("atlas-built body parts and figure manifests", () => {
 
   it("gives each shipped character a complete figure manifest targeting the fighter rig", () => {
     const rig = loadBuildRig();
-    for (const id of IDS) {
+    const loadouts: string[] = [];
+    for (const id of [...IDS, "fighter"]) {
       const figure = readFigure(`figures/${id}.json`);
       expect(figure.rig).toBe("fighter");
       expect(Object.keys(figure.parts).sort()).toEqual(rig.bones.map((bone) => bone.slot).sort());
-      expect(figure.cosmetics).toEqual([
-        "cosmetics/royal-guard/hood.svg",
-        "cosmetics/royal-guard/pauldron.svg",
-        "cosmetics/royal-guard/skirt.svg",
-      ]);
+      loadouts.push([...figure.cosmetics].sort().join(","));
     }
+    expect(new Set(loadouts).size).toBe(IDS.length + 1);
+    expect(loadouts.some((loadout) => loadout.includes("cosmetics/field-kit/") && loadout.includes("cosmetics/royal-guard/"))).toBe(true);
+    expect(readFigure("figures/fighter.json").cosmetics).toContain("cosmetics/field-kit/full-helm.svg");
   });
 
   it("records every part and assembled figure in the footprint ratchet", () => {
     const actual = measureFootprint();
     const baseline = JSON.parse(readFileSync("rigs/footprint.baseline.json", "utf8")) as FootprintMeasurements;
     expect(Object.keys(actual.parts)).toHaveLength((IDS.length + 1) * 11);
-    expect(Object.keys(actual.cosmetics ?? {})).toHaveLength(3);
+    expect(Object.keys(actual.cosmetics ?? {})).toHaveLength(7);
     expect(Object.keys(actual.figures)).toHaveLength(IDS.length + 1);
     expect(compareFootprint(actual, baseline)).toEqual([]);
-    expect(actual.figures["figures/yuliya.json"].raw).toBe(100_132);
+    expect(actual.figures["figures/yuliya.json"].raw).toBe(87_726);
     expect(actual.parts["characters/yuliya/parts/head.svg"].raw).toBe(44_558);
     expect(checkInvariants()).toEqual([]);
   });

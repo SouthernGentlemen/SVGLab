@@ -16,8 +16,7 @@
     "head": "characters/fighter/parts/head.svg"
   },
   "cosmetics": [
-    "cosmetics/royal-guard/hood.svg",
-    "cosmetics/royal-guard/pauldron.svg",
-    "cosmetics/royal-guard/skirt.svg"
+    "cosmetics/field-kit/full-helm.svg",
+    "cosmetics/field-kit/trail-cloak.svg"
   ]
 }

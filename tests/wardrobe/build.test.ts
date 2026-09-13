@@ -6,13 +6,19 @@ import { outputPath, renderWardrobe, wardrobeIds } from "../../pipelines/wardrob
 
 describe("wardrobe build", () => {
   it("traces one generated vector file per authored island", () => {
-    expect(wardrobeIds()).toEqual(["royal-guard"]);
-    const rendered = renderWardrobe("royal-guard");
-    expect([...rendered.pieces.keys()]).toEqual(["hood", "pauldron", "skirt"]);
-    for (const [pieceId, piece] of rendered.pieces) {
-      expect(readFileSync(outputPath("royal-guard", pieceId), "utf8")).toBe(piece.svg);
-      expect(piece.svg).toContain(`data-cosmetic="${pieceId}"`);
-      expect(piece.svg).not.toMatch(/data-bone|data-[xy]=|<image\b|data:image|\.png\b|NaN|Infinity|undefined/);
+    const expected = {
+      "field-kit": ["full-helm", "field-belt", "trail-cloak", "long-hair"],
+      "royal-guard": ["hood", "pauldron", "skirt"],
+    } as const;
+    expect(wardrobeIds()).toEqual(Object.keys(expected));
+    for (const [setId, pieceIds] of Object.entries(expected)) {
+      const rendered = renderWardrobe(setId);
+      expect([...rendered.pieces.keys()]).toEqual(pieceIds);
+      for (const [pieceId, piece] of rendered.pieces) {
+        expect(readFileSync(outputPath(setId, pieceId), "utf8")).toBe(piece.svg);
+        expect(piece.svg).toContain(`data-cosmetic="${pieceId}"`);
+        expect(piece.svg).not.toMatch(/data-bone|data-[xy]=|<image\b|data:image|\.png\b|NaN|Infinity|undefined/);
+      }
     }
   });
 
@@ -23,4 +29,3 @@ describe("wardrobe build", () => {
     })).not.toThrow();
   }, 60_000);
 });
-

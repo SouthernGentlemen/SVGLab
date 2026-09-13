@@ -16,8 +16,8 @@
     "head": "characters/kiran/parts/head.svg"
   },
   "cosmetics": [
-    "cosmetics/royal-guard/hood.svg",
-    "cosmetics/royal-guard/pauldron.svg",
-    "cosmetics/royal-guard/skirt.svg"
+    "cosmetics/royal-guard/skirt.svg",
+    "cosmetics/field-kit/field-belt.svg",
+    "cosmetics/field-kit/long-hair.svg"
   ]
 }

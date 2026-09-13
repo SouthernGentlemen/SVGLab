@@ -9,6 +9,7 @@ import type { WardrobeSet } from "../../pipelines/wardrobe/types.ts";
 
 const rig = loadBuildRig();
 const original = loadWardrobeSet("royal-guard");
+const fieldKit = loadWardrobeSet("field-kit");
 const figures = Object.fromEntries(["barst", "fighter", "kiran", "yuliya"].map((id) => [
   id,
   JSON.parse(readFileSync(`figures/${id}.json`, "utf8")) as WardrobeFigure,
@@ -25,6 +26,15 @@ describe("wardrobe guard", () => {
     const reports = validateWardrobe("royal-guard", original, rig, figures, readAsset);
     expect(reports).toHaveLength(3);
     expect(reports.every((report) => report.fitted.join(",") === "barst,fighter,kiran,yuliya")).toBe(true);
+  });
+
+  it("ships a full helm whose drawn extent covers every fitted head it hides", () => {
+    const reports = validateWardrobe("field-kit", fieldKit, rig, figures, readAsset);
+    expect(reports.find((report) => report.piece === "full-helm")).toMatchObject({
+      kind: "mask",
+      fitted: ["barst", "fighter", "kiran", "yuliya"],
+      hides: ["head"],
+    });
   });
 
   it("accepts a replacement whose drawn extent really covers the hidden art", () => {

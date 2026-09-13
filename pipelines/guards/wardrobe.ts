@@ -270,6 +270,7 @@ export function checkWardrobes(root = ROOT): Readonly<Record<string, readonly Pi
   }
   if (Object.keys(sets).length === 0) throw new Error("no cosmetics/<set>/set.json wardrobes found");
 
+  const loadouts = new Map<string, string>();
   for (const [figureId, figure] of Object.entries(figures)) {
     if (!Array.isArray(figure.cosmetics)) throw new Error(`figures/${figureId}.json has no cosmetics list`);
     for (const reference of figure.cosmetics) {
@@ -282,6 +283,10 @@ export function checkWardrobes(root = ROOT): Readonly<Record<string, readonly Pi
         throw new Error(`figures/${figureId}.json wears '${reference}', but the piece is not fitted for it`);
       }
     }
+    const signature = [...figure.cosmetics].sort().join("\n");
+    const duplicate = loadouts.get(signature);
+    if (duplicate) throw new Error(`figures/${duplicate}.json and figures/${figureId}.json wear the same cosmetic loadout`);
+    loadouts.set(signature, figureId);
   }
   return reports;
 }
@@ -293,9 +298,12 @@ export function main(argv: readonly string[]): number {
     if (asJson) console.log(JSON.stringify({ ok: true, wardrobes: reports }, null, 2));
     else {
       for (const [setId, pieces] of Object.entries(reports)) {
-        for (const piece of pieces) console.log(`${setId}/${piece.piece}  ${piece.kind}  fitted: ${piece.fitted.join(", ")}`);
+        for (const piece of pieces) console.log(`${setId}/${piece.piece}  ${piece.kind}  fitted: ${piece.fitted.join(", ")}`
+          + (piece.hides.length > 0 ? `  hides: ${piece.hides.join(", ")}` : ""));
       }
-      console.log(`check:wardrobe: ${Object.keys(reports).length} wardrobe, ${Object.values(reports).flat().length} pieces`);
+      const pieces = Object.values(reports).flat();
+      const hides = pieces.reduce((sum, piece) => sum + piece.hides.length, 0);
+      console.log(`check:wardrobe: ${Object.keys(reports).length} wardrobes, ${pieces.length} pieces, ${hides} live hide${hides === 1 ? "" : "s"}`);
     }
     return 0;
   } catch (error) {
@@ -308,4 +316,3 @@ export function main(argv: readonly string[]): number {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   process.exit(main(process.argv.slice(2)));
 }
-
