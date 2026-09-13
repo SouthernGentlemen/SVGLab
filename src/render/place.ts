@@ -1,4 +1,5 @@
 import type { Pose } from "../clips/types.ts";
+import type { Rig } from "../rig/types.ts";
 import type { DepthSide } from "../rig/types.ts";
 import type { FigureNode } from "./assemble.ts";
 
@@ -27,9 +28,13 @@ function restoreDocumentOrder(node: FigureNode): void {
   }
 }
 
-export function depthProfileFor(node: FigureNode, clip: string, origin: string | null = clip): string {
-  const profiles = node.rig.contract.depthProfiles;
+export function depthProfileName(rig: Rig, clip: string, origin: string | null = clip): string {
+  const profiles = rig.contract.depthProfiles;
   return profiles.byClip[clip] ?? (origin === null ? profiles.default : profiles.byClip[origin] ?? profiles.default);
+}
+
+export function depthProfileFor(node: FigureNode, clip: string, origin: string | null = clip): string {
+  return depthProfileName(node.rig, clip, origin);
 }
 
 function sideBone(value: DepthSide, side: { readonly far: string; readonly near: string }): string {

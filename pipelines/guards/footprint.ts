@@ -15,8 +15,11 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
+import { inspectPart, validateFigure } from "../../src/render/manifest.ts";
+import type { FigureManifest } from "../../src/render/manifest.ts";
 import { validateRig } from "../../src/rig/contract.ts";
 import type { Rig } from "../../src/rig/types.ts";
+import { validateAuthoredFigure } from "../render/manifest.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const FIGURES = join(ROOT, "figures");
@@ -39,14 +42,6 @@ export interface FootprintMeasurements {
   readonly figures: Readonly<Record<string, Size>>;
   readonly catalogs?: Readonly<Record<string, Size>>;
   readonly shells?: Readonly<Record<string, Size>>;
-}
-
-export interface FigureManifest {
-  readonly contract: number;
-  readonly name: string;
-  readonly rig: string;
-  readonly parts: Readonly<Record<string, string>>;
-  readonly cosmetics?: readonly string[];
 }
 
 export interface Growth {
@@ -106,21 +101,9 @@ function rigFor(id: string): Rig {
 export function readFigure(path: string): FigureManifest {
   const figurePath = resolve(ROOT, path);
   const raw = JSON.parse(readFileSync(figurePath, "utf8")) as unknown;
-  if (typeof raw !== "object" || raw === null) throw new Error(`${portable(figurePath)} is not an object`);
-  const figure = raw as FigureManifest;
-  if (figure.contract !== 1) throw new Error(`${portable(figurePath)} has unsupported contract ${figure.contract}`);
-  if (typeof figure.name !== "string" || !figure.name) throw new Error(`${portable(figurePath)} has no name`);
-  if (typeof figure.rig !== "string" || !figure.rig) throw new Error(`${portable(figurePath)} has no rig`);
-  if (typeof figure.parts !== "object" || figure.parts === null || Array.isArray(figure.parts)) {
-    throw new Error(`${portable(figurePath)} has no parts map`);
-  }
-
-  const rig = rigFor(figure.rig);
-  const expected = rig.bones.map((bone) => bone.slot).sort();
-  const actual = Object.keys(figure.parts).sort();
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(`${portable(figurePath)} parts are not the slots in rigs/${figure.rig}.rig.json`);
-  }
+  const base = validateFigure(raw, portable(figurePath));
+  const rig = rigFor(base.rig);
+  const figure = validateAuthoredFigure(raw, portable(figurePath), rig);
   const boneForSlot = new Map(rig.bones.map((bone) => [bone.slot, bone.name]));
   for (const [slot, reference] of Object.entries(figure.parts)) {
     if (typeof reference !== "string" || !reference.endsWith(`/${slot}.svg`)) {
@@ -131,13 +114,7 @@ export function readFigure(path: string): FigureManifest {
       throw new Error(`${portable(figurePath)} slot '${slot}' cannot read '${reference}'`);
     }
     const source = readFileSync(partPath, "utf8");
-    const bones = [...source.matchAll(/\bdata-bone="([a-z-]+)"/g)].map((match) => match[1]);
-    if (bones.length !== 1 || bones[0] !== boneForSlot.get(slot)) {
-      throw new Error(`${portable(figurePath)} slot '${slot}' needs data-bone="${boneForSlot.get(slot)}" in '${reference}'`);
-    }
-    if (/\bdata-[xy]=/.test(source)) {
-      throw new Error(`${reference} carries a skeleton offset; offsets belong only to the rig`);
-    }
+    inspectPart(source, boneForSlot.get(slot)!, reference);
   }
   return figure;
 }
@@ -157,7 +134,7 @@ export function measureFootprint(): FootprintMeasurements {
       raw += size.raw;
       gzip += size.gzip;
     }
-    for (const reference of figure.cosmetics ?? []) {
+    for (const reference of figure.cosmetics) {
       const size = bytes(resolve(ROOT, reference));
       raw += size.raw;
       gzip += size.gzip;

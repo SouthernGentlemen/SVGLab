@@ -20,6 +20,8 @@
     "check:wardrobe": "node pipelines/wardrobe/build.ts --check && node pipelines/guards/wardrobe.ts",
     "build:motions": "node pipelines/motion/build.ts",
     "check:motions": "node pipelines/motion/build.ts --check",
+    "render:clip": "node pipelines/render/clip.ts",
+    "render:figure": "node pipelines/render/figure.ts",
     "export:motions": "node pipelines/exchange/export.ts",
     "import:motions": "node pipelines/exchange/import.ts",
     "blender": "node pipelines/exchange/export.ts --blend",
