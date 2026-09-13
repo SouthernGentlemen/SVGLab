@@ -33,7 +33,7 @@ export function watchRuntimeCatalog(
     void fetchRuntimeCatalog().then(onCatalog, (error: unknown) => onError((error as Error).message));
   });
   events.addEventListener("error", (event) => {
-    if (event instanceof MessageEvent) onError(event.data);
+    if (event instanceof MessageEvent) onError(JSON.parse(event.data) as string);
   });
   return events;
 }
