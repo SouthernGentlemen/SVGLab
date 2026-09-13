@@ -45,6 +45,12 @@ export interface SheetCell {
   readonly cosmetics?: ReadonlySet<string>;
 }
 
+export interface AssembledBone {
+  readonly bone: string;
+  readonly slot: string;
+  readonly layers: ReadonlyMap<string, string>;
+}
+
 function portable(root: string, path: string): string {
   const result = relative(root, path).split(sep).join("/");
   return result.startsWith("../") ? path : result;
@@ -119,9 +125,12 @@ function xml(value: string): string {
     .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
 
-function figureGroup(figure: LoadedFigure, cell: SheetCell): string {
-  const placed = forwardKinematics(figure.rig, cell.pose);
-  const activeCosmetics = figure.cosmetics.filter((cosmetic) => cell.cosmetics?.has(cosmetic.reference) ?? true);
+export function assembleFigureBones(
+  figure: LoadedFigure,
+  parts?: ReadonlySet<string>,
+  cosmetics?: ReadonlySet<string>,
+): ReadonlyMap<string, AssembledBone> {
+  const activeCosmetics = figure.cosmetics.filter((cosmetic) => cosmetics?.has(cosmetic.reference) ?? true);
   const hidden = new Set(activeCosmetics.flatMap((cosmetic) => cosmetic.piece.hides ?? []));
   const cosmeticsByBone = new Map<string, Array<{ cosmetic: LoadedCosmetic; placement: CosmeticPlacement }>>();
   for (const cosmetic of activeCosmetics) {
@@ -132,21 +141,31 @@ function figureGroup(figure: LoadedFigure, cell: SheetCell): string {
     }
   }
 
-  return visualPaintOrder(figure.rig, 1, cell.profile).map((boneName) => {
-    const bone = figure.rig.byName.get(boneName)!;
-    const world = placed.get(boneName)!;
-    const rotation = world.rotation * 180 / Math.PI;
-    const entries = cosmeticsByBone.get(boneName) ?? [];
-    const layers = figure.rig.contract.depthSlots.map((layer) => {
+  return new Map(figure.rig.bones.map((bone) => {
+    const entries = cosmeticsByBone.get(bone.name) ?? [];
+    const layers = new Map(figure.rig.contract.depthSlots.map((layer) => {
       const contents: string[] = [];
       for (const { cosmetic, placement } of entries.filter((entry) => entry.placement.layer === layer)) {
         contents.push(`<g data-cosmetic="${xml(cosmetic.reference)}" transform="${placementTransform(placement)}">${cosmetic.contents}</g>`);
       }
-      if (layer === "part" && !hidden.has(bone.slot) && (cell.parts?.has(bone.slot) ?? true)) {
-        contents.push(figure.parts.get(boneName)!.contents);
+      if (layer === "part" && !hidden.has(bone.slot) && (parts?.has(bone.slot) ?? true)) {
+        contents.push(figure.parts.get(bone.name)!.contents);
       }
-      return contents.join("");
-    }).join("");
+      return [layer, contents.join("")] as const;
+    }));
+    return [bone.name, { bone: bone.name, slot: bone.slot, layers }] as const;
+  }));
+}
+
+function figureGroup(figure: LoadedFigure, cell: SheetCell): string {
+  const placed = forwardKinematics(figure.rig, cell.pose);
+  const assembly = assembleFigureBones(figure, cell.parts, cell.cosmetics);
+
+  return visualPaintOrder(figure.rig, 1, cell.profile).map((boneName) => {
+    const world = placed.get(boneName)!;
+    const rotation = world.rotation * 180 / Math.PI;
+    const layers = [...assembly.get(boneName)!.layers].map(([layer, contents]) =>
+      `<g data-depth="${layer}">${contents}</g>`).join("");
     return `<g data-bone="${boneName}" transform="translate(${number(world.x)} ${number(world.y)}) rotate(${number(rotation)})">${layers}</g>`;
   }).join("");
 }
