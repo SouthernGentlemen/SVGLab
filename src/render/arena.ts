@@ -8,6 +8,7 @@ import { assembleFigure } from "./assemble.ts";
 import type { FigureNode } from "./assemble.ts";
 import { applyPose, depthProfileFor, placeFigure } from "./place.ts";
 import { updateSkeletonOverlay } from "./skeleton-overlay.ts";
+import type { PartLabelMode } from "./skeleton-overlay.ts";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const STAGE_CENTER_X = 640;
@@ -27,9 +28,6 @@ export interface AnimationSnapshot {
   readonly clip: string;
   readonly frame: number;
   readonly duration: number;
-  readonly loop: boolean;
-  readonly easing: string;
-  readonly note: string;
 }
 
 function screenX(world: number): number {
@@ -91,7 +89,13 @@ export class ArenaRenderer {
     for (const fighter of next) this.fighterLayer.appendChild(fighter.root);
   }
 
-  render(state: SimulationState, report: FrameReport | null, toggles: DebugToggles, catalog: RuntimeCatalog): AnimationSnapshot[] {
+  render(
+    state: SimulationState,
+    report: FrameReport | null,
+    toggles: DebugToggles,
+    catalog: RuntimeCatalog,
+    labelMode: PartLabelMode,
+  ): AnimationSnapshot[] {
     const animations = state.fighters.map((fighter, index) => {
       const name = animationName(fighter, this.definitions[index]);
       const clip = catalog.clips[name];
@@ -102,8 +106,8 @@ export class ArenaRenderer {
       placeFigure(this.fighters[index], screenX(fighter.x), screenY(fighter.y), VIEW_SCALE, fighter.facing,
         depthProfileFor(this.fighters[index], name, origin));
       this.fighters[index].root.classList.toggle("is-invulnerable", fighter.invulnerable);
-      updateSkeletonOverlay(this.fighters[index], toggles.skeleton);
-      return { clip: name, frame, duration: clip.duration, loop: clip.loop, easing: clip.easing, note: clip.note };
+      updateSkeletonOverlay(this.fighters[index], toggles.skeleton, labelMode);
+      return { clip: name, frame, duration: clip.duration };
     });
 
     this.svg.classList.toggle("show-rig", toggles.rig);

@@ -207,17 +207,17 @@
     }
   },
   "shells": {
-    "dist/assets/preview.js": {
-      "raw": 6870,
-      "gzip": 2696
+    "dist/assets/keybinds.js": {
+      "raw": 24357,
+      "gzip": 8178
     },
-    "dist/assets/skeleton.js": {
-      "raw": 20087,
-      "gzip": 6963
+    "dist/assets/preview.js": {
+      "raw": 5238,
+      "gzip": 2227
     },
     "dist/assets/stage.js": {
-      "raw": 16201,
-      "gzip": 5958
+      "raw": 15597,
+      "gzip": 5843
     }
   },
   "cosmetics": {

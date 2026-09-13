@@ -1,8 +1,24 @@
 import { InputBit } from "../kernel/types.ts";
 import type { InputFrame } from "../kernel/types.ts";
+import { keybindAction } from "./keybinds.ts";
+
+const INPUT_BITS = {
+  jump: InputBit.Up,
+  moveLeft: InputBit.Left,
+  crouch: InputBit.Down,
+  moveRight: InputBit.Right,
+  attack: InputBit.Attack,
+  slash: InputBit.Slash,
+} as const;
+
+type InputAction = keyof typeof INPUT_BITS;
+
+function isInputAction(action: string | null): action is InputAction {
+  return action !== null && Object.hasOwn(INPUT_BITS, action);
+}
 
 export class KeyboardInput {
-  private readonly held = new Set<string>();
+  private readonly held = new Set<InputAction>();
   private queuedInput: InputFrame = 0;
   private readonly target: Window;
 
@@ -14,32 +30,23 @@ export class KeyboardInput {
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (!["KeyW", "KeyA", "KeyS", "KeyD", "KeyJ", "KeyK"].includes(event.code)) return;
-    this.held.add(event.code);
-    if (event.code === "KeyW") this.queuedInput |= InputBit.Up;
-    else if (event.code === "KeyA") this.queuedInput |= InputBit.Left;
-    else if (event.code === "KeyS") this.queuedInput |= InputBit.Down;
-    else if (event.code === "KeyD") this.queuedInput |= InputBit.Right;
-    else if (event.code === "KeyJ") this.queuedInput |= InputBit.Attack;
-    else if (event.code === "KeyK") this.queuedInput |= InputBit.Slash;
+    const action = keybindAction("stage", event.code);
+    if (!isInputAction(action)) return;
+    this.held.add(action);
+    this.queuedInput |= INPUT_BITS[action];
     event.preventDefault();
   };
 
-  private readonly onKeyUp = (event: KeyboardEvent): void => { this.held.delete(event.code); };
+  private readonly onKeyUp = (event: KeyboardEvent): void => {
+    const action = keybindAction("stage", event.code);
+    if (isInputAction(action)) this.held.delete(action);
+  };
   private readonly onBlur = (): void => { this.held.clear(); this.queuedInput = 0; };
-
-  pulseAttack(): void { this.queuedInput |= InputBit.Attack; }
-  pulseSlash(): void { this.queuedInput |= InputBit.Slash; }
 
   sample(): InputFrame {
     let input = this.queuedInput;
     this.queuedInput = 0;
-    if (this.held.has("KeyA")) input |= InputBit.Left;
-    if (this.held.has("KeyD")) input |= InputBit.Right;
-    if (this.held.has("KeyW")) input |= InputBit.Up;
-    if (this.held.has("KeyS")) input |= InputBit.Down;
-    if (this.held.has("KeyJ")) input |= InputBit.Attack;
-    if (this.held.has("KeyK")) input |= InputBit.Slash;
+    for (const action of this.held) input |= INPUT_BITS[action];
     return input;
   }
 
