@@ -8,8 +8,9 @@ ten contracts everything here is held to. Read it first.
 
 ## Where this is
 
-The repository is being rebuilt from the contract outwards. **M0 and M1 are in: the rig, the
-sampler, swappable traced parts, figure manifests, and the gates that check them.** Everything else is listed in
+The repository is being rebuilt from the contract outwards. **M0 through M2 are in: the rig,
+sampler, swappable traced parts, figure manifests, clip lanes, and the gates that check them.**
+Everything else is listed in
 [`docs/REWRITE_PLAN.md`](docs/REWRITE_PLAN.md) with the files it creates, the gate it turns on
 and what it defers — and every port comes out of git history, which is why nothing was lost
 when the old tree went.
@@ -19,7 +20,8 @@ There is no page to open yet. That is M5.
 ```bash
 npm install
 npm run build:parts
-npm run verify     # rig, sprites, sockets, footprint, typecheck, test
+npm run build:motions
+npm run verify     # rig, sprites, sockets, motions, footprint, typecheck, test
 ```
 
 ## What exists
@@ -28,12 +30,13 @@ npm run verify     # rig, sprites, sockets, footprint, typecheck, test
 rigs/fighter.rig.json   the rig: eleven bones, 19 anchors, four depth slots, seven cosmetic
                         kinds, sockets, paint order, the Blender axis map, the BVH layout
 src/rig/                the contract loader, forward kinematics, and the one sampler
-src/clips/              clip types, and a catalog that is empty until M2
+src/clips/              clip types, generated and authored catalogs, playback and movesets
 pipelines/guards/rig.ts check:rig
 pipelines/sprite/       deterministic atlas decoder, cutter, tracer and part builder
 characters/<id>/        atlas.png + atlas.json source; generated parts/<slot>.svg output
 figures/                 manifests selecting a rig and one file for every part slot
-motions/                dataset manifest + authored clip source, waiting for M2
+motions/                dataset manifest with shipped/study lanes + authored clip source
+pipelines/motion/       BVH parser, measured retarget, reducer and deterministic catalog build
 third_party/            the vendored Bandai Namco subset, CC BY-NC 4.0
 ```
 
