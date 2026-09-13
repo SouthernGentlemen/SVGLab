@@ -1,7 +1,7 @@
 # Motion import
 
-The deterministic retarget and catalog build described here are live in M2. The combat and
-Blender round-trip sections describe the M3/M4 target; those commands and files do not exist yet.
+The deterministic retarget/catalog build and Blender round trip described here are live in
+M2/M3. The combat section describes the M4 target.
 
 SVGLab can turn selected 3D BVH captures into readable clips for its eleven-bone SVG rig.
 The raw capture remains build-time input; the browser receives only generated TypeScript
@@ -144,8 +144,9 @@ One BVH per clip, baked at one frame per 60 Hz tick through the same sampler
 `src/rig/sample.ts` uses, so the file plays exactly what the lab plays rather than an
 approximation of it. The skeleton is read from `rigs/fighter.rig.json`, never restated: same
 eleven bones, same parents, same rest offsets. Beside the clips, `art/<bone>.svg` carries each
-bone's own drawing with its class names resolved to explicit paint, and `setup.py` puts the two
-together.
+bone's literal-painted M1 part selected by a figure manifest, and `setup.py` puts the two
+together. Export defaults to `figures/barst.json` and prints the choice; pass `--figure kiran`
+(or another manifest) to select a different figure.
 
 SVG points y down and turns clockwise-positive, so the rig is written into the XY plane as
 `(x, -y)` with every bone turning about Z with the sign flipped. The root carries a zero

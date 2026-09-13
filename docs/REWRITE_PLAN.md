@@ -561,7 +561,7 @@ is pointed and where nothing in the bundle can reach them.
 ### M3 — Blender exchange
 
 **Creates.** `pipelines/exchange/{bvh-write,bvh-read,art,export,import}.ts`.
-`pipelines/blender/{setup,joints}.py`. `pipelines/guards/{exchange,blender}.ts`.
+`pipelines/blender/{setup,export,joints}.py`. `pipelines/guards/{exchange,blender}.ts`.
 `pipelines/dev/find-blender.ts`. `tests/exchange/*`.
 
 **Gate on.** `check:exchange`, `check:blender`.

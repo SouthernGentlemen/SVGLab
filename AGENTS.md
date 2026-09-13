@@ -236,7 +236,7 @@ verdict on every path the old tree carried.
 - **M2 — clips.** Both lanes, the retarget (project to the plane, collapse to eleven bones,
   drop horizontal root travel, resample, reduce), the generated catalog, and the studies
   written to `out/`. Done when every kept clip is reproduced with contact ticks asserted.
-- **M3 — Blender exchange.** Export with per-bone art and the calibration corner; `setup.py`
+- **M3 — Blender exchange.** *Done.* Export with per-bone art and the calibration corner; `setup.py`
   building the armature from C1; `export.py`; the axis-measuring reader; `check:exchange` and
   `check:blender`. Done when a clip opens as a posed figure, an edit lands in
   `motions/authored/`, and an untouched round trip is a table of zeros.

@@ -11,11 +11,16 @@
     "check:sockets": "node pipelines/guards/sockets.ts",
     "build:motions": "node pipelines/motion/build.ts",
     "check:motions": "node pipelines/motion/build.ts --check",
+    "export:motions": "node pipelines/exchange/export.ts",
+    "import:motions": "node pipelines/exchange/import.ts",
+    "blender": "node pipelines/exchange/export.ts --blend",
+    "check:exchange": "node pipelines/guards/exchange.ts",
     "check:footprint": "node pipelines/guards/footprint.ts",
+    "check:blender": "node pipelines/guards/blender.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run check:rig && npm run check:sprites && npm run check:sockets && npm run check:motions && npm run check:footprint && npm run typecheck && npm test"
+    "verify": "npm run check:rig && npm run check:sprites && npm run check:sockets && npm run check:motions && npm run check:exchange && npm run check:footprint && npm run typecheck && npm test && npm run check:blender"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
