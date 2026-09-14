@@ -78,9 +78,32 @@ function processRows(): ProcessRow[] {
   }
 }
 
+/**
+ * This process and everything that spawned it, which teardown must never signal.
+ *
+ * `svglabRuntimePids` matches on a command line containing the repository name, so any shell
+ * whose command line mentions both this repository and one of the runtime patterns matches —
+ * including the shell that invoked teardown. Measured: a teardown run from such a shell listed
+ * that shell as an unkillable survivor and failed to reclaim a port nothing was holding, and
+ * `descendantsOf` would have swept its other children too.
+ *
+ * Excluding only `process.pid` was not enough. The chain has to be excluded at the matcher, not
+ * just before signalling: a protected process that still matches never leaves the survivor set,
+ * so the reclaim loop spins until it times out.
+ */
+function selfAndAncestors(rows: readonly ProcessRow[]): Set<number> {
+  const byPid = new Map(rows.map((row) => [row.pid, row]));
+  const chain = new Set<number>([process.pid]);
+  for (let walk = byPid.get(process.pid)?.ppid; walk && walk > 1 && !chain.has(walk); walk = byPid.get(walk)?.ppid) {
+    chain.add(walk);
+  }
+  return chain;
+}
+
 function svglabRuntimePids(rows: readonly ProcessRow[] = processRows()): number[] {
+  const protectedPids = selfAndAncestors(rows);
   return rows.flatMap(({ pid, command }) => {
-    if (pid === process.pid || !command.includes(repoName)) return [];
+    if (protectedPids.has(pid) || !command.includes(repoName)) return [];
     return /(?:wrangler|workerd|lifecycle\.(?:mjs|ts)|sidecar\.ts)/i.test(command) ? [pid] : [];
   });
 }
@@ -134,8 +157,9 @@ function signalGroup(pgid: number, force = false): void {
 async function signalTrees(seedPids: readonly number[], label: string, force = false): Promise<void> {
   const rows = processRows();
   const currentPgid = currentProcessGroup(rows);
-  const targets = descendantsOf([...new Set(seedPids)].filter((pid) => pid !== process.pid), rows)
-    .filter((pid) => pid !== process.pid);
+  const protectedPids = selfAndAncestors(rows);
+  const targets = descendantsOf([...new Set(seedPids)].filter((pid) => !protectedPids.has(pid)), rows)
+    .filter((pid) => !protectedPids.has(pid));
   if (targets.length === 0) return;
 
   const groups = new Set<number>();
