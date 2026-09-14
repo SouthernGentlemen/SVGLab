@@ -7,6 +7,7 @@ import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { RuntimeCatalog } from "../../src/clips/runtime.ts";
+import { POSE_COUNT } from "boneyard";
 import type { Clip } from "boneyard";
 import type { Rig } from "boneyard";
 import { buildCatalog } from "boneyard/motion";
@@ -33,21 +34,21 @@ function validateStudyClip(value: unknown, rig: Rig, file: string): Clip {
   if (typeof clip.name !== "string" || !clip.name) fail("clip has no name");
   if (!Number.isInteger(clip.duration) || clip.duration! <= 0) fail("duration must be a positive whole tick count");
   if (clip.easing !== "linear" && clip.easing !== "smoothstep") fail("easing must be linear or smoothstep");
-  if (!Array.isArray(clip.keyframes) || clip.keyframes.length === 0) fail("clip has no keyframes");
-  const keyframes = clip.keyframes as Clip["keyframes"];
-  let previous = -1;
-  for (const keyframe of keyframes) {
-    if (!Number.isInteger(keyframe.frame) || keyframe.frame <= previous) fail(`keyframe ${keyframe.frame} is out of order`);
-    previous = keyframe.frame;
-    for (const [bone, pose] of Object.entries(keyframe.bones ?? {})) {
-      if (!rig.byName.has(bone)) fail(`keyframe ${keyframe.frame} poses unknown bone '${bone}'`);
-      for (const [property, number] of Object.entries(pose)) {
+  // The count is the format, so a study artifact with a different one is refused rather than
+  // played at whatever length it happens to have.
+  if (!Array.isArray(clip.poses) || clip.poses.length !== POSE_COUNT) {
+    fail(`clip has ${Array.isArray(clip.poses) ? clip.poses.length : 0} poses; every clip has exactly ${POSE_COUNT}`);
+  }
+  (clip.poses as Clip["poses"]).forEach((pose, index) => {
+    for (const [bone, value] of Object.entries(pose)) {
+      if (!rig.byName.has(bone)) fail(`pose ${index} poses unknown bone '${bone}'`);
+      for (const [property, number] of Object.entries(value)) {
         if (!(["x", "y", "rotation"] as const).includes(property as "x" | "y" | "rotation") || !Number.isFinite(number)) {
-          fail(`keyframe ${keyframe.frame} has invalid ${bone}.${property}`);
+          fail(`pose ${index} has invalid ${bone}.${property}`);
         }
       }
     }
-  }
+  });
   return clip as Clip;
 }
 

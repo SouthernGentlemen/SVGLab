@@ -147,7 +147,7 @@ async function applyGalleryWeapon(weapon: string | null): Promise<void> {
 }
 
 function referencedBones(): Set<string> {
-  const bones = new Set<string>(); for (const keyframe of currentClip().keyframes) for (const name of Object.keys(keyframe.bones)) bones.add(name); return bones;
+  const bones = new Set<string>(); for (const pose of currentClip().poses) for (const name of Object.keys(pose)) bones.add(name); return bones;
 }
 
 function missingBones(node: FigureNode): string[] { return [...referencedBones()].filter((name) => !node.bones.has(name)).sort(); }

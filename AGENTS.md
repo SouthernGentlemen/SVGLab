@@ -70,6 +70,12 @@ move phases, and contact timing; animation owns how that reads. A clip is warped
 ticks, never the reverse, and a clip's contact tick is asserted against the move's active
 window — across the repository line, against Boneyard's own record of how it was retargeted.
 
+Frame data stays integer ticks. A clip does not: Boneyard normalises every clip to thirteen
+poses on phases, so a move's duration and its animation's shape are independent numbers. A
+contact tick that does not land on a pose is interpolated, which costs 1.7° on the strike;
+choosing a duration that puts contact on a pose is the fix, and is this repository's choice to
+make because the duration is combat data.
+
 **C3 — Generated output versus authored source.** `src/clips/generated/*.ts` is baked out of
 `boneyard/catalog/clips.json` by `build:motions`. It carries a header saying so, rebuilds
 byte-identically, contains no timestamps or machine paths, and has a `--check` mode that fails
