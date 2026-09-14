@@ -1,12 +1,12 @@
-import { validateRig } from "../rig/contract.ts";
-import type { Rig } from "../rig/types.ts";
-import { cosmeticReference, figurePath, inspectPart, validateFigure } from "./manifest.ts";
-import type { FigureManifest } from "./manifest.ts";
-import { cosmeticFit, inspectCosmetic, placementTransform, resolveCosmeticPlacements, validateWardrobeSet } from "./wardrobe.ts";
-import type { CosmeticFit, CosmeticPiece, CosmeticPlacement, WardrobeIndex, WardrobeSet } from "./wardrobe.ts";
+import { validateRig } from "boneyard";
+import type { Rig } from "boneyard";
+import { cosmeticReference, figurePath, inspectPart, validateFigure } from "boneyard";
+import type { FigureManifest } from "boneyard";
+import { cosmeticFit, inspectCosmetic, placementTransform, resolveCosmeticPlacements, validateWardrobeSet } from "boneyard";
+import type { CosmeticFit, CosmeticPiece, CosmeticPlacement, WardrobeIndex, WardrobeSet } from "boneyard";
 
-export { inspectPart, validateFigure } from "./manifest.ts";
-export type { FigureManifest } from "./manifest.ts";
+export { inspectPart, validateFigure } from "boneyard";
+export type { FigureManifest } from "boneyard";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 

@@ -9,7 +9,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, extname, normalize, relative, resolve, sep } from "node:path";
+import { dirname, extname, join, normalize, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -35,17 +35,7 @@ export const DECLARED_ENTRY_RULES: readonly DeclaredEntryRule[] = [
   { pattern: "index.html", reason: "Vite stage entry point" },
   { pattern: "preview.html", reason: "Vite animation-preview entry point" },
   { pattern: "tests/**/*.test.ts", reason: "Vitest-discovered test entry point" },
-  { pattern: "characters/*/atlas.png", reason: "sprite pipeline raster input discovered by sheet id" },
-  { pattern: "characters/*/atlas.json", reason: "sprite pipeline authored sidecar discovered by sheet id" },
-  { pattern: "cosmetics/*/atlas.png", reason: "wardrobe pipeline raster input discovered by set id" },
-  { pattern: "cosmetics/*/set.json", reason: "wardrobe build and runtime manifest discovered by set id" },
-  { pattern: "figures/*.json", reason: "runtime and render-pipeline figure manifest discovered by id" },
-  { pattern: "motions/*.json", reason: "motion build manifest discovered by the catalog builder" },
-  { pattern: "motions/authored/*.json", reason: "authored motion source discovered by clip key" },
-  { pattern: "motions/capture/*/*.bvh", reason: "pinned capture input discovered through a motion manifest" },
-  { pattern: "rigs/*.rig.json", reason: "versioned rig contract discovered by rig id" },
-  { pattern: "rigs/*.schema.json", reason: "committed agent-authoring schema checked by check:rig" },
-  { pattern: "rigs/footprint.baseline.json", reason: "committed C7 byte ratchet input" },
+  { pattern: "pipelines/guards/footprint.baseline.json", reason: "committed C7 byte ratchet input" },
 ];
 
 interface PackageManifest {
@@ -220,6 +210,16 @@ function documentationAudit(
     const source = textOf(root, document)!;
     for (const link of markdownLinks(source)) {
       if (/^(?:[a-z]+:|#)/i.test(link)) continue;
+      // A link into the sibling Boneyard checkout is what a reader follows on disk, and the
+      // installed package is the same files through the link — so check it rather than waving
+      // it through. A renamed guide over there breaks this build, which is the point.
+      const sibling = link.match(/^\.\.\/Boneyard\/(.+)$/);
+      if (sibling) {
+        if (!existsSync(join(root, "node_modules", "boneyard", sibling[1]))) {
+          issues.push({ document, reference: link, message: "boneyard no longer has this path" });
+        }
+        continue;
+      }
       const target = resolveReference(document, link, tracked);
       if (!target) {
         issues.push({ document, reference: link, message: "Markdown link target does not exist" });
@@ -309,7 +309,12 @@ export function auditCruft(root = ROOT): CruftAudit {
     linkedDocuments: docs.linkedDocuments,
     scripts: Object.keys(manifest.scripts ?? {}).length,
     pipelines: pipelineFiles.length,
-    runtimeDependencies: Object.keys(manifest.dependencies ?? {}).sort(),
+    // Boneyard is the rig and the art, linked from a sibling checkout, and its own guard keeps
+    // its dependency list empty. Anything else in `dependencies`, or a boneyard that has stopped
+    // being a file: link, is third-party code reaching the bundle and is what this counts.
+    runtimeDependencies: Object.entries(manifest.dependencies ?? {})
+      .filter(([name, specifier]) => name !== "boneyard" || !String(specifier).startsWith("file:"))
+      .map(([name]) => name).sort(),
     unreachable,
     orphanDocuments: docs.orphanDocuments,
     documentationIssues: docs.issues,
@@ -342,13 +347,13 @@ export function main(argv: readonly string[]): number {
       for (const script of audit.deadScripts) console.error(`check:cruft: npm script '${script.script}' names '${script.entry}': ${script.message}`);
       for (const path of audit.deadPipelines) console.error(`check:cruft: ${path} is not reached by any npm script or pipeline import`);
       if (audit.runtimeDependencies.length > 0) {
-        console.error(`check:cruft: ${audit.runtimeDependencies.length} runtime dependencies found: ${audit.runtimeDependencies.join(", ")}; C7 requires zero`);
+        console.error(`check:cruft: ${audit.runtimeDependencies.length} third-party runtime dependencies found: ${audit.runtimeDependencies.join(", ")}; C7 allows only a file:-linked boneyard`);
       }
       console.log(`check:cruft: ${audit.reachableFiles}/${audit.trackedFiles} tracked paths reachable through ${audit.references} references and `
         + `${audit.declaredEntries.length} reasoned entries; ${audit.linkedDocuments}/${audit.documents} docs linked, `
         + `${audit.scripts - audit.deadScripts.length}/${audit.scripts} scripts live, `
         + `${audit.pipelines - audit.deadPipelines.length}/${audit.pipelines} pipeline files reached, `
-        + `${audit.runtimeDependencies.length} runtime dependencies`);
+        + `${audit.runtimeDependencies.length} third-party runtime dependencies`);
     }
     return passed ? 0 : 1;
   } catch (error) {

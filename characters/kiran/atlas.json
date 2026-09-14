@@ -1,7 +1,0 @@
-{
-  "name": "Kiran",
-  "trace": {
-    "default": { "colours": 3, "epsilon": 3.0, "places": 1, "minRegionArea": 48 },
-    "bySlot": { "head": { "colours": 12, "epsilon": 1.2, "places": 1, "minRegionArea": 12 } }
-  }
-}

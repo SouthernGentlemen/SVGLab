@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { BONEYARD_ROOT } from "boneyard/paths";
 
 import { CLIPS } from "../src/clips/index.ts";
 import { BASIC_STRIKE, SWORD_SLASH } from "../src/kernel/content.ts";
@@ -15,9 +16,10 @@ interface MotionManifest {
   clips: ManifestClip[];
 }
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+// The window a move binds to is Boneyard's record of how the clip was retargeted. Reading it
+// here is the whole point of this test: the binding has to stay true across the repository line.
 const manifest = JSON.parse(
-  readFileSync(join(root, "motions", "bandai-namco-motiondataset-1.json"), "utf8"),
+  readFileSync(join(BONEYARD_ROOT, "motions", "bandai-namco-motiondataset-1.json"), "utf8"),
 ) as MotionManifest;
 
 describe("move frame data and animation clips", () => {

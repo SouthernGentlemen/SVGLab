@@ -1,6 +1,6 @@
-import type { Pose } from "../clips/types.ts";
-import type { Rig } from "../rig/types.ts";
-import type { DepthSide } from "../rig/types.ts";
+import type { Pose } from "boneyard";
+import type { Rig } from "boneyard";
+import type { DepthSide } from "boneyard";
 import type { FigureNode } from "./assemble.ts";
 
 export type VisualFacing = -1 | 1;

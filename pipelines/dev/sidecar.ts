@@ -3,17 +3,26 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, watch, writeFileSync 
 import type { FSWatcher } from "node:fs";
 import { createServer } from "node:http";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
-import { basename, dirname, join, resolve, sep } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { RuntimeCatalog } from "../../src/clips/runtime.ts";
-import type { Clip } from "../../src/clips/types.ts";
-import type { Rig } from "../../src/rig/types.ts";
-import { buildCatalog } from "../motion/catalog.ts";
-import { writeMotionCatalog } from "../motion/build.ts";
-import { buildWardrobeIndex } from "../wardrobe/index.ts";
+import type { Clip } from "boneyard";
+import type { Rig } from "boneyard";
+import { buildCatalog } from "boneyard/motion";
+import { BONEYARD_ROOT } from "boneyard/paths";
+import { buildWardrobeIndex } from "boneyard/wardrobe/index";
+import { writeGenerated } from "../motion/generate.ts";
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+
+/**
+ * Two roots, one disk owner.
+ *
+ * Motion source, studies and wardrobe manifests live in Boneyard; the typed clip modules this
+ * lab compiles live here. The sidecar reads and watches the first and writes the second, so an
+ * authored clip edited in either repository reaches the page without a build.
+ */
 
 function validateStudyClip(value: unknown, rig: Rig, file: string): Clip {
   const artifact = value as { generatedBy?: unknown; clip?: Partial<Clip> } | null;
@@ -53,10 +62,10 @@ function studiesFromOut(root: string, rig: Rig): Readonly<Record<string, Clip>> 
   return studies;
 }
 
-export function rebuildRuntimeCatalog(root: string, persist = true): RuntimeCatalog {
-  const source = buildCatalog(root);
-  if (persist) writeMotionCatalog(source, root);
-  const studies = studiesFromOut(root, source.rig);
+export function rebuildRuntimeCatalog(assetRoot: string, persist = true): RuntimeCatalog {
+  const source = buildCatalog(assetRoot);
+  if (persist) writeGenerated();
+  const studies = studiesFromOut(assetRoot, source.rig);
   return {
     contract: 1,
     clips: { ...source.clips, ...studies },
@@ -71,6 +80,8 @@ export function rebuildRuntimeCatalog(root: string, persist = true): RuntimeCata
 
 export interface SidecarOptions {
   readonly root?: string;
+  /** Where the motion source, studies and wardrobe manifests are. Defaults to the installed Boneyard. */
+  readonly assetRoot?: string;
   readonly port?: number;
   readonly debounceMs?: number;
   readonly rebuild?: (root: string, persist: boolean) => RuntimeCatalog;
@@ -106,10 +117,11 @@ async function requestBody(request: IncomingMessage): Promise<string> {
 
 export async function startDevSidecar(options: SidecarOptions = {}): Promise<DevSidecar> {
   const root = resolve(options.root ?? DEFAULT_ROOT);
+  const assetRoot = resolve(options.assetRoot ?? BONEYARD_ROOT);
   const rebuild = options.rebuild ?? rebuildRuntimeCatalog;
   const debounceMs = options.debounceMs ?? 40;
   let revision = 0;
-  let current = { ...rebuild(root, true), revision };
+  let current = { ...rebuild(assetRoot, true), revision };
   const clients = new Set<ServerResponse>();
   const watchers: FSWatcher[] = [];
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -120,7 +132,7 @@ export async function startDevSidecar(options: SidecarOptions = {}): Promise<Dev
   };
   const refresh = (persist: boolean): void => {
     try {
-      const next = rebuild(root, persist);
+      const next = rebuild(assetRoot, persist);
       revision += 1;
       current = { ...next, revision };
       publish("catalog", { revision, clips: Object.keys(current.clips).length });
@@ -134,10 +146,10 @@ export async function startDevSidecar(options: SidecarOptions = {}): Promise<Dev
     timer = setTimeout(() => { timer = null; refresh(persist); }, debounceMs);
   };
 
-  for (const directory of [join(root, "motions", "authored"), join(root, "out")]) mkdirSync(directory, { recursive: true });
+  for (const directory of [join(assetRoot, "motions", "authored"), join(assetRoot, "out")]) mkdirSync(directory, { recursive: true });
   if (options.watchFiles !== false) {
-    watchers.push(watch(join(root, "motions", "authored"), (_event, file) => { if (file?.endsWith(".json")) schedule(true); }));
-    watchers.push(watch(join(root, "out"), (_event, file) => { if (file?.endsWith(".json")) schedule(false); }));
+    watchers.push(watch(join(assetRoot, "motions", "authored"), (_event, file) => { if (file?.endsWith(".json")) schedule(true); }));
+    watchers.push(watch(join(assetRoot, "out"), (_event, file) => { if (file?.endsWith(".json")) schedule(false); }));
   }
 
   const server = createServer(async (request, response) => {
@@ -146,7 +158,7 @@ export async function startDevSidecar(options: SidecarOptions = {}): Promise<Dev
       if (request.method === "GET" && url.pathname === "/dev/health") return sendJson(response, 200, { ok: true, revision });
       if (request.method === "GET" && url.pathname === "/dev/catalog") return sendJson(response, 200, current);
       if (request.method === "GET" && url.pathname === "/dev/wardrobe") {
-        return sendJson(response, 200, buildWardrobeIndex(root));
+        return sendJson(response, 200, buildWardrobeIndex(assetRoot));
       }
       if (request.method === "GET" && url.pathname === "/dev/events") {
         response.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
@@ -155,7 +167,7 @@ export async function startDevSidecar(options: SidecarOptions = {}): Promise<Dev
       }
       if (request.method === "GET" && url.pathname.startsWith("/dev/out/")) {
         const name = basename(decodeURIComponent(url.pathname.slice("/dev/out/".length)));
-        const path = join(root, "out", name);
+        const path = join(assetRoot, "out", name);
         if (!name || !existsSync(path)) return sendJson(response, 404, { error: "study artifact not found" });
         response.writeHead(200, { "Content-Type": name.endsWith(".json") ? "application/json" : "application/octet-stream", "Cache-Control": "no-store" });
         response.end(readFileSync(path)); return;
@@ -164,7 +176,7 @@ export async function startDevSidecar(options: SidecarOptions = {}): Promise<Dev
       if ((request.method === "PUT" || request.method === "POST") && writeMatch) {
         const directory = writeMatch[1]; const name = decodeURIComponent(writeMatch[2]);
         if (basename(name) !== name) return sendJson(response, 400, { error: "invalid file name" });
-        const path = resolve(root, directory, name); const allowed = resolve(root, directory);
+        const path = resolve(assetRoot, directory, name); const allowed = resolve(assetRoot, directory);
         if (!path.startsWith(`${allowed}${sep}`)) return sendJson(response, 400, { error: "path escapes writable directory" });
         writeFileSync(path, await requestBody(request), "utf8");
         schedule(directory === "motions/authored");
@@ -181,7 +193,7 @@ export async function startDevSidecar(options: SidecarOptions = {}): Promise<Dev
   });
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("sidecar did not bind a TCP port");
-  console.log(`sidecar: watching motions/authored and out on http://127.0.0.1:${address.port}`);
+  console.log(`sidecar: watching ${relative(root, assetRoot) || assetRoot} motions/authored and out on http://127.0.0.1:${address.port}`);
   return {
     server,
     port: address.port,

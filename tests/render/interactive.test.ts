@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
-import { assembleFigure, removeCosmetic, wearCosmetic } from "../../src/render/assemble.ts";
+import { assembleFigure, hiddenPartSlots, removeCosmetic, wearCosmetic } from "../../src/render/assemble.ts";
+import type { CosmeticNode } from "../../src/render/assemble.ts";
 import { installTestDom, repositoryFetcher, TestSvgElement } from "./dom.ts";
+import { BONEYARD_ROOT } from "boneyard/paths";
 
-const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+const ROOT = BONEYARD_ROOT;
 let restoreDom: () => void;
 
 beforeEach(() => { restoreDom = installTestDom(); });
@@ -71,5 +71,15 @@ describe("interactive cosmetics", () => {
     raw.cosmetics = ["cosmetics/field-kit/trail-cloak.svg"];
     const { fetcher } = repositoryFetcher(ROOT, { "figures/unfitted.json": JSON.stringify(raw) });
     await expect(assembleFigure("unfitted", "player", "http://lab/", fetcher)).rejects.toThrow(/not fitted/);
+  });
+
+  it("drops hidden part slots only while the claiming cosmetic is enabled", () => {
+    const cosmetic = {
+      enabled: true,
+      piece: { kind: "hat", height: 40, hides: ["head"] },
+    } as unknown as CosmeticNode;
+    expect([...hiddenPartSlots([cosmetic])]).toEqual(["head"]);
+    cosmetic.enabled = false;
+    expect([...hiddenPartSlots([cosmetic])]).toEqual([]);
   });
 });

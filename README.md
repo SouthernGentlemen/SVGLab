@@ -4,54 +4,47 @@ A deliberately unsafe, local-only laboratory for deterministic fighting mechanic
 SVG character animation.
 
 **[`AGENTS.md`](AGENTS.md) is the contract** — what this repository is, what it is not, and the
-ten contracts every path is held to. Read it first.
+eight contracts every path is held to. Read it first.
 
-The contract-first rewrite is complete. Sprite atlases become interchangeable SVG parts,
-figures select parts and fitted cosmetics, captured and authored motion share one 60 Hz sampler,
-Blender round trips are measured, the combat kernel is sealed from presentation, and the local
-Worker preview reloads edits through a disk-owning sidecar. Ten verification gates keep that
-shape from drifting.
+The rig, the character art, the wardrobe and the clip catalog are not here. They live in
+[Boneyard](../Boneyard/README.md) and are consumed from it, so a second tool can key a pose on
+the same skeleton without a second copy of it — and, more to the point, without a second
+sampler. Boneyard decides what the data is; this decides how it looks and plays.
 
 ## Run the lab
 
 ```bash
 npm install
-npm run dev                              # build, start the sidecar and local Worker, open the stage
-npm run render:figure -- --figure yuliya # write an assembled review sheet to out/render/
-npm run render:clip -- --clip labWave    # write a motion contact sheet to out/render/
-npm run verify                           # all gates, typecheck, tests and production build
+npm run dev      # build, start the sidecar and local Worker, open the stage
+npm run verify   # every gate, typecheck, tests and production build
 ```
+
+`npm install` links Boneyard from the sibling checkout. Clone it beside this repository and run
+its `npm run build` once; the Vite build refuses to run against a Boneyard with no catalog.
 
 The Worker is deliberately local-only. There is no account id, route, persistent binding,
 deployment script or production authentication surface.
 
 Generated art names a bone but carries no skeleton. The rig owns joints, anchors, depth slots,
-socket expectations, paint order and exchange axes; a figure is only a manifest of choices.
-The browser fetches those choices, so raster atlases and SVG part payloads never enter a shell
-chunk. The authoritative repository layout lives in `AGENTS.md`; dataset provenance and path
-coverage live in [`LICENSE.md`](LICENSE.md).
+socket expectations, paint order and exchange axes; a figure is only a manifest of choices. The
+browser fetches those choices, so raster atlases and SVG part payloads never enter a shell chunk.
 
 ## Guides
 
-- [Agent authoring loop](docs/AUTHORING.md) — write a clip or figure against the committed
-  schemas, validate it, render a sheet and iterate.
-- [Character atlases](docs/CHARACTER_ATLAS.md) — draw a body-part sheet and trace it into fitted,
-  swappable SVG parts.
-- [Motion import](docs/MOTION_IMPORT.md) — source provenance, planar retargeting, catalog lanes,
-  and the measured Blender round trip.
 - [Hexframe extraction audit](docs/HEXFRAME_COMBAT_AUDIT.md) — what the combat kernel retained
   and deliberately left behind.
+- [Licence and attribution](LICENSE.md) — what this repository distributes and under what terms.
+- Authoring a clip, drawing a character sheet, or importing motion is Boneyard's loop:
+  [authoring](../Boneyard/docs/AUTHORING.md), [atlases](../Boneyard/docs/CHARACTER_ATLAS.md),
+  [motion import](../Boneyard/docs/MOTION_IMPORT.md).
 
-## Final footprint
+## Footprint
 
-- 198 tracked files, including six pinned BVH inputs under `motions/capture/`.
-- 10,863 lines of TypeScript and 452 lines of Blender Python.
-- Zero runtime dependencies. Development uses only `@cloudflare/workers-types`, `@types/node`,
-  `typescript`, `vite`, `vitest` and `wrangler`.
-- 45,183 raw / 16,242 gzip bytes across three production shell chunks. Art remains
-  fetched and is not part of those chunks.
-- Ten gates in `verify`, plus typecheck, 119 tests across 27 files, and the production build.
+- 70 tracked files, zero third-party runtime dependencies.
+- 45,183 raw / 16,242 gzip bytes across three production shell chunks, plus 38,900 raw / 5,486
+  gzip of baked clip modules. Art remains fetched and is not part of those chunks.
+- Six verification steps in `verify`, plus 53 tests across 14 files and the production build.
 
-These are measured repository and `dist/assets` totals, not budgets. Per-asset raw and gzip
-sizes remain ratcheted in `rigs/footprint.baseline.json`; a decrease passes and an increase must
-be accepted in that file's diff.
+These are measured totals, not budgets. Per-asset raw and gzip sizes remain ratcheted in
+`pipelines/guards/footprint.baseline.json`; a decrease passes and an increase must be accepted in
+that file's diff. What the art weighs is ratcheted in Boneyard.

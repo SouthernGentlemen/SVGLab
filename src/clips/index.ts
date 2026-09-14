@@ -1,6 +1,6 @@
 import { AUTHORED_CLIPS, AUTHORED_ORIGINS } from "./generated/authored.ts";
 import { BANDAI_NAMCO_CLIPS } from "./generated/bandai-namco.ts";
-import type { Clip } from "./types.ts";
+import type { Clip } from "boneyard";
 
 /**
  * Everything the lab can play, in two lanes.

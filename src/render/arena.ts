@@ -1,4 +1,4 @@
-import { sampleClip } from "../rig/sample.ts";
+import { sampleClip } from "boneyard";
 import { SCALE } from "../kernel/constants.ts";
 import { activeMove } from "../kernel/state/machine.ts";
 import { debugBoxes } from "../kernel/collision/boxes.ts";

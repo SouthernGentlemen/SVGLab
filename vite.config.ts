@@ -1,61 +1,76 @@
-import { cpSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { createReadStream, existsSync, cpSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
-import { buildCatalog } from "./pipelines/motion/catalog.ts";
-import { buildWardrobeIndex } from "./pipelines/wardrobe/index.ts";
+import { BONEYARD_ROOT } from "boneyard/paths";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 
-function copyRuntimeAssets() {
+/** The prefixes the shell fetches at runtime, all of them owned by Boneyard. */
+const ASSET_PREFIXES = ["rigs", "characters", "cosmetics", "figures", "catalog"] as const;
+
+const TYPES: Readonly<Record<string, string>> = {
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+};
+
+/**
+ * Boneyard's directories also hold its own working files — the atlases its pipelines trace, the
+ * schemas an author validates against, its byte ratchet. The page fetches none of them.
+ */
+function shippable(path: string): boolean {
+  return !/(?:atlas\.(?:png|json)|\.schema\.json|footprint\.baseline\.json)$/.test(path);
+}
+
+function copyShippable(from: string, to: string): void {
+  if (statSync(from).isDirectory()) {
+    mkdirSync(to, { recursive: true });
+    for (const entry of readdirSync(from)) copyShippable(join(from, entry), join(to, entry));
+  } else if (shippable(from)) cpSync(from, to);
+}
+
+/**
+ * Serve and ship the art Boneyard owns.
+ *
+ * The shell fetches these paths at runtime and never imports them, which is what keeps raster
+ * atlases and SVG part payloads out of a shell chunk. In development the middleware reads them
+ * straight out of the installed package, so an edit in Boneyard is visible on reload; in a build
+ * they are copied beside `index.html`. Neither path reshapes anything — Boneyard's directories
+ * are already the served shape, and a copy with an opinion would be a second source of truth.
+ */
+function boneyardAssets() {
   return {
-    name: "svglab-runtime-assets",
-    closeBundle(): void {
-      const dist = join(ROOT, "dist");
-      const figureDirectory = join(ROOT, "figures");
-      const figures = readdirSync(figureDirectory).filter((name) => name.endsWith(".json")).sort().map((file) => {
-        const manifest = JSON.parse(readFileSync(join(figureDirectory, file), "utf8")) as { name: string };
-        return { id: basename(file, ".json"), name: manifest.name, path: `figures/${file}` };
+    name: "svglab-boneyard-assets",
+    configureServer(server: { middlewares: { use: (handler: (request: { url?: string }, response: { statusCode: number; setHeader: (name: string, value: string) => void }, next: () => void) => void) => void } }): void {
+      server.middlewares.use((request, response, next) => {
+        const pathname = (request.url ?? "/").split("?")[0];
+        const prefix = ASSET_PREFIXES.find((name) => pathname.startsWith(`/${name}/`));
+        if (!prefix) return next();
+        const path = join(BONEYARD_ROOT, decodeURIComponent(pathname.slice(1)));
+        if (!path.startsWith(BONEYARD_ROOT) || !existsSync(path) || !shippable(path)) return next();
+        response.setHeader("Content-Type", TYPES[extname(path)] ?? "application/octet-stream");
+        response.setHeader("Cache-Control", "no-store");
+        createReadStream(path).pipe(response as unknown as NodeJS.WritableStream);
       });
-      mkdirSync(join(dist, "figures"), { recursive: true });
-      for (const entry of figures) cpSync(join(ROOT, entry.path), join(dist, entry.path));
-      writeFileSync(join(dist, "figures", "index.json"), `${JSON.stringify({ contract: 1, figures })}\n`);
-
-      mkdirSync(join(dist, "rigs"), { recursive: true });
-      cpSync(join(ROOT, "rigs", "fighter.rig.json"), join(dist, "rigs", "fighter.rig.json"));
-      for (const character of readdirSync(join(ROOT, "characters"), { withFileTypes: true }).filter((entry) => entry.isDirectory())) {
-        cpSync(join(ROOT, "characters", character.name, "parts"), join(dist, "characters", character.name, "parts"), { recursive: true });
+    },
+    closeBundle(): void {
+      if (!existsSync(join(BONEYARD_ROOT, "catalog", "clips.json"))) {
+        throw new Error("boneyard has no built catalog — run npm run build in the Boneyard repository");
       }
-      const wardrobeIndex = buildWardrobeIndex(ROOT);
-      mkdirSync(join(dist, "cosmetics"), { recursive: true });
-      for (const wardrobe of wardrobeIndex.sets) {
-        const target = join(dist, "cosmetics", wardrobe.id);
-        mkdirSync(target, { recursive: true });
-        cpSync(join(ROOT, "cosmetics", wardrobe.id, "set.json"), join(target, "set.json"));
-        for (const file of readdirSync(join(ROOT, "cosmetics", wardrobe.id)).filter((name) => name.endsWith(".svg"))) {
-          cpSync(join(ROOT, "cosmetics", wardrobe.id, file), join(target, file));
-        }
+      for (const prefix of ASSET_PREFIXES) {
+        copyShippable(join(BONEYARD_ROOT, prefix), join(ROOT, "dist", prefix));
       }
-      writeFileSync(join(dist, "cosmetics", "index.json"), `${JSON.stringify(wardrobeIndex)}\n`);
-
-      const source = buildCatalog(ROOT);
-      const lanes = Object.fromEntries([
-        ...Object.keys(source.bandaiNamco).map((name) => [name, "shipped"]),
-        ...Object.keys(source.authored).map((name) => [name, "authored"]),
-      ]);
-      mkdirSync(join(dist, "catalog"), { recursive: true });
-      writeFileSync(join(dist, "catalog", "clips.json"), `${JSON.stringify({ contract: 1, clips: source.clips, origins: source.origins, lanes })}\n`);
     },
   };
 }
 
 export default defineConfig({
-  plugins: [copyRuntimeAssets()],
+  plugins: [boneyardAssets()],
   build: {
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: { input: { stage: resolve(ROOT, "index.html"), preview: resolve(ROOT, "preview.html") } },
   },
-  server: { host: "127.0.0.1" },
+  server: { host: "127.0.0.1", fs: { allow: [ROOT, BONEYARD_ROOT] } },
 });

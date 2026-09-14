@@ -23,7 +23,7 @@ function emptyCatalog(): RuntimeCatalog {
 describe("dev sidecar and Worker proxy", () => {
   it("writes through the Worker to the real host filesystem and streams SSE", async () => {
     const root = mkdtempSync(join(tmpdir(), "svglab-sidecar-")); sandboxes.push(root);
-    const sidecar = await startDevSidecar({ root, port: 0, debounceMs: 5, watchFiles: false, rebuild: () => emptyCatalog() });
+    const sidecar = await startDevSidecar({ root, assetRoot: root, port: 0, debounceMs: 5, watchFiles: false, rebuild: () => emptyCatalog() });
     sidecars.push(sidecar);
     const env = { SIDECAR_ORIGIN: `http://127.0.0.1:${sidecar.port}`, ASSETS: { fetch } };
     const response = await worker.fetch(new Request("http://lab/dev/motions/authored/labProbe.json", { method: "POST", body: "real disk" }) as never, env as never);
@@ -47,7 +47,7 @@ describe("dev sidecar and Worker proxy", () => {
       }
       return emptyCatalog();
     };
-    const sidecar = await startDevSidecar({ root, port: 0, debounceMs: 5, watchFiles: false, rebuild }); sidecars.push(sidecar);
+    const sidecar = await startDevSidecar({ root, assetRoot: root, port: 0, debounceMs: 5, watchFiles: false, rebuild }); sidecars.push(sidecar);
     const before = sidecar.catalog().revision;
     const events = await fetch(`http://127.0.0.1:${sidecar.port}/dev/events`); const reader = events.body!.getReader();
     await reader.read();

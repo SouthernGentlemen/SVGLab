@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { startDevSidecar } from "../../pipelines/dev/sidecar.ts";
-import { buildWardrobeIndex } from "../../pipelines/wardrobe/index.ts";
+import { buildWardrobeIndex } from "boneyard/wardrobe/index";
 import type { RuntimeCatalog } from "../../src/clips/runtime.ts";
 import { loadWardrobeIndex } from "../../src/render/assemble.ts";
 import type { Fetcher } from "../../src/render/assemble.ts";
 import worker from "../../src/shell/worker.ts";
+import { BONEYARD_ROOT } from "boneyard/paths";
 
-const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+const ROOT = BONEYARD_ROOT;
 const emptyCatalog = (): RuntimeCatalog => ({ contract: 1, clips: {}, origins: {}, lanes: {} });
 
 describe("wardrobe discovery index", () => {

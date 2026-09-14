@@ -1,4 +1,4 @@
-import type { Clip } from "./types.ts";
+import type { Clip } from "boneyard";
 
 /** Last distinct frame shown by the preview before repeating from frame zero. */
 export function previewLastFrame(clip: Clip): number {

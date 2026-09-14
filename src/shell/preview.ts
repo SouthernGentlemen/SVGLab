@@ -1,7 +1,7 @@
 import "./styles.css";
 import "./preview.css";
 import "../render/skeleton-overlay.css";
-import { sampleClip } from "../rig/sample.ts";
+import { sampleClip } from "boneyard";
 import { advancePreviewFrame, previewLastFrame } from "../clips/playback.ts";
 import { defaultPreviewClip, loadoutWeaponId, previewClipOptions } from "../clips/movesets.ts";
 import type { PreviewClipOption, WeaponId } from "../clips/movesets.ts";
@@ -9,7 +9,7 @@ import { fetchRuntimeCatalog, watchRuntimeCatalog } from "../clips/runtime.ts";
 import type { RuntimeCatalog } from "../clips/runtime.ts";
 import { assembleFigure, loadFigureIndex, loadFigureManifest, loadWardrobeIndex } from "../render/assemble.ts";
 import type { FigureIndex, FigureNode } from "../render/assemble.ts";
-import type { FigureManifest } from "../render/manifest.ts";
+import type { FigureManifest } from "boneyard";
 import { applyLoadout } from "../render/loadout.ts";
 import type { Loadout } from "../render/loadout.ts";
 import { applyPose, depthProfileFor, placeFigure } from "../render/place.ts";

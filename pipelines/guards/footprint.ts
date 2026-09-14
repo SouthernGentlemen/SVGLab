@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * check:footprint — C7's byte ratchet for every shipped part, figure and clip catalog.
+ * check:footprint — C7's byte ratchet for what this lab actually ships to a page.
  *
  *   node pipelines/guards/footprint.ts          # fail if anything grew
  *   node pipelines/guards/footprint.ts --write  # accept today's measurements as the baseline
@@ -8,68 +8,45 @@
  *
  * The baseline is evidence, not a budget. Shrinking passes; growth is accepted only by
  * committing a newly written baseline, where the increase is visible in review.
+ *
+ * What the art weighs is Boneyard's ratchet, against Boneyard's own baseline. This one measures
+ * the shell chunks and the clip modules baked out of Boneyard's catalog — the two things a
+ * change here can actually make heavier.
  */
-
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
-import { inspectPart, validateFigure } from "../../src/render/manifest.ts";
-import type { FigureManifest } from "../../src/render/manifest.ts";
-import { validateRig } from "../../src/rig/contract.ts";
-import type { Rig } from "../../src/rig/types.ts";
-import { validateAuthoredFigure } from "../render/manifest.ts";
-
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const FIGURES = join(ROOT, "figures");
-const CHARACTERS = join(ROOT, "characters");
-const COSMETICS = join(ROOT, "cosmetics");
 const CLIPS = join(ROOT, "src", "clips", "generated");
-const RIGS = join(ROOT, "rigs");
 const DIST = join(ROOT, "dist");
-const BASELINE = join(RIGS, "footprint.baseline.json");
-
+const BASELINE = join(ROOT, "pipelines", "guards", "footprint.baseline.json");
 export interface Size {
   readonly raw: number;
   readonly gzip: number;
 }
-
 export interface FootprintMeasurements {
   readonly contract: 1;
-  readonly parts: Readonly<Record<string, Size>>;
-  readonly cosmetics?: Readonly<Record<string, Size>>;
-  readonly figures: Readonly<Record<string, Size>>;
-  readonly catalogs?: Readonly<Record<string, Size>>;
-  readonly shells?: Readonly<Record<string, Size>>;
+  readonly catalogs: Readonly<Record<string, Size>>;
+  readonly shells: Readonly<Record<string, Size>>;
 }
-
 export interface Growth {
   readonly kind: "new" | "raw" | "gzip" | "missing";
   readonly path: string;
   readonly previous?: number;
   readonly current?: number;
 }
-
 const portable = (path: string): string => relative(ROOT, path).split(sep).join("/");
-
 function bytes(path: string): Size {
   const data = readFileSync(path);
   return { raw: data.byteLength, gzip: gzipSync(data, { level: 9 }).byteLength };
 }
-
-function jsonFiles(directory: string): string[] {
-  if (!existsSync(directory)) return [];
-  return readdirSync(directory).filter((name) => name.endsWith(".json")).sort()
-    .map((name) => join(directory, name));
-}
-
 function typescriptFiles(directory: string): string[] {
   if (!existsSync(directory)) return [];
   return readdirSync(directory).filter((name) => name.endsWith(".ts")).sort()
     .map((name) => join(directory, name));
 }
-
 function shellChunks(): Readonly<Record<string, Size>> {
   const directory = join(DIST, "assets");
   if (!existsSync(directory)) throw new Error("dist/assets is missing — run npm run build before check:footprint");
@@ -78,74 +55,13 @@ function shellChunks(): Readonly<Record<string, Size>> {
     return [`dist/assets/${logical}`, bytes(join(directory, name))];
   }));
 }
-
-function svgFiles(directory: string): string[] {
-  const files: string[] = [];
-  if (!existsSync(directory)) return files;
-  for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => (
-    a.name < b.name ? -1 : a.name > b.name ? 1 : 0
-  ))) {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...svgFiles(path));
-    else if (entry.isFile() && entry.name.endsWith(".svg")) files.push(path);
-  }
-  return files;
-}
-
-function rigFor(id: string): Rig {
-  const path = join(RIGS, `${id}.rig.json`);
-  if (!existsSync(path)) throw new Error(`figure names unknown rig '${id}'; expected rigs/${id}.rig.json`);
-  return validateRig(JSON.parse(readFileSync(path, "utf8")));
-}
-
-export function readFigure(path: string): FigureManifest {
-  const figurePath = resolve(ROOT, path);
-  const raw = JSON.parse(readFileSync(figurePath, "utf8")) as unknown;
-  const base = validateFigure(raw, portable(figurePath));
-  const rig = rigFor(base.rig);
-  const figure = validateAuthoredFigure(raw, portable(figurePath), rig);
-  const boneForSlot = new Map(rig.bones.map((bone) => [bone.slot, bone.name]));
-  for (const [slot, reference] of Object.entries(figure.parts)) {
-    if (typeof reference !== "string" || !reference.endsWith(`/${slot}.svg`)) {
-      throw new Error(`${portable(figurePath)} slot '${slot}' has invalid part reference '${String(reference)}'`);
-    }
-    const partPath = resolve(ROOT, reference);
-    if (!partPath.startsWith(`${ROOT}${sep}`) || !existsSync(partPath)) {
-      throw new Error(`${portable(figurePath)} slot '${slot}' cannot read '${reference}'`);
-    }
-    const source = readFileSync(partPath, "utf8");
-    inspectPart(source, boneForSlot.get(slot)!, reference);
-  }
-  return figure;
-}
-
-/** Measure generated files individually, then a figure as the sum of the parts it asks the renderer to fetch. */
+/** What this lab compiles and what it ships. Boneyard measures what the art weighs. */
 export function measureFootprint(): FootprintMeasurements {
-  const parts = Object.fromEntries(svgFiles(CHARACTERS).map((path) => [portable(path), bytes(path)]));
-  const cosmetics = Object.fromEntries(svgFiles(COSMETICS).map((path) => [portable(path), bytes(path)]));
   const catalogs = Object.fromEntries(typescriptFiles(CLIPS).map((path) => [portable(path), bytes(path)]));
-  const figures: Record<string, Size> = {};
-  for (const path of jsonFiles(FIGURES)) {
-    const figure = readFigure(path);
-    let raw = 0;
-    let gzip = 0;
-    for (const reference of Object.values(figure.parts)) {
-      const size = bytes(resolve(ROOT, reference));
-      raw += size.raw;
-      gzip += size.gzip;
-    }
-    for (const reference of figure.cosmetics) {
-      const size = bytes(resolve(ROOT, reference));
-      raw += size.raw;
-      gzip += size.gzip;
-    }
-    figures[portable(path)] = { raw, gzip };
-  }
-  return { contract: 1, parts, cosmetics, figures, catalogs, shells: shellChunks() };
+  return { contract: 1, catalogs, shells: shellChunks() };
 }
-
 function compareSection(
-  section: "parts" | "cosmetics" | "figures" | "catalogs" | "shells",
+  section: "catalogs" | "shells",
   actual: Readonly<Record<string, Size>>,
   baseline: Readonly<Record<string, Size>>,
 ): Growth[] {
@@ -165,30 +81,33 @@ function compareSection(
   }
   return growth;
 }
-
 export function compareFootprint(
   actual: FootprintMeasurements,
   baseline: FootprintMeasurements,
 ): Growth[] {
   return [
-    ...compareSection("parts", actual.parts, baseline.parts ?? {}),
-    ...compareSection("cosmetics", actual.cosmetics ?? {}, baseline.cosmetics ?? {}),
-    ...compareSection("figures", actual.figures, baseline.figures ?? {}),
-    ...compareSection("catalogs", actual.catalogs ?? {}, baseline.catalogs ?? {}),
-    ...compareSection("shells", actual.shells ?? {}, baseline.shells ?? {}),
+    ...compareSection("catalogs", actual.catalogs, baseline.catalogs ?? {}),
+    ...compareSection("shells", actual.shells, baseline.shells ?? {}),
   ];
 }
-
 /** The absolute half of C7 remains a gate even while the numeric baseline grows by milestone. */
 export function checkInvariants(): string[] {
   const failures: string[] = [];
   const packageJson = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { dependencies?: Record<string, string> };
-  if (packageJson.dependencies && Object.keys(packageJson.dependencies).length > 0) {
-    failures.push("package.json has runtime dependencies; C7 requires zero");
+  // "Zero runtime dependencies" always meant no third-party code in the bundle. Boneyard is the
+  // rig and the art themselves, linked from a sibling checkout; pinning the specifier to file:
+  // is what keeps that from quietly becoming a registry package, and its own guard keeps its
+  // dependency list empty, so the property this gate protects still holds transitively.
+  for (const [name, specifier] of Object.entries(packageJson.dependencies ?? {})) {
+    if (name !== "boneyard") failures.push(`package.json depends on '${name}'; only boneyard may be a runtime dependency`);
+    else if (!specifier.startsWith("file:")) failures.push(`boneyard is '${specifier}'; it must stay a file: link to the sibling checkout`);
   }
-  for (const path of [...svgFiles(CHARACTERS), ...svgFiles(COSMETICS)]) {
-    const source = readFileSync(path, "utf8");
-    if (/<image\b|data:image|\.png\b/i.test(source)) failures.push(`${portable(path)} contains raster art`);
+  const boneyardPackage = join(ROOT, "node_modules", "boneyard", "package.json");
+  if (existsSync(boneyardPackage)) {
+    const linked = JSON.parse(readFileSync(boneyardPackage, "utf8")) as { dependencies?: Record<string, string> };
+    if (linked.dependencies && Object.keys(linked.dependencies).length > 0) {
+      failures.push("boneyard has runtime dependencies of its own; C7 requires zero");
+    }
   }
   const srcRoot = join(ROOT, "src");
   const sourceFiles = (directory: string): string[] => {
@@ -215,16 +134,14 @@ export function checkInvariants(): string[] {
   }
   return failures;
 }
-
 function readBaseline(): FootprintMeasurements {
   if (!existsSync(BASELINE)) {
-    throw new Error("no rigs/footprint.baseline.json — run npm run check:footprint -- --write and review it");
+    throw new Error("no pipelines/guards/footprint.baseline.json — run npm run check:footprint -- --write and review it");
   }
   const value = JSON.parse(readFileSync(BASELINE, "utf8")) as FootprintMeasurements;
   if (value.contract !== 1) throw new Error(`unsupported footprint baseline contract ${value.contract}`);
   return value;
 }
-
 export function main(argv: readonly string[]): number {
   const asJson = argv.includes("--json");
   const write = argv.includes("--write");
@@ -239,17 +156,13 @@ export function main(argv: readonly string[]): number {
     }
     const growth = write ? [] : compareFootprint(measurements, readBaseline());
     const ok = invariants.length === 0 && growth.length === 0;
-
     if (asJson) {
       console.log(JSON.stringify({ ok, wrote: write, measurements, invariants, growth }, null, 2));
     } else {
-      for (const [path, size] of Object.entries(measurements.figures)) {
-        console.log(`${path.padEnd(24)} ${String(size.raw).padStart(7)} raw  ${String(size.gzip).padStart(6)} gzip`);
-      }
-      for (const [path, size] of Object.entries(measurements.catalogs ?? {})) {
+      for (const [path, size] of Object.entries(measurements.catalogs)) {
         console.log(`${path.padEnd(46)} ${String(size.raw).padStart(7)} raw  ${String(size.gzip).padStart(6)} gzip`);
       }
-      for (const [path, size] of Object.entries(measurements.shells ?? {})) {
+      for (const [path, size] of Object.entries(measurements.shells)) {
         console.log(`${path.padEnd(46)} ${String(size.raw).padStart(7)} raw  ${String(size.gzip).padStart(6)} gzip`);
       }
       for (const failure of invariants) console.error(`check:footprint: ${failure}`);
@@ -262,10 +175,8 @@ export function main(argv: readonly string[]): number {
         }
       }
       if (write) console.log(`check:footprint: wrote ${portable(BASELINE)}`);
-      else if (ok) console.log(`check:footprint: ${Object.keys(measurements.parts).length} parts, `
-        + `${Object.keys(measurements.cosmetics ?? {}).length} cosmetics, `
-        + `${Object.keys(measurements.figures).length} figures, ${Object.keys(measurements.catalogs ?? {}).length} catalogs and `
-        + `${Object.keys(measurements.shells ?? {}).length} shell chunks did not grow`);
+      else if (ok) console.log(`check:footprint: ${Object.keys(measurements.catalogs).length} clip modules `
+        + `and ${Object.keys(measurements.shells).length} shell chunks did not grow`);
     }
     return ok ? 0 : 1;
   } catch (error) {
@@ -274,7 +185,6 @@ export function main(argv: readonly string[]): number {
     return 2;
   }
 }
-
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   process.exit(main(process.argv.slice(2)));
 }

@@ -1,4 +1,4 @@
-import type { Clip } from "./types.ts";
+import type { Clip } from "boneyard";
 
 export interface RuntimeCatalog {
   readonly contract: 1;

@@ -4,9 +4,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assemblyPaintOrder, inspectPart, validateFigure } from "../../src/render/assemble.ts";
-import { validateRig } from "../../src/rig/contract.ts";
+import { validateRig } from "boneyard";
+import { BONEYARD_ROOT } from "boneyard/paths";
 
-const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+const ROOT = BONEYARD_ROOT;
 
 describe("fetched figure assembly", () => {
   const rig = validateRig(JSON.parse(readFileSync(join(ROOT, "rigs", "fighter.rig.json"), "utf8")));

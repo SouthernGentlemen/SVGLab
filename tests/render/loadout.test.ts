@@ -1,13 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { assembleFigure } from "../../src/render/assemble.ts";
 import { applyLoadout } from "../../src/render/loadout.ts";
 import type { Loadout } from "../../src/render/loadout.ts";
 import { installTestDom, repositoryFetcher } from "./dom.ts";
+import { BONEYARD_ROOT } from "boneyard/paths";
 
-const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+const ROOT = BONEYARD_ROOT;
 let restoreDom: () => void;
 
 beforeEach(() => { restoreDom = installTestDom(); });

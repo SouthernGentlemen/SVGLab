@@ -1,9 +1,9 @@
 import { hiddenPartSlots } from "../render/assemble.ts";
 import type { FigureIndex, FigureNode } from "../render/assemble.ts";
-import type { FigureManifest } from "../render/manifest.ts";
+import type { FigureManifest } from "boneyard";
 import type { Loadout } from "../render/loadout.ts";
-import { cosmeticFit } from "../render/wardrobe.ts";
-import type { WardrobeIndex, WardrobeIndexPiece, WardrobeIndexSet, WardrobeSet } from "../render/wardrobe.ts";
+import { cosmeticFit } from "boneyard";
+import type { WardrobeIndex, WardrobeIndexPiece, WardrobeIndexSet, WardrobeSet } from "boneyard";
 import { renderCharacterPicker } from "./character-picker.ts";
 
 const KIND_ORDER = ["hat", "mask", "hair", "cloak", "pauldron", "skirt", "belt"] as const;

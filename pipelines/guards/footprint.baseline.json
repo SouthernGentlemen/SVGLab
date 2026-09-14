@@ -198,22 +198,22 @@
   },
   "catalogs": {
     "src/clips/generated/authored.ts": {
-      "raw": 1457,
-      "gzip": 543
+      "raw": 1494,
+      "gzip": 558
     },
     "src/clips/generated/bandai-namco.ts": {
-      "raw": 37645,
-      "gzip": 5073
+      "raw": 37406,
+      "gzip": 4928
     }
   },
   "shells": {
     "dist/assets/keybinds.js": {
       "raw": 27495,
-      "gzip": 9121
+      "gzip": 9126
     },
     "dist/assets/preview.js": {
       "raw": 48460,
-      "gzip": 10261
+      "gzip": 10262
     },
     "dist/assets/stage.js": {
       "raw": 15756,
