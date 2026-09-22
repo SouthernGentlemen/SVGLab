@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-002 — [DOCS] Make the active queue the agent's next-work authority
-
-- Dependency: SVG-001 merged on `main`.
-- Why: `AGENTS.md` currently treats CI/change IDs as outside the lab and has no `do needful` or same-delivery task lifecycle.
-- Scope: Define prospective SVG IDs, controlled branch/title/body, first-open/blocked selection, complete PR/CI/merge loop, same-delivery purge, queue exhaustion and one-task handoff. Preserve local-only product constraints.
-- Non-goals: No sprite, rig, dev or Cloudflare behavior change.
-- Acceptance: A fresh agent can execute one queued SVG task and stop with the next prompt; lab status grants no process exemption.
-- Validation: `npm run verify`; `git diff --check`.
-- Authorities: `AGENTS.md`, WG-ARCH-001 §27.
-
 ### SVG-003 — [DOCS] Add contribution and command guidance
 
 - Dependency: SVG-002 merged.
