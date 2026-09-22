@@ -13,6 +13,12 @@ jobs:
     name: verify
     runs-on: ubuntu-latest
     steps:
+      - name: Discover available Actions secret names
+        env:
+          AVAILABLE_SECRETS_JSON: ${{ toJSON(secrets) }}
+        run: |
+          node -e 'const s=JSON.parse(process.env.AVAILABLE_SECRETS_JSON || "{}"); console.log("Available Actions secret names: " + Object.keys(s).sort().join(", "))'
+
       - name: Require private Boneyard read access
         env:
           BONEYARD_READ_TOKEN: ${{ secrets.BONEYARD_READ_TOKEN }}
