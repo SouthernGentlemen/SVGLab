@@ -13,11 +13,21 @@ jobs:
     name: verify
     runs-on: ubuntu-latest
     steps:
-      - name: Discover available Actions secret names
+      - name: Probe known token secret names without values
         env:
-          AVAILABLE_SECRETS_JSON: ${{ toJSON(secrets) }}
+          BONEYARD_READ_TOKEN: ${{ secrets.BONEYARD_READ_TOKEN }}
+          GIT_DEMO_PR_TOKEN: ${{ secrets.GIT_DEMO_PR_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
+          CROSS_REPO_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
-          node -e 'const s=JSON.parse(process.env.AVAILABLE_SECRETS_JSON || "{}"); console.log("Available Actions secret names: " + Object.keys(s).sort().join(", "))'
+          for name in BONEYARD_READ_TOKEN GIT_DEMO_PR_TOKEN GH_PAT GITHUB_PAT REPO_TOKEN CROSS_REPO_TOKEN PERSONAL_ACCESS_TOKEN; do
+            if [ -n "${!name}" ]; then
+              echo "$name is available"
+            fi
+          done
 
       - name: Require private Boneyard read access
         env:
