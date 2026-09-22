@@ -8,6 +8,63 @@ Cloudflare Worker with a disk-owning dev sidecar behind it.
 This file is the contract. It describes the repository as it exists. When code and this file
 disagree, one of them is a bug — say which.
 
+
+[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) is the active current/future queue for
+adopting the WizardGang development process. Its first open task has priority over new lab
+features unless the owner explicitly changes priority; completed tasks belong in Git/GitHub.
+
+## Controlled changes
+
+`SVG-001` begins the prospective controlled-change sequence. Earlier published commits keep
+their existing identities; do not rewrite history to retrofit SVG IDs. Every queued delivery
+uses exactly one `SVG-NNN` ID from `IMPLEMENTATION_PLAN.md`.
+
+- Branch: lowercase `svg-nnn-short-kebab-summary`, using the selected task ID.
+- Commit and PR title: `[SVG-NNN] [TYPE] Imperative summary`, with the task's one primary type.
+- Commit and PR bodies name the same SVG ID and state the delivered scope, validation actually
+  run, current CI/provider truth, and any release or deployment effect. Never claim a check,
+  setting change, merge, release, or deployment that did not happen.
+
+### Do needful and task selection
+
+`do needful` means re-fetch authoritative `main`, open PRs, CI/checks and relevant live
+repository settings before changing anything. Finish a current authoritative PR for the first
+queued task when it is already complete, current, green where CI exists and mergeable; otherwise
+start from fresh `main` and select exactly the first open task in the active queue. If that
+task's dependency or required provider state is blocked, report the blocker and stop. Never skip
+a blocked first task, substitute a later task, or bundle more than one queued SVG task.
+
+### Complete one delivery
+
+1. Create the task branch from the freshly fetched `main` and implement only that task.
+2. Run the task's focused validation, the complete applicable local acceptance gate and
+   `git diff --check`; inspect the resulting diff and preserve the local-only product boundary.
+3. Push the controlled change and open a PR whose branch, title and body all identify the same
+   SVG task.
+4. Inspect the PR's exact head, current `main`, mergeability, reviews/checks and relevant live
+   provider rules. CI that does not exist is reported as absent, never as green or waived.
+5. If the head moved, `main` advanced, validation failed or provider state blocks delivery,
+   correct the same task and revalidate rather than starting another task.
+6. Merge only when the exact controlled head is current and mergeable under the live provider
+   rules, then re-fetch `main` and confirm that the delivered change is present. Delete or let
+   the provider delete the finished branch; never leave completed work parked as the next task.
+
+The delivering PR removes its own task from `IMPLEMENTATION_PLAN.md`; do not leave completed
+checkboxes or historical task prose in the active queue. Update later dependency text only when
+needed to keep future work truthful. When the final queued task is delivered, delete
+`IMPLEMENTATION_PLAN.md` in that same PR. An absent/exhausted queue means fresh planning mode:
+inspect current repository and provider drift and publish the next small current/future wave
+before implementing any newly discovered work.
+
+End each delivery after exactly one task. Return a complete kickoff prompt for the new first
+open task, including repository, confirmed `main`, task ID/title, branch/title, scope,
+non-goals, validation and current provider/CI facts; do not start that task in the same turn.
+If the queue is exhausted, hand off the fresh-planning pass instead.
+
+These process controls do not turn SVGLab into a hosted product. Accounts, production
+authentication, persistent cloud state and a production Cloudflare release/deployment surface
+remain out of scope unless an explicit future authority changes that boundary.
+
 ## What this repository is not
 
 The skeleton, the traced character art, the wardrobe, the motion capture, the clip catalog and
@@ -39,10 +96,12 @@ to it: **Boneyard decides what the data is, this decides how it looks and plays.
 **In scope**: the four concerns, the local Worker that serves them, and the guards that keep
 them honest.
 
-**Out of scope**: anything Boneyard owns — the rig contract, art generation, motion retargeting,
-the BVH exchange. Also accounts, production authentication, databases, analytics, campaign or
-progression systems, inventory, economy, matchmaking, CI/CD, release trains, and change IDs.
-Cloudflare is a local runtime plus a dev deploy target and nothing more: no production
+**Out of scope as product capabilities**: anything Boneyard owns — the rig contract, art
+generation, motion retargeting, the BVH exchange. Also accounts, production authentication,
+databases, analytics, campaign or progression systems, inventory, economy, matchmaking, hosted
+production deployment automation and release trains. The development-process adoption queue
+covers repository CI and controlled change IDs; laboratory status is not an exemption from those
+controls. Cloudflare is a local runtime plus a dev deploy target and nothing more: no production
 environment, account id, route, or persistent binding.
 
 Reset and teardown scripts may delete generated output and disposable runtime state only.
