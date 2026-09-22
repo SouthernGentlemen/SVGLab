@@ -205,7 +205,7 @@ npm run check:footprint   runtime invariants and committed byte ratchet
 npm run check:cruft       reachability, docs, scripts and runtime dependencies
 npm run assert-local-only reject production Cloudflare/deployment configuration
 npm run typecheck         validate the strip-only TypeScript dialect
-npm run test              run 53 tests across 14 files
+npm run test              run 54 tests across 14 files
 npm run test:watch        run Vitest in watch mode
 npm run verify            every gate, typecheck, tests and production build
 ```
