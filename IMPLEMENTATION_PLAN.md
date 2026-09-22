@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-003 — [DOCS] Add contribution and command guidance
-
-- Dependency: SVG-002 merged.
-- Why: No root `CONTRIBUTING.md` explains the controlled process or why `verify`, `dev`, deterministic generators and visual checks differ.
-- Scope: Add concise branch/PR and command guidance with local-only capabilities and temporary `verify` umbrella; link the attribution model in `LICENSE.md`.
-- Non-goals: No script or CI change.
-- Acceptance: A contributor can identify local, build, test, acceptance, visual and provider commands and their side effects.
-- Validation: Compare `package.json` and `AGENTS.md`; `npm run verify`; `git diff --check`.
-- Authorities: `CONTRIBUTING.md`, `README.md`, `LICENSE.md`.
-
 ### SVG-004 — [SEC] Add private vulnerability reporting and data rules
 
 - Dependency: SVG-003 merged.
