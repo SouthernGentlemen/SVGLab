@@ -13,15 +13,6 @@ jobs:
     name: verify
     runs-on: ubuntu-latest
     steps:
-      - name: Require private Boneyard read access
-        env:
-          BONEYARD_READ_TOKEN: ${{ secrets.BONEYARD_READ_TOKEN }}
-        run: |
-          if [ -z "$BONEYARD_READ_TOKEN" ]; then
-            echo "::error::BONEYARD_READ_TOKEN is required for exact-head acceptance because boneyard is a private file:../Boneyard dependency."
-            exit 1
-          fi
-
       - name: Checkout exact SVGLab PR head
         uses: actions/checkout@v7
         with:
@@ -35,8 +26,9 @@ jobs:
         with:
           repository: SouthernGentlemen/Boneyard
           # Reproducible sibling authority: Boneyard main verified 2026-09-22.
+          # Use the workflow token directly; exact-head CI proves whether provider scope permits this private sibling checkout.
           ref: 9c3c5307db06cc388e6d120048e3017e67e03d55
-          token: ${{ secrets.BONEYARD_READ_TOKEN }}
+          token: ${{ github.token }}
           path: Boneyard
           persist-credentials: false
 
