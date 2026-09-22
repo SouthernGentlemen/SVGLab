@@ -2,19 +2,9 @@
 
 This is SVGLab's current/future process-adoption queue under WG-ARCH-001 §27. The GitHub repository is `SouthernGentlemen/SVGLab`; the local checkout may be named `CombatLab`. `SVG-001` is the first prospective controlled change; earlier unnumbered commits remain immutable history. On `do needful`, fetch `main`, open PRs and CI; finish a current green authoritative PR first, then deliver only the first task. A blocked first task is reported, not skipped. The delivering PR removes its task and updates later blocks; delete this file with the final task. Do not implement later work in the same turn.
 
-The laboratory remains deliberately local-only and unsafe as a product capability: no hosted production environment, cloud deploy or release train is implied. That is not an exemption from controlled changes, policy, CI, `check`, settings verification or truthful provider blockers. Preserve deterministic generated assets, Blender/visual evidence, footprint/cruft guards, source attribution and checkout-owned dev cleanup. GitHub currently returns a private-repository ruleset plan/tier 403; do not call that N/A. Tasks target one narrow outcome each.
+The laboratory remains deliberately local-only and unsafe as a product capability: no hosted production environment, cloud deploy or release train is implied. That is not an exemption from controlled changes, policy, CI, `check`, settings verification or truthful provider blockers. Preserve deterministic generated assets, Blender/visual evidence, footprint/cruft guards, source attribution and checkout-owned dev cleanup. GitHub currently reports this repository as public, with an accessible ruleset API but no rulesets and no `main` branch protection; do not claim live protection. Tasks target one narrow outcome each.
 
 ## Open tasks
-
-### SVG-004 — [SEC] Add private vulnerability reporting and data rules
-
-- Dependency: SVG-003 merged.
-- Why: No root `SECURITY.md` defines reporting or forbids disclosure of local clips, exports, private paths and credentials.
-- Scope: Add a reporting path and current local-only security boundary; retain `LICENSE.md` attribution and the no-production Cloudflare guard.
-- Non-goals: No new hosted service, certification claim or source-license change.
-- Acceptance: A reporter has a private route; developer-only data and secret handling are explicit.
-- Validation: Link/policy review; `npm run verify`; `git diff --check`.
-- Authorities: `SECURITY.md`, `.gitignore`, `LICENSE.md`.
 
 ### SVG-005 — [TEST] Validate prospective SVG controlled history
 
@@ -66,13 +56,13 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 - Validation: Focused settings tests; `npm run check`; `git diff --check`.
 - Authorities: `config/github-repository-settings.json`, new tests, WG-ARCH-001 §27.
 
-### SVG-010 — [OPS] Verify live protections or surface the tier blocker
+### SVG-010 — [OPS] Verify live protections or surface provider mismatch
 
 - Dependency: SVG-009 merged.
-- Why: The live private-repository ruleset API currently returns a plan/tier 403; that blocks provider parity, not the process obligation.
-- Scope: Add a read-only live verifier and explicit failure guidance. If GitHub still disallows rulesets, leave the task open and request owner/provider action; do not mark it complete from pure tests.
+- Why: The live ruleset API is accessible, but the public repository currently has no rulesets or `main` branch protection; committed expectations still need provider parity.
+- Scope: Add a read-only live verifier and explicit failure guidance. If live settings still differ from committed expectations, leave the task open and request owner/provider action; do not mark it complete from pure tests.
 - Non-goals: No visibility change, purchase, provider bypass or production workflow. Delete this plan only after this task genuinely completes.
-- Acceptance: Live settings match committed expectations, or the exact unresolved 403 remains a reported blocker.
+- Acceptance: Live settings match committed expectations, or the exact unresolved provider mismatch remains a reported blocker.
 - Validation: Pure settings tests; `npm run check`; live verifier when permitted; `git diff --check`.
 - Authorities: settings baseline, GitHub repository rules, `SECURITY.md`.
 

@@ -9,6 +9,9 @@ The rig, character art, wardrobe, motion source and asset-generation pipelines l
 sibling Boneyard repository. SVGLab consumes them; it does not keep a second copy. A change to
 what a bone, cosmetic or clip *means* belongs in Boneyard.
 
+Security vulnerabilities and sensitive local-data handling follow [`SECURITY.md`](SECURITY.md).
+Use its private vulnerability reporting route rather than disclosing security details publicly.
+
 ## Controlled SVG changes
 
 Prospective work uses one queued `SVG-NNN` ID per delivery.

@@ -33,6 +33,8 @@ browser fetches those choices, so raster atlases and SVG part payloads never ent
 
 - [Contributing](CONTRIBUTING.md) — controlled SVG delivery, command roles, generated-output
   rules, visual review, and the local-only boundary.
+- [Security](SECURITY.md) — private vulnerability reporting, local/private data handling and
+  the local-only Cloudflare security boundary.
 - [Hexframe extraction audit](docs/HEXFRAME_COMBAT_AUDIT.md) — what the combat kernel retained
   and deliberately left behind.
 - [Licence and attribution](LICENSE.md) — what this repository distributes and under what terms.
@@ -42,9 +44,10 @@ browser fetches those choices, so raster atlases and SVG part payloads never ent
 
 ## Footprint
 
-- 72 tracked files, zero third-party runtime dependencies.
-- 94,263 raw / 25,274 gzip bytes across three production shell chunks, plus 41,491 raw / 5,388
-  gzip of baked clip modules. Art remains fetched and is not part of those chunks.
+- 74 tracked files, zero third-party runtime dependencies.
+- Under CI Node 26.10.0, 94,263 raw / 25,341 gzip bytes across three production shell chunks,
+  plus 41,491 raw / 5,385 gzip of baked clip modules. Art remains fetched and is not part of
+  those chunks.
 - Six verification steps in `verify`, plus 54 tests across 14 files and the production build.
 
 These are measured totals, not budgets. Per-asset raw and gzip sizes remain ratcheted in
