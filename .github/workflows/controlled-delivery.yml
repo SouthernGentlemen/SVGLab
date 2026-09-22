@@ -13,22 +13,6 @@ jobs:
     name: verify
     runs-on: ubuntu-latest
     steps:
-      - name: Probe known token secret names without values
-        env:
-          BONEYARD_READ_TOKEN: ${{ secrets.BONEYARD_READ_TOKEN }}
-          GIT_DEMO_PR_TOKEN: ${{ secrets.GIT_DEMO_PR_TOKEN }}
-          GH_PAT: ${{ secrets.GH_PAT }}
-          GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
-          REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
-          CROSS_REPO_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
-          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        run: |
-          for name in BONEYARD_READ_TOKEN GIT_DEMO_PR_TOKEN GH_PAT GITHUB_PAT REPO_TOKEN CROSS_REPO_TOKEN PERSONAL_ACCESS_TOKEN; do
-            if [ -n "${!name}" ]; then
-              echo "$name is available"
-            fi
-          done
-
       - name: Require private Boneyard read access
         env:
           BONEYARD_READ_TOKEN: ${{ secrets.BONEYARD_READ_TOKEN }}
