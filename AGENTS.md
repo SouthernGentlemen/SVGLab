@@ -19,6 +19,11 @@ features unless the owner explicitly changes priority; completed tasks belong in
 their existing identities; do not rewrite history to retrofit SVG IDs. Every queued delivery
 uses exactly one `SVG-NNN` ID from `IMPLEMENTATION_PLAN.md`.
 
+The owner-directed `[OPS] Restore self-service controlled delivery` prerequisite is a singular
+out-of-band repair between controlled SVG deliveries. It does not consume an SVG ID and must not
+be generalized into permission for future unnumbered work; SVG-005 remains the next controlled
+ID after SVG-004.
+
 - Branch: lowercase `svg-nnn-short-kebab-summary`, using the selected task ID.
 - Commit and PR title: `[SVG-NNN] [TYPE] Imperative summary`, with the task's one primary type.
 - Commit and PR bodies name the same SVG ID and state the delivered scope, validation actually
@@ -38,16 +43,22 @@ a blocked first task, substitute a later task, or bundle more than one queued SV
 
 1. Create the task branch from the freshly fetched `main` and implement only that task.
 2. Run the task's focused validation, the complete applicable local acceptance gate and
-   `git diff --check`; inspect the resulting diff and preserve the local-only product boundary.
+   `git diff --check` when an executable checkout is available; inspect the resulting diff and
+   preserve the local-only product boundary. When GitHub exact-head acceptance is configured, its
+   result is authoritative for merge. A web agent that lacks a shell must not ask the owner to
+   rerun the same acceptance locally merely because the agent cannot execute repository commands.
 3. Push the controlled change and open a PR whose branch, title and body all identify the same
    SVG task.
 4. Inspect the PR's exact head, current `main`, mergeability, reviews/checks and relevant live
-   provider rules. CI that does not exist is reported as absent, never as green or waived.
+   provider rules. Required exact-head GitHub acceptance must be present and green; an absent,
+   pending or failing required check blocks merge and is never reported as green or waived.
 5. If the head moved, `main` advanced, validation failed or provider state blocks delivery,
    correct the same task and revalidate rather than starting another task.
-6. Merge only when the exact controlled head is current and mergeable under the live provider
-   rules, then re-fetch `main` and confirm that the delivered change is present. Delete or let
-   the provider delete the finished branch; never leave completed work parked as the next task.
+6. Merge only when the exact controlled head is current, green and mergeable under the live
+   provider rules, then re-fetch `main` and confirm that the delivered change is present.
+   Finished controlled branches are removed automatically by native provider cleanup when
+   available or by the repository's merged-PR cleanup job; verify that cleanup occurred rather
+   than asking the owner to delete the branch.
 
 The delivering PR removes its own task from `IMPLEMENTATION_PLAN.md`; do not leave completed
 checkboxes or historical task prose in the active queue. Update later dependency text only when
@@ -215,8 +226,17 @@ Anything about the rig, the art or the clips themselves is a command in Boneyard
 
 ## Verification gates
 
-No CI runs these. The loop is branch, verify, merge, pull, build. `verify` runs in this order,
-with the production build before footprint and typecheck plus tests before the closing gate.
+Local developers can run `verify` directly. Pull requests are also checked by
+`.github/workflows/controlled-delivery.yml`: it checks out the exact PR head and the pinned
+publicly readable Boneyard sibling in a clean runner, installs from the committed lockfile with
+`npm ci`, runs `npm run verify`, then runs committed-range `git diff --check`. The pinned Boneyard
+commit was confirmed anonymously readable on 2026-09-22; a failed sibling checkout fails
+acceptance rather than skipping the dependency.
+
+Required exact-head GitHub acceptance is authoritative for merge. Local commands remain the
+developer feedback path, but a web agent without a shell does not need an owner-terminal replay
+of a green exact-head workflow. `verify` runs in this order, with the production build before
+footprint and typecheck plus tests before the closing gate.
 
 1. `check:motions` — the generated clip modules are Boneyard's catalog, lane for lane and clip
    for clip, and rebuild byte for byte.
@@ -242,3 +262,5 @@ A change that touches the rig, the art or a clip needs Boneyard's `verify` too. 
   calibration step. Never encode a guess.
 - Verify visually where the output is visual: render the scene or the page, and look at it,
   before calling anything done.
+  Documentation and process-only changes with no visual-output surface do not invent a visual
+  validation claim.

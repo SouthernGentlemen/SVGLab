@@ -49,12 +49,12 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 ### SVG-008 — [BUILD] Run locked acceptance in PR and `main` CI
 
 - Dependency: SVG-007 merged.
-- Why: No workflow currently validates an accepted main or a PR, despite the extensive local `verify` gate.
-- Scope: Add CI with the pinned toolchain, `npm ci` and `npm run check` on PRs and `main`; preserve local-only Cloudflare safety and report unavailable Blender explicitly rather than silently skipping an asserted gate.
-- Non-goals: No production deployment or visual-artifact fabrication.
-- Acceptance: The same gate runs locally and on exact PR head/merged main; a missing required tool is a clear failure or documented N/A boundary.
-- Validation: `npm run check`; workflow review; exact-head CI; `git diff --check`.
-- Authorities: `.github/workflows/ci.yml`, `package.json`, `AGENTS.md`.
+- Why: The owner-directed self-service prerequisite adds exact-head PR acceptance early using the current `verify`/Node authority; after SVG-006 and SVG-007, CI still needs to converge on the canonical `check` command and pinned toolchain and validate merged `main`.
+- Scope: Update the existing controlled-delivery CI to the pinned toolchain and `npm run check`, retain exact-head PR coverage, add `main` acceptance, and preserve the pinned Boneyard sibling plus local-only Cloudflare safety.
+- Non-goals: No production deployment, release workflow or visual-artifact fabrication.
+- Acceptance: The same canonical gate runs locally, on exact PR head and on merged `main`; a missing required tool or inaccessible sibling is an explicit failure rather than a silent skip.
+- Validation: `npm run check`; workflow review; exact-head and merged-main CI; `git diff --check`.
+- Authorities: `.github/workflows/controlled-delivery.yml`, `package.json`, `AGENTS.md`.
 
 ### SVG-009 — [TEST] Commit and test expected GitHub protections
 

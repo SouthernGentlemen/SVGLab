@@ -20,13 +20,16 @@ Prospective work uses one queued `SVG-NNN` ID per delivery.
 3. Use `[SVG-NNN] [TYPE] Imperative summary` for the controlled commit and PR title. The
    commit and PR bodies name the same SVG ID and report only validation/provider facts actually
    observed.
-4. Implement only that task. Run its focused checks, `npm run verify`, and
-   `git diff --check`; inspect the complete diff.
+4. Implement only that task. In a developer checkout, run its focused checks,
+   `npm run verify`, and `git diff --check`; inspect the complete diff. GitHub exact-head CI
+   runs the canonical acceptance and committed-range whitespace check for merge. A web agent that
+   lacks a shell must use that exact-head result instead of requiring the owner to rerun it.
 5. Re-fetch the exact PR head, current `main`, mergeability, reviews/checks and live provider
-   rules. CI that does not exist is absent, not green.
+   rules. Required exact-head CI must be present and green; absent, pending or failing CI blocks
+   merge.
 6. Merge only when the exact head is current, validated and mergeable. The same delivery removes
-   its own task from `IMPLEMENTATION_PLAN.md`, confirms merged `main`, cleans up the finished
-   branch when the provider/tooling permits, and stops with the next-task handoff.
+   its own task from `IMPLEMENTATION_PLAN.md`, confirms merged `main`, verifies automatic
+   finished-branch cleanup, and stops with the next-task handoff.
 
 Do not bundle a later SVG task into the same delivery.
 
@@ -76,10 +79,18 @@ run its generator, then run the matching `--check`/guard command.
 `npm run verify` is currently SVGLab's complete acceptance umbrella. It runs, in order,
 `check:motions`, `check:cruft`, the production build, `check:footprint`, `typecheck`,
 tests, and `assert-local-only`. Until the queued process work replaces this temporary command
-shape, use `verify` before merge rather than assembling a smaller substitute.
+shape, use `verify` rather than assembling a smaller substitute.
 
-Repository CI does not currently run this gate; the active queue contains the work that will add
-it. An absent CI check must not be described as passing.
+Pull requests run the same gate in `.github/workflows/controlled-delivery.yml`. The workflow
+uses a clean exact-head checkout, a pinned publicly readable Boneyard sibling at `../Boneyard`,
+`npm ci`, `npm run verify`, and `git diff --check <base>...<head>`. The pinned commit was
+confirmed anonymously readable on 2026-09-22, so no cross-repository Actions secret is needed.
+If that access changes, the sibling checkout fails acceptance and requires a read-only credential
+before merge.
+
+The exact PR-head workflow result is authoritative for merge. Local commands remain useful for
+developer feedback, but a web agent that cannot execute a shell must not make the owner's terminal
+a second mandatory copy of an already-green exact-head gate.
 
 ## Visual review and Boneyard-owned output
 
@@ -91,6 +102,8 @@ applicable. Run Boneyard's complete acceptance for a change that touches its dat
 
 Visual output is part of validation: inspect the rendered page, sheet, clip or Blender result
 when the change can affect it.
+Do not fabricate visual validation for documentation or process-only work that cannot affect
+visual output.
 
 ## Cloudflare boundary
 

@@ -1,0 +1,86 @@
+name: Controlled delivery
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event.action != 'closed'
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact SVGLab PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          path: SVGLab
+          persist-credentials: false
+
+      - name: Checkout pinned Boneyard sibling
+        uses: actions/checkout@v7
+        with:
+          repository: SouthernGentlemen/Boneyard
+          # Reproducible sibling authority: Boneyard main verified 2026-09-22.
+          ref: 9c3c5307db06cc388e6d120048e3017e67e03d55
+          path: Boneyard
+          persist-credentials: false
+
+      - name: Use repository runtime authority
+        uses: actions/setup-node@v6
+        with:
+          node-version: '26.10.0'
+
+      - name: Install locked SVGLab dependencies
+        working-directory: SVGLab
+        run: npm ci
+
+      - name: Complete acceptance
+        working-directory: SVGLab
+        run: npm run verify
+
+      - name: Committed-range whitespace
+        working-directory: SVGLab
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: git diff --check "$BASE_SHA...$HEAD_SHA"
+
+  cleanup:
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref != github.event.repository.default_branch
+    name: cleanup
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete only the merged controlled head branch
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const head = context.payload.pull_request.head.ref;
+            const defaultBranch = context.payload.repository.default_branch;
+            const controlled = /^svg-[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(head);
+            const repair = head === 'ops-self-service-controlled-delivery';
+
+            if (head === defaultBranch) {
+              core.setFailed('Refusing to delete the default branch.');
+              return;
+            }
+            if (!controlled && !repair) {
+              core.info(`Not deleting non-controlled branch: ${head}`);
+              return;
+            }
+
+            await github.rest.git.deleteRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${head}`,
+            });
