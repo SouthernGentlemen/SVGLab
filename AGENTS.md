@@ -9,6 +9,10 @@ pipeline is shaped so an agent can drive it without a human in the loop.
 This file is the contract. It describes the repository as it exists. When code and this file
 disagree, one of them is a bug — say which.
 
+[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) is the active current/future queue for
+adopting the WizardGang development process. Its first open task has priority over new lab
+features unless the owner explicitly changes priority; completed tasks belong in Git/GitHub.
+
 ## The six concerns
 
 1. **Sprite sheet → figure parts.** `characters/<id>/atlas.png` is build-time input. The
@@ -38,8 +42,10 @@ disagree, one of them is a bug — say which.
 honest, and one-handed rigid weapons fitted through the wardrobe pipeline. A weapon is one
 piece of rig-unit art at `forearm-front.grip`; it follows that forearm and is never mirrored.
 
-**Out of scope**: accounts, production authentication, databases, analytics, campaign or
-progression systems, inventory, economy, matchmaking, CI/CD, release trains, and change IDs.
+**Out of scope as product capabilities**: accounts, production authentication, databases,
+analytics, campaign or progression systems, inventory, economy, matchmaking, and a hosted
+production release/deployment train. The development-process adoption queue covers CI and
+controlled change IDs; laboratory status is not an exemption from those controls.
 Cloudflare is a local runtime plus a dev deploy target and nothing more: no production
 environment, account id, route, or persistent binding. Rigid props (weapons) are deliberately
 limited to that one-handed placement. Two-handed holds remain out of scope: mirroring one
