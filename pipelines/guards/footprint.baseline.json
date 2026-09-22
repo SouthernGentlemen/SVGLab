@@ -199,7 +199,7 @@
   "catalogs": {
     "src/clips/generated/authored.ts": {
       "raw": 1878,
-      "gzip": 559
+      "gzip": 561
     },
     "src/clips/generated/bandai-namco.ts": {
       "raw": 39613,
@@ -209,15 +209,15 @@
   "shells": {
     "dist/assets/keybinds.js": {
       "raw": 27459,
-      "gzip": 9097
+      "gzip": 9119
     },
     "dist/assets/preview.js": {
       "raw": 51048,
-      "gzip": 10246
+      "gzip": 10261
     },
     "dist/assets/stage.js": {
       "raw": 15756,
-      "gzip": 5931
+      "gzip": 5961
     }
   },
   "cosmetics": {

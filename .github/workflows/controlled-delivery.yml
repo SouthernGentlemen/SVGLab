@@ -33,7 +33,7 @@ jobs:
       - name: Use repository runtime authority
         uses: actions/setup-node@v6
         with:
-          node-version: '26'
+          node-version: '26.10.0'
 
       - name: Install locked SVGLab dependencies
         working-directory: SVGLab
