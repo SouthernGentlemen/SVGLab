@@ -50,9 +50,9 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 - Dependency: SVG-007 merged.
 - Why: The owner-directed self-service prerequisite adds exact-head PR acceptance early using the current `verify`/Node authority; after SVG-006 and SVG-007, CI still needs to converge on the canonical `check` command and pinned toolchain and validate merged `main`.
-- Scope: Update the existing controlled-delivery CI to the pinned toolchain and `npm run check`, retain exact-head PR coverage, add `main` acceptance, and preserve the private pinned Boneyard sibling plus local-only Cloudflare safety.
+- Scope: Update the existing controlled-delivery CI to the pinned toolchain and `npm run check`, retain exact-head PR coverage, add `main` acceptance, and preserve the pinned Boneyard sibling plus local-only Cloudflare safety.
 - Non-goals: No production deployment, release workflow or visual-artifact fabrication.
-- Acceptance: The same canonical gate runs locally, on exact PR head and on merged `main`; a missing required tool or private sibling is an explicit failure rather than a silent skip.
+- Acceptance: The same canonical gate runs locally, on exact PR head and on merged `main`; a missing required tool or inaccessible sibling is an explicit failure rather than a silent skip.
 - Validation: `npm run check`; workflow review; exact-head and merged-main CI; `git diff --check`.
 - Authorities: `.github/workflows/controlled-delivery.yml`, `package.json`, `AGENTS.md`.
 

@@ -82,11 +82,11 @@ tests, and `assert-local-only`. Until the queued process work replaces this temp
 shape, use `verify` rather than assembling a smaller substitute.
 
 Pull requests run the same gate in `.github/workflows/controlled-delivery.yml`. The workflow
-uses a clean exact-head checkout, a pinned private Boneyard sibling at `../Boneyard`, `npm ci`,
-`npm run verify`, and `git diff --check <base>...<head>`. Because Boneyard is private, the
-repository Actions secret `BONEYARD_READ_TOKEN` must provide read-only Contents access to
-`SouthernGentlemen/Boneyard`; it is a CI source-read credential, not a production Cloudflare
-credential. Missing access is a failing check, never a reason to omit Boneyard from acceptance.
+uses a clean exact-head checkout, a pinned publicly readable Boneyard sibling at `../Boneyard`,
+`npm ci`, `npm run verify`, and `git diff --check <base>...<head>`. The pinned commit was
+confirmed anonymously readable on 2026-09-22, so no cross-repository Actions secret is needed.
+If that access changes, the sibling checkout fails acceptance and requires a read-only credential
+before merge.
 
 The exact PR-head workflow result is authoritative for merge. Local commands remain useful for
 developer feedback, but a web agent that cannot execute a shell must not make the owner's terminal

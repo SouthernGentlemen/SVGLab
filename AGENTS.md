@@ -228,11 +228,10 @@ Anything about the rig, the art or the clips themselves is a command in Boneyard
 
 Local developers can run `verify` directly. Pull requests are also checked by
 `.github/workflows/controlled-delivery.yml`: it checks out the exact PR head and the pinned
-private Boneyard sibling in a clean runner, installs from the committed lockfile with `npm ci`,
-runs `npm run verify`, then runs committed-range `git diff --check`. The workflow requires the
-repository Actions secret `BONEYARD_READ_TOKEN` to grant read-only Contents access to the
-private Boneyard repository; a missing or unusable credential fails acceptance rather than
-skipping the sibling dependency.
+publicly readable Boneyard sibling in a clean runner, installs from the committed lockfile with
+`npm ci`, runs `npm run verify`, then runs committed-range `git diff --check`. The pinned Boneyard
+commit was confirmed anonymously readable on 2026-09-22; a failed sibling checkout fails
+acceptance rather than skipping the dependency.
 
 Required exact-head GitHub acceptance is authoritative for merge. Local commands remain the
 developer feedback path, but a web agent without a shell does not need an owner-terminal replay
