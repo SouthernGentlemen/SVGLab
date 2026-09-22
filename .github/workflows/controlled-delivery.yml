@@ -34,7 +34,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: SouthernGentlemen/Boneyard
-          ref: main
+          # Reproducible sibling authority: Boneyard main verified 2026-09-22.
+          ref: 9c3c5307db06cc388e6d120048e3017e67e03d55
           token: ${{ secrets.BONEYARD_READ_TOKEN }}
           path: Boneyard
           persist-credentials: false
