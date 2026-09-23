@@ -223,6 +223,10 @@ npm run build             production Vite build; prebuild runs assert-local-only
 npm run build:motions     boneyard catalog → typed clip modules
 npm run check:history     validate prospective controlled commits and queued IDs
 npm run test:history      run disposable-Git positive/negative history cases
+npm run verify:release-identity -- --tag vX.Y.Z --commit <40-char-sha>
+                         prove an immutable source-release identity
+npm run test:release-identity
+                         run focused release-identity decision cases
 npm run check:motions     byte-identical clip modules against the catalog
 npm run check:footprint   runtime invariants and committed byte ratchet
 npm run check:cruft       reachability, docs, scripts and runtime dependencies
@@ -246,6 +250,13 @@ reads live repository settings and both rulesets with `GH_ADMIN_TOKEN` or an aut
 files, documentation examples, logs, or `npm run check`.
 `npm run apply:github-settings` is the explicit repository-owned administration command;
 it applies only the committed repository/ruleset policy and independently re-reads the result.
+
+`npm run verify:release-identity -- --tag vX.Y.Z --commit <40-char-sha>` is the read-only
+source-release identity gate. It requires an annotated stable semantic tag, resolves that tag
+to the exact requested commit and tree, reads `package.json` from that immutable commit, and
+requires the package version to equal the tag while `private` remains true. Its machine-readable
+proof names the package blob and `github-release` as the publication authority. It does not
+create a tag, GitHub Release, npm publication, or Cloudflare deployment.
 
 `npm run check` is the canonical complete credential-free local acceptance command. `npm run
 verify` remains a temporary compatibility alias that delegates to `check`. Pull requests are
