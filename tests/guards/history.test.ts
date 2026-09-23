@@ -35,4 +35,12 @@ describe("prospective SVG controlled history", () => {
   it("rejects malformed structured bodies", () => { const root = sandbox(); commit(root, "[SVG-001] [DOCS] Start queue", "planning"); commit(root, "[SVG-002] [TEST] Missing facts", "SVG-002\n\nScope: incomplete."); const codes = auditHistory(root).issues.map((i) => i.code); expect(codes).toContain("body-validation"); expect(codes).toContain("body-provider"); expect(codes).toContain("body-release"); });
   it("rejects a HEAD that skips its parent queue", () => { const root = sandbox(); commit(root, "[SVG-001] [DOCS] Start queue", "planning", plan(task("SVG-002", "TEST"), task("SVG-003", "BUILD"))); commit(root, "[SVG-003] [BUILD] Skip queue", body("SVG-003"), plan(task("SVG-002", "TEST"))); expect(auditHistory(root).issues.map((i) => i.code)).toContain("head-id"); });
   it("accepts a valid new controlled sequence", () => { const root = sandbox(); commit(root, "[SVG-001] [DOCS] Start queue", "planning", plan(task("SVG-002", "TEST"), task("SVG-003", "BUILD"))); commit(root, "[SVG-002] [TEST] Consume queue", body("SVG-002"), plan(task("SVG-003", "BUILD"))); expect(auditHistory(root).issues).toEqual([]); });
+  it("accepts the assigned portfolio policy task after the preserved release queue", () => {
+    const root = sandbox(); commit(root, "[SVG-001] [DOCS] Start queue", "planning");
+    for (let id = 2; id <= 11; id += 1) { const token = "SVG-" + String(id).padStart(3, "0"); commit(root, `[${token}] [TEST] Deliver fixture`, body(token)); }
+    const releaseQueue = plan(...[14, 15, 16, 17, 18].map((id) => task("SVG-" + String(id).padStart(3, "0"), "BUILD")));
+    commit(root, "[SVG-012] [BUILD] Expose settings apply", body("SVG-012"), releaseQueue);
+    commit(root, "[SVG-019] [OPS] Reconcile provider guidance", body("SVG-019"), releaseQueue);
+    expect(auditHistory(root).issues).toEqual([]);
+  });
 });

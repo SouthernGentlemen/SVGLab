@@ -32,8 +32,9 @@ from the active queue.
 
 `check:history` validates this contract prospectively. Published controlled IDs and current
 queued task IDs form one contiguous namespace beginning at `SVG-001`; duplicates and gaps in
-that published-plus-queued namespace fail. A new controlled `HEAD` must also match the parent
-revision's first queued ID and primary type. `SVG-001` remains the immutable published boundary
+that published-plus-queued namespace fail. A new controlled `HEAD` normally matches the parent
+revision's first queued ID and primary type. An explicitly owner-directed portfolio process task
+uses the first unassigned ID after the current queue. `SVG-001` remains the immutable published boundary
 and keeps its original pre-contract body; from `SVG-002` onward controlled bodies must name the
 ID and state scope, validation, CI/provider truth, and release/deployment effect.
 
@@ -63,8 +64,8 @@ a blocked first task, substitute a later task, or bundle more than one queued SV
    correct the same task and revalidate rather than starting another task.
 6. Merge only when the exact controlled head is current, green and mergeable under the live
    provider rules, then re-fetch `main` and confirm that the delivered change is present.
-   Finished controlled branches are removed automatically by native provider cleanup; verify that cleanup occurred rather
-   than asking the owner to delete the branch.
+   Finished controlled branches are removed automatically by native provider cleanup; verify that
+   cleanup occurred rather than asking the owner to delete the branch.
 
 The delivering PR removes its own task from `IMPLEMENTATION_PLAN.md`; do not leave completed
 checkboxes or historical task prose in the active queue. Update later dependency text only when
@@ -263,7 +264,8 @@ before footprint; its complete Vitest invocation disables npm lifecycle scripts 
 
 1. `check:history` — `SVG-001` onward obeys the prospective controlled identity/body contract,
    the published-plus-queued namespace is contiguous, and a new controlled head consumes the
-   parent queue's first task; earlier published commits remain accepted legacy history.
+   parent queue's first task or an explicitly owner-directed portfolio process ID after the
+   queue; earlier published commits remain accepted legacy history.
 2. `check:motions` — the generated clip modules are Boneyard's catalog, lane for lane and clip
    for clip, and rebuild byte for byte.
 3. `check:cruft` — every tracked path is reached by an import, reference or reasoned entry;
