@@ -238,6 +238,12 @@ Anything about the rig, the art or the clips themselves is a command in Boneyard
 
 ## Verification gates
 
+`config/github-repository-settings.json` defines the current squash-only GitHub policy.
+`npm run test:github-settings` checks it without credentials. `npm run verify:github-settings`
+reads live repository settings and both rulesets with `GH_ADMIN_TOKEN` or an authorized
+`GH_TOKEN`; it never changes GitHub. Keep tokens in the process environment only, never in
+files, documentation examples, logs, or `npm run check`.
+
 `npm run check` is the canonical complete credential-free local acceptance command. `npm run
 verify` remains a temporary compatibility alias that delegates to `check`. Pull requests are
 also checked by `.github/workflows/controlled-delivery.yml`: it checks out the exact PR head and
