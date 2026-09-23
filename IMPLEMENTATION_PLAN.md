@@ -61,11 +61,93 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 - Dependency: SVG-009 merged.
 - Why: The live ruleset API is accessible, but the public repository currently has no rulesets or `main` branch protection; committed expectations still need provider parity.
 - Scope: Add a read-only live verifier and explicit failure guidance. If live settings still differ from committed expectations, leave the task open and request owner/provider action; do not mark it complete from pure tests.
-- Non-goals: No visibility change, purchase, provider bypass or production workflow. Delete this plan only after this task genuinely completes.
+- Non-goals: No visibility change, purchase, provider bypass or production workflow. Do not delete the plan here; later convergence tasks remain.
 - Acceptance: Live settings match committed expectations, or the exact unresolved provider mismatch remains a reported blocker.
 - Validation: Pure settings tests; `npm run check`; live verifier when permitted; `git diff --check`.
 - Authorities: settings baseline, GitHub repository rules, `SECURITY.md`.
 
+### SVG-012 — [BUILD] Expose the common GitHub settings CLI
+
+- Dependency: SVG-010 merged.
+- Why: Read-only live verification is useful, but the shared repository process also needs an explicit, deterministic apply path instead of recurring manual provider configuration.
+- Scope: Add the standard `test:github-settings`, `verify:github-settings` and `apply:github-settings` command surface. Keep pure comparison tests credential-free, keep verify read-only, and make apply explicit, bounded to committed settings and safe to rerun.
+- Non-goals: Do not mutate GitHub from `npm run check`; no release publication or deployment.
+- Acceptance: Pure tests run offline; verify reports normalized live drift; apply changes only declared settings and a subsequent verify can prove convergence.
+- Validation: CLI-focused tests; credential-free command paths; `npm run check`; `git diff --check`.
+- Authorities: `package.json`, repository-settings authority, shared provider CLI pattern.
+
+### SVG-013 — [OPS] Apply and verify the live repository policy
+
+- Dependency: SVG-012 merged.
+- Why: Repository-local expectations are not proof that GitHub enforces the shared controlled-delivery policy.
+- Scope: Re-fetch live provider state, apply the committed settings through the explicit CLI/provider path, then verify protected `main`, required exact-head acceptance, squash-only merging, completed-branch cleanup where supported, least-privilege workflow permissions and immutable release-tag protection.
+- Non-goals: No bypass, visibility change, paid-plan purchase, release publication or production deployment.
+- Acceptance: Live provider evidence matches committed expectations. If GitHub makes a required setting unavailable, keep the exact provider blocker explicit and do not mark the task complete.
+- Validation: Provider reads before/after apply; `npm run verify:github-settings`; `npm run check`; exact-head CI.
+- Authorities: GitHub live repository/ruleset state and committed settings authority.
+
+### SVG-014 — [BUILD] Define immutable release identity
+
+- Dependency: SVG-013 merged.
+- Why: SVGLab has no GitHub Release line, but organization-wide release parity requires a deterministic identity for any intentionally published source release.
+- Scope: Tie `package.json` version, annotated semantic tag `vX.Y.Z`, exact tagged commit and repository content together. Keep the package private and make GitHub Releases, not npm, the publication authority.
+- Non-goals: No npm registry publication, production Cloudflare deployment or automatic version bump.
+- Acceptance: A release candidate can be proven from immutable repository inputs and fails clearly on tag/version/commit mismatch.
+- Validation: Release-identity cases; `npm run check`; `git diff --check`.
+- Authorities: `package.json`, Git annotated tags, release identity scripts/tests.
+
+### SVG-015 — [TEST] Guard annotated tag and package identity
+
+- Dependency: SVG-014 merged.
+- Why: Release publication must depend on deterministic failure cases rather than assumptions about how a tag was created.
+- Scope: Add disposable Git cases proving lightweight tags fail, malformed semantic tags fail, package/tag version mismatch fails, wrong-commit tags fail, and a correct annotated exact-head tag succeeds.
+- Non-goals: No GitHub Release creation, provider mutation or deployment.
+- Acceptance: Canonical `npm run check` exercises positive and negative release-identity behavior without network access or credentials.
+- Validation: Release identity test suite; `npm run check`; `git diff --check`.
+- Authorities: Release identity implementation and Git semantics.
+
+### SVG-016 — [OPS] Publish GitHub Releases from verified tags
+
+- Dependency: SVG-015 merged.
+- Why: The shared release path is reviewed commit -> annotated immutable tag -> exact identity verification -> canonical acceptance -> GitHub Release.
+- Scope: Add the provider workflow/CLI path that accepts only a verified annotated `vX.Y.Z` tag, resolves the exact tagged revision, runs the pinned toolchain, `npm ci`, canonical `npm run check`, verifies package/tag/commit identity, then publishes with `gh release create --verify-tag`. Existing releases must be handled idempotently or fail safely.
+- Non-goals: No npm registry publication, production Wrangler deployment or automatic version mutation.
+- Acceptance: Only a correctly annotated, correctly versioned and fully validated immutable tag can create a GitHub Release; arbitrary `main` state cannot publish.
+- Validation: Workflow/CLI structure tests; tag acceptance evidence; GitHub Release provider evidence when exercised; `git diff --check`.
+- Authorities: Release workflow, GitHub CLI, annotated tag, package version.
+
+### SVG-017 — [TEST] Guard the local-only post-release boundary
+
+- Dependency: SVG-016 merged.
+- Why: Cross-repository release parity must not accidentally turn SVGLab into a hosted production product.
+- Scope: Extend local-only guards so legitimate release identity, annotated tags and GitHub Release publication are allowed while production Wrangler deploy commands, production Cloudflare account/route configuration, persistent production bindings, Pages/Worker production deployment workflows, npm publication and production authentication/account surfaces remain rejected.
+- Non-goals: No production environment or new application feature.
+- Acceptance: Canonical acceptance proves SVGLab can publish immutable source releases while remaining incapable of production deployment.
+- Validation: Local-only positive/negative cases; `npm run check`; `git diff --check`.
+- Authorities: `assert-local-only`, `AGENTS.md`, `CONTRIBUTING.md`, `package.json`, workflows.
+
+### SVG-018 — [DOCS] Complete process-parity acceptance
+
+- Dependency: SVG-017 merged.
+- Why: The wave should finish with a fresh comparison against the active organization baseline instead of trusting assumptions accumulated during the individual tasks.
+- Scope: Re-audit Node/npm toolchain, `npm ci`, canonical `npm run check`, controlled history, exact-head and merged-main CI, squash-only merge behavior, provider settings CLI, live rules/rulesets, branch cleanup, annotated tag identity, GitHub Release publication and the explicit no-production-deploy boundary. Reconcile only current-state docs and delete `IMPLEMENTATION_PLAN.md` when all applicable evidence is green.
+- Non-goals: No feature work, product deployment or unrelated refactor.
+- Acceptance: Fresh repository and provider evidence show SVGLab follows the shared development/release process everywhere applicable, production deployment is explicitly and testably N/A, and no implementation queue remains.
+- Validation: `npm ci`; `npm run check`; `npm run verify:github-settings`; live provider verification; release/tag evidence; exact-head CI; post-merge CI; `git diff --check`.
+- Authorities: Current repository state, current GitHub provider state and organization baseline.
+
+## Target process
+
+Normal controlled delivery after this queue converges:
+
+`branch -> controlled SVG commit -> PR -> npm ci -> npm run check -> exact-head CI -> squash merge -> merged-main CI -> completed-branch cleanup`
+
+Intentional source release:
+
+`reviewed main -> package version -> annotated vX.Y.Z tag -> verify exact tag/package/commit identity -> npm ci -> npm run check -> gh release create --verify-tag`
+
+Then stop. SVGLab has no production deploy stage. That absence is an architectural requirement, not missing release automation.
+
 ## Recheck after this wave
 
-Review current source and provider state for further process drift. `npm run dev` already has teardown/reset/build/start/readiness/browser behavior; test safety before changing it. A local-only lab never needs a fictional production deployment, but any future published release must use immutable annotated tags and GitHub Releases.
+Review current source and provider state for fresh drift only after SVG-018. Preserve the local-only product boundary, deterministic generated assets, Boneyard ownership line, visual evidence requirements, provenance rules, footprint/cruft guards and checkout-owned dev cleanup.
