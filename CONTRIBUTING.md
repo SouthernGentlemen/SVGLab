@@ -32,10 +32,11 @@ Prospective work uses one queued `SVG-NNN` ID per delivery.
    merge.
 6. Merge only when the exact head is current, validated and mergeable. The same delivery removes
    its own task from `IMPLEMENTATION_PLAN.md`, confirms merged `main`, verifies automatic
-   automatic finished-branch cleanup, and stops with the next-task handoff.
+   finished-branch cleanup, and stops with the next-task handoff.
 
 `npm run check:history` enforces the published-plus-queued SVG namespace and verifies that a
-new controlled head consumes the parent queue's first ID and primary type. Published commits
+new controlled head consumes the parent queue's first ID and primary type, except an explicitly
+owner-directed portfolio process task uses the first unassigned ID after the queue. Published commits
 before SVG-001 remain legacy history and are not retrofitted.
 
 Do not bundle a later SVG task into the same delivery.

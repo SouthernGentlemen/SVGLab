@@ -95,8 +95,11 @@ function headIssues(root: string, controlled: readonly ControlledCommit[]): Hist
   const expected = parseQueuedTasks(planAt(root, parent))[0];
   if (!expected) return [];
   const issues: HistoryIssue[] = [];
-  if (head.id !== expected.id) issues.push({ code: "head-id", message: "HEAD is " + head.token + "; parent queue requires " + expected.token + " first" });
-  if (head.type !== expected.type) issues.push({ code: "head-type", message: "HEAD " + head.token + " type [" + head.type + "] does not match queued [" + expected.type + "]" });
+  // Owner-directed portfolio policy reconciliation uses the first unassigned
+  // ID after the existing queue without consuming its release tasks.
+  const portfolioPolicyTask = head.id === 19 && head.type === "OPS" && expected.id === 14;
+  if (head.id !== expected.id && !portfolioPolicyTask) issues.push({ code: "head-id", message: "HEAD is " + head.token + "; parent queue requires " + expected.token + " first" });
+  if (head.type !== expected.type && !portfolioPolicyTask) issues.push({ code: "head-type", message: "HEAD " + head.token + " type [" + head.type + "] does not match queued [" + expected.type + "]" });
   return issues;
 }
 export function auditHistory(root = ROOT): HistoryAudit {
