@@ -45,7 +45,7 @@ browser fetches those choices, so raster atlases and SVG part payloads never ent
 ## Footprint
 
 - 74 tracked files, zero third-party runtime dependencies.
-- Under CI Node 26.10.0, 94,263 raw / 25,341 gzip bytes across three production shell chunks,
+- Under the pinned Node 26.9.0 toolchain, 94,263 raw / 25,341 gzip bytes across three production shell chunks,
   plus 41,491 raw / 5,385 gzip of baked clip modules. Art remains fetched and is not part of
   those chunks.
 - Six verification steps in `verify`, plus 54 tests across 14 files and the production build.
