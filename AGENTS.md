@@ -21,14 +21,21 @@ uses exactly one `SVG-NNN` ID from `IMPLEMENTATION_PLAN.md`.
 
 The owner-directed `[OPS] Restore self-service controlled delivery` prerequisite is a singular
 out-of-band repair between controlled SVG deliveries. It does not consume an SVG ID and must not
-be generalized into permission for future unnumbered work; SVG-005 remains the next controlled
-ID after SVG-004.
+be generalized into permission for future unnumbered work; normal controlled delivery resumes
+from the active queue.
 
 - Branch: lowercase `svg-nnn-short-kebab-summary`, using the selected task ID.
 - Commit and PR title: `[SVG-NNN] [TYPE] Imperative summary`, with the task's one primary type.
 - Commit and PR bodies name the same SVG ID and state the delivered scope, validation actually
   run, current CI/provider truth, and any release or deployment effect. Never claim a check,
   setting change, merge, release, or deployment that did not happen.
+
+`check:history` validates this contract prospectively. Published controlled IDs and current
+queued task IDs form one contiguous namespace beginning at `SVG-001`; duplicates and gaps in
+that published-plus-queued namespace fail. A new controlled `HEAD` must also match the parent
+revision's first queued ID and primary type. `SVG-001` remains the immutable published boundary
+and keeps its original pre-contract body; from `SVG-002` onward controlled bodies must name the
+ID and state scope, validation, CI/provider truth, and release/deployment effect.
 
 ### Do needful and task selection
 
@@ -211,12 +218,14 @@ npm run launch            start the built local Worker and sidecar
 npm run dev               reset, build and launch the local lab
 npm run build             production Vite build; prebuild runs assert-local-only
 npm run build:motions     boneyard catalog → typed clip modules
+npm run check:history     validate prospective controlled commits and queued IDs
+npm run test:history      run disposable-Git positive/negative history cases
 npm run check:motions     byte-identical clip modules against the catalog
 npm run check:footprint   runtime invariants and committed byte ratchet
 npm run check:cruft       reachability, docs, scripts and runtime dependencies
 npm run assert-local-only reject production Cloudflare/deployment configuration
 npm run typecheck         validate the strip-only TypeScript dialect
-npm run test              run 54 tests across 14 files
+npm run test              run the complete Vitest suite
 npm run test:watch        run Vitest in watch mode
 npm run verify            every gate, typecheck, tests and production build
 ```
@@ -238,16 +247,19 @@ developer feedback path, but a web agent without a shell does not need an owner-
 of a green exact-head workflow. `verify` runs in this order, with the production build before
 footprint and typecheck plus tests before the closing gate.
 
-1. `check:motions` — the generated clip modules are Boneyard's catalog, lane for lane and clip
+1. `check:history` — `SVG-001` onward obeys the prospective controlled identity/body contract,
+   the published-plus-queued namespace is contiguous, and a new controlled head consumes the
+   parent queue's first task; earlier published commits remain accepted legacy history.
+2. `check:motions` — the generated clip modules are Boneyard's catalog, lane for lane and clip
    for clip, and rebuild byte for byte.
-2. `check:cruft` — every tracked path is reached by an import, reference or reasoned entry;
+3. `check:cruft` — every tracked path is reached by an import, reference or reasoned entry;
    every Markdown guide is linked and names live paths; npm scripts and pipeline files are live;
    the only runtime dependency is a `file:`-linked boneyard.
-3. `build` — the production Vite build, which also copies Boneyard's servable art into `dist/`
+4. `build` — the production Vite build, which also copies Boneyard's servable art into `dist/`
    and fails if Boneyard has no built catalog.
-4. `check:footprint` — C4: the invariants hold and nothing grew against the baseline.
-5. `typecheck` and `test`.
-6. `assert-local-only` — the Worker has no account, binding, deployment or persistence surface.
+5. `check:footprint` — C4: the invariants hold and nothing grew against the baseline.
+6. `typecheck` and `test`.
+7. `assert-local-only` — the Worker has no account, binding, deployment or persistence surface.
 
 A change that touches the rig, the art or a clip needs Boneyard's `verify` too. Run it there.
 

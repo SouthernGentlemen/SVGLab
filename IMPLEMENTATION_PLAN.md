@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-005 — [TEST] Validate prospective SVG controlled history
-
-- Dependency: SVG-004 merged.
-- Why: The repository has no permanent change-ID validation, and published unnumbered commits must not be rewritten to create it.
-- Scope: Validate SVG-001 onward for sequential unique IDs, one primary type and structured body; test malformed and valid prospective commits.
-- Non-goals: No retroactive renumbering or forced merge-method change.
-- Acceptance: New controlled changes fail on duplicate/gap/invalid identity; old history remains intact.
-- Validation: Focused history tests; `npm run verify`; `git diff --check`.
-- Authorities: `AGENTS.md`, new history validator.
-
 ### SVG-006 — [BUILD] Expose complete acceptance as `npm run check`
 
 - Dependency: SVG-005 merged.
