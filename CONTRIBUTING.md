@@ -34,6 +34,10 @@ Prospective work uses one queued `SVG-NNN` ID per delivery.
    its own task from `IMPLEMENTATION_PLAN.md`, confirms merged `main`, verifies automatic
    finished-branch cleanup, and stops with the next-task handoff.
 
+`npm run check:history` enforces the published-plus-queued SVG namespace and verifies that a
+new controlled head consumes the parent queue's first ID and primary type. Published commits
+before SVG-001 remain legacy history and are not retrofitted.
+
 Do not bundle a later SVG task into the same delivery.
 
 ## Command roles
@@ -68,6 +72,8 @@ run its generator, then run the matching `--check`/guard command.
 
 ### Focused checks and tests
 
+- `npm run check:history` validates the prospective controlled history and active queue.
+- `npm run test:history` runs deterministic disposable-Git positive and negative history cases.
 - `npm run check:cruft` checks reachability, documentation/script references and dependency
   boundaries.
 - `npm run check:footprint` enforces the committed byte ratchet and runtime invariants.
@@ -80,8 +86,8 @@ run its generator, then run the matching `--check`/guard command.
 ### Complete acceptance
 
 `npm run verify` is currently SVGLab's complete acceptance umbrella. It runs, in order,
-`check:motions`, `check:cruft`, the production build, `check:footprint`, `typecheck`,
-tests, and `assert-local-only`. Until the queued process work replaces this temporary command
+`check:history`, `check:motions`, `check:cruft`, the production build, `check:footprint`,
+`typecheck`, tests, and `assert-local-only`. Until the queued process work replaces this temporary command
 shape, use `verify` rather than assembling a smaller substitute.
 
 Pull requests run the same gate in `.github/workflows/controlled-delivery.yml`. The workflow
