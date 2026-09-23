@@ -103,6 +103,8 @@ before merge.
 Live GitHub policy is checked separately with `npm run verify:github-settings`, using
 `GH_ADMIN_TOKEN` or an authorized `GH_TOKEN` in the process environment. This command only reads
 settings and rulesets; `npm run check` remains credential-free.
+`npm run apply:github-settings` performs authorized policy application and independently
+verifies the resulting live settings; use the same token environment contract.
 
 The exact PR-head workflow result is authoritative for merge. Local commands remain useful for
 developer feedback, but a web agent that cannot execute a shell must not make the owner's terminal

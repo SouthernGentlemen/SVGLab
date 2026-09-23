@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { compareGithubRepositorySettings, configuredMergeMethods, rulesetPayload } from "../../pipelines/guards/github-settings-policy.mjs";
-import { fetchLiveGithubSettings, githubApi } from "../../scripts/github-settings-provider.mjs";
+import { applyGithubSettings, fetchLiveGithubSettings, githubApi } from "../../scripts/github-settings-provider.mjs";
 
 const expected = JSON.parse(readFileSync(new URL("../../config/github-repository-settings.json", import.meta.url), "utf8"));
 function actual() {
@@ -69,4 +69,33 @@ test("live verification uses reads only and permission failures are explicit", a
   const denied = async () => new Response(JSON.stringify({ message: "denied" }), { status: 403 });
   await assert.rejects(githubApi("/repos/SouthernGentlemen/SVGLab", { token: "fixture", fetchImpl: denied }), { code: "GITHUB_ADMIN_READ_DENIED" });
   await assert.rejects(githubApi("/repos/SouthernGentlemen/SVGLab", { token: "fixture", method: "PATCH", fetchImpl: denied }), { code: "GITHUB_ADMIN_WRITE_DENIED" });
+});
+
+test("apply changes only committed settings and independently re-reads", async () => {
+  const state = actual();
+  const calls = [];
+  const fake = async (url, options) => {
+    const path = new URL(url).pathname;
+    const method = options.method;
+    calls.push({ path, method });
+    if (path.endsWith("/rulesets") && method === "GET") return new Response(JSON.stringify(state.rulesets.map((item, index) => ({ id: index + 1, name: item.name }))));
+    const detail = path.match(/\/rulesets\/(\d+)$/);
+    if (detail && method === "GET") return new Response(JSON.stringify(state.rulesets[Number(detail[1]) - 1]));
+    if (detail && method === "PUT") {
+      const value = JSON.parse(options.body);
+      state.rulesets[Number(detail[1]) - 1] = value;
+      return new Response(JSON.stringify(value));
+    }
+    if (path.endsWith(expected.repository) && method === "PATCH") {
+      Object.assign(state.repository, JSON.parse(options.body));
+      return new Response(JSON.stringify(state.repository));
+    }
+    if (path.endsWith(expected.repository) && method === "GET") return new Response(JSON.stringify(state.repository));
+    return new Response(JSON.stringify({ message: "unexpected" }), { status: 500 });
+  };
+  await applyGithubSettings(expected, { token: "fixture", fetchImpl: fake });
+  const lastWrite = calls.findLastIndex((call) => call.method !== "GET");
+  assert.ok(lastWrite >= 0);
+  assert.ok(calls.slice(lastWrite + 1).length >= 3);
+  assert.ok(calls.slice(lastWrite + 1).every((call) => call.method === "GET"));
 });

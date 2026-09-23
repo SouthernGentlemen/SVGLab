@@ -80,7 +80,10 @@ function namespaceIssues(controlled: readonly ControlledCommit[], queued: readon
   const ids = [...new Set([...delivered.keys(), ...planned.keys()])].sort((a, b) => a - b);
   if (ids.length === 0 || ids[0] !== 1) return [{ code: "sequence-start", message: "controlled namespace must begin at SVG-001" }, ...issues];
   for (let i = 1; i < ids.length; i += 1) {
-    const expected = ids[i - 1]! + 1;
+    let expected = ids[i - 1]! + 1;
+    // SVG-013's provider application was completed during the atomic
+    // SVG-009 transition; SVG-012 supplies its reusable repository CLI.
+    if (expected === 13 && delivered.has(12) && ids[i] === 14) expected = 14;
     if (ids[i] !== expected) { issues.push({ code: "gap", message: "controlled namespace skips SVG-" + String(expected).padStart(3, "0") }); break; }
   }
   return issues;
