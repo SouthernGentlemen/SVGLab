@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-007 — [BUILD] Pin the tested Node/npm pipeline toolchain
-
-- Dependency: SVG-006 merged.
-- Why: `AGENTS.md` assumes Node 26, but package metadata has no exact Node/npm pin or engine policy for reproducible pipelines.
-- Scope: Pin a tested Node/npm pair and locked-install policy without importing unrelated architecture browser/application dependencies.
-- Non-goals: No dependency upgrade or product behavior change.
-- Acceptance: Clean local and later CI setup use the same supported toolchain and committed lockfile.
-- Validation: `npm ci` under the pin; `npm run check`; `git diff --check`.
-- Authorities: `package.json`, package lock, `.node-version`, `.npmrc`.
-
 ### SVG-008 — [BUILD] Run locked acceptance in PR and `main` CI
 
 - Dependency: SVG-007 merged.

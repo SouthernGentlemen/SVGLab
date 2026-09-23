@@ -209,6 +209,9 @@ TypeScript everywhere: runtime, pipelines, guards, tests. Node 26 runs the pipel
 strip-only TypeScript, so tooling needs no build step. Every relative import has an explicit
 `.ts`; `enum`, `namespace`, constructor parameter properties and `?raw` are outside the dialect.
 
+The tested repository toolchain is Node 26.9.0 with npm 11.19.1. `.node-version`,
+`packageManager`, `engines`, `.npmrc`, and the locked `allowScripts` list govern clean installs.
+
 ## Commands
 
 ```
