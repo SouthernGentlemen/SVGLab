@@ -3,20 +3,22 @@ name: Controlled delivery
 on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   verify:
-    if: github.event.action != 'closed'
+    if: github.event_name == 'push' || github.event.action != 'closed'
     name: verify
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact SVGLab PR head
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           path: SVGLab
           persist-credentials: false
@@ -44,9 +46,10 @@ jobs:
 
       - name: Complete acceptance
         working-directory: SVGLab
-        run: npm run verify
+        run: npm run check
 
       - name: Committed-range whitespace
+        if: github.event_name == 'pull_request'
         working-directory: SVGLab
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

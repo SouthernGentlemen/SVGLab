@@ -94,9 +94,8 @@ own. `npm run verify` remains a temporary compatibility alias to `npm run check`
 
 Pull requests exercise the same gate in `.github/workflows/controlled-delivery.yml`. The workflow
 uses a clean exact-head checkout, a pinned publicly readable Boneyard sibling at `../Boneyard`,
-`npm ci`, the current `npm run verify` compatibility entry point, and
-`git diff --check <base>...<head>`. Because `verify` delegates to `check`, this remains the same
-acceptance surface; SVG-008 owns the later CI command-name convergence. The pinned commit was
+`npm ci`, `npm run check`, and pull-request committed-range
+`git diff --check <base>...<head>`. Merged `main` runs the same canonical check. The pinned commit was
 confirmed anonymously readable on 2026-09-22, so no cross-repository Actions secret is needed.
 If that access changes, the sibling checkout fails acceptance and requires a read-only credential
 before merge.

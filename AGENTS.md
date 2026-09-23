@@ -243,9 +243,8 @@ Anything about the rig, the art or the clips themselves is a command in Boneyard
 verify` remains a temporary compatibility alias that delegates to `check`. Pull requests are
 also checked by `.github/workflows/controlled-delivery.yml`: it checks out the exact PR head and
 the pinned publicly readable Boneyard sibling in a clean runner, installs from the committed
-lockfile with `npm ci`, invokes the current `npm run verify` compatibility entry point, then runs
-committed-range `git diff --check`. Because `verify` delegates to `check`, exact-head acceptance
-exercises the same canonical gate; SVG-008 owns the later workflow-name convergence. The pinned
+lockfile with `npm ci`, invokes `npm run check`, then runs
+committed-range `git diff --check` for pull requests. Merged `main` runs the same canonical gate. The pinned
 Boneyard commit was confirmed anonymously readable on 2026-09-22; a failed sibling checkout
 fails acceptance rather than skipping the dependency.
 
