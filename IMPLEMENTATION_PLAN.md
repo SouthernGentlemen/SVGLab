@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-009 — [TEST] Commit and test expected GitHub protections
-
-- Dependency: SVG-008 merged.
-- Why: No settings-as-code authority or pure comparison cases define protected `main` and immutable published tags.
-- Scope: Add expected repository settings and credential-free comparison tests; mark release publication currently N/A, but require immutable `v*` protection before a release is published.
-- Non-goals: No provider mutation or paid-tier assumption.
-- Acceptance: Pure tests catch material settings drift without claiming live protection.
-- Validation: Focused settings tests; `npm run check`; `git diff --check`.
-- Authorities: `config/github-repository-settings.json`, new tests, WG-ARCH-001 §27.
-
 ### SVG-010 — [OPS] Verify live protections or surface provider mismatch
 
 - Dependency: SVG-009 merged.
