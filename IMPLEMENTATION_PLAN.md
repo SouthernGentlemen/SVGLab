@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-014 — [BUILD] Define immutable release identity
-
-- Dependency: SVG-012 merged and live settings verified.
-- Why: SVGLab has no GitHub Release line, but organization-wide release parity requires a deterministic identity for any intentionally published source release.
-- Scope: Tie `package.json` version, annotated semantic tag `vX.Y.Z`, exact tagged commit and repository content together. Keep the package private and make GitHub Releases, not npm, the publication authority.
-- Non-goals: No npm registry publication, production Cloudflare deployment or automatic version bump.
-- Acceptance: A release candidate can be proven from immutable repository inputs and fails clearly on tag/version/commit mismatch.
-- Validation: Release-identity cases; `npm run check`; `git diff --check`.
-- Authorities: `package.json`, Git annotated tags, release identity scripts/tests.
-
 ### SVG-015 — [TEST] Guard annotated tag and package identity
 
 - Dependency: SVG-014 merged.

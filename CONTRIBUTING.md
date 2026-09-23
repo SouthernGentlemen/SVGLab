@@ -111,6 +111,17 @@ The exact PR-head workflow result is authoritative for merge. Local commands rem
 developer feedback, but a web agent that cannot execute a shell must not make the owner's terminal
 a second mandatory copy of an already-green exact-head gate.
 
+## Source release identity
+
+SVGLab source releases are separate from product deployment. A candidate is valid only when an
+annotated stable `vX.Y.Z` tag, an exact 40-character commit SHA, that commit's tree and its
+`package.json` agree. The package must remain `private: true`; npm is not a publication surface.
+
+Run `npm run verify:release-identity -- --tag vX.Y.Z --commit <40-char-sha>` to produce the
+machine-readable proof. The verifier reads immutable Git objects only and does not create tags,
+releases or deployments. GitHub Releases are the source-publication authority for a verified
+identity; the local-only Cloudflare boundary remains unchanged.
+
 ## Visual review and Boneyard-owned output
 
 Use `npm run dev` to review SVGLab presentation and combat behavior in the local page. When a
