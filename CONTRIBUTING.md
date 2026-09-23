@@ -100,6 +100,10 @@ confirmed anonymously readable on 2026-09-22, so no cross-repository Actions sec
 If that access changes, the sibling checkout fails acceptance and requires a read-only credential
 before merge.
 
+Live GitHub policy is checked separately with `npm run verify:github-settings`, using
+`GH_ADMIN_TOKEN` or an authorized `GH_TOKEN` in the process environment. This command only reads
+settings and rulesets; `npm run check` remains credential-free.
+
 The exact PR-head workflow result is authoritative for merge. Local commands remain useful for
 developer feedback, but a web agent that cannot execute a shell must not make the owner's terminal
 a second mandatory copy of an already-green exact-head gate.

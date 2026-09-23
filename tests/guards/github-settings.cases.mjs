@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { compareGithubRepositorySettings, configuredMergeMethods, rulesetPayload } from "../../pipelines/guards/github-settings-policy.mjs";
+import { fetchLiveGithubSettings, githubApi } from "../../scripts/github-settings-provider.mjs";
 
 const expected = JSON.parse(readFileSync(new URL("../../config/github-repository-settings.json", import.meta.url), "utf8"));
 function actual() {
@@ -48,4 +49,24 @@ test("immutable release tag ruleset cannot disappear or weaken", () => {
   assert.match(fails((state) => { state.rulesets.pop(); }), /releaseTags ruleset/);
   assert.match(fails((state) => { tags(state).rules = [{ type: "deletion" }]; }), /releaseTags rules/);
   assert.match(fails((state) => { tags(state).bypass_actors = [{ actor_id: 1 }]; }), /releaseTags bypass actors/);
+});
+
+test("live verification uses reads only and permission failures are explicit", async () => {
+  const state = actual();
+  const calls = [];
+  const fake = async (url, options) => {
+    calls.push(options.method);
+    const path = new URL(url).pathname;
+    if (path.endsWith("/rulesets")) return new Response(JSON.stringify(state.rulesets.map((item, id) => ({ id: id + 1, name: item.name }))));
+    const detail = path.match(/\/rulesets\/(\d+)$/);
+    if (detail) return new Response(JSON.stringify(state.rulesets[Number(detail[1]) - 1]));
+    return new Response(JSON.stringify(state.repository));
+  };
+  const live = await fetchLiveGithubSettings(expected, { token: "fixture", fetchImpl: fake });
+  assert.deepEqual(compareGithubRepositorySettings(expected, live.repository, live.rulesets), []);
+  assert.ok(calls.every((method) => method === "GET"));
+  await assert.rejects(githubApi("/repos/SouthernGentlemen/SVGLab"), { code: "GITHUB_AUTH_REQUIRED" });
+  const denied = async () => new Response(JSON.stringify({ message: "denied" }), { status: 403 });
+  await assert.rejects(githubApi("/repos/SouthernGentlemen/SVGLab", { token: "fixture", fetchImpl: denied }), { code: "GITHUB_ADMIN_READ_DENIED" });
+  await assert.rejects(githubApi("/repos/SouthernGentlemen/SVGLab", { token: "fixture", method: "PATCH", fetchImpl: denied }), { code: "GITHUB_ADMIN_WRITE_DENIED" });
 });

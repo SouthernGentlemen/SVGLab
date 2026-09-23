@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-010 — [OPS] Verify live protections or surface provider mismatch
-
-- Dependency: SVG-009 merged.
-- Why: The live ruleset API is accessible, but the public repository currently has no rulesets or `main` branch protection; committed expectations still need provider parity.
-- Scope: Add a read-only live verifier and explicit failure guidance. If live settings still differ from committed expectations, leave the task open and request owner/provider action; do not mark it complete from pure tests.
-- Non-goals: No visibility change, purchase, provider bypass or production workflow. Do not delete the plan here; later convergence tasks remain.
-- Acceptance: Live settings match committed expectations, or the exact unresolved provider mismatch remains a reported blocker.
-- Validation: Pure settings tests; `npm run check`; live verifier when permitted; `git diff --check`.
-- Authorities: settings baseline, GitHub repository rules, `SECURITY.md`.
-
 ### SVG-012 — [BUILD] Expose the common GitHub settings CLI
 
 - Dependency: SVG-010 merged.
