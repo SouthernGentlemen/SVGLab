@@ -1,0 +1,31 @@
+{
+  "repository": "SouthernGentlemen/SVGLab",
+  "defaultBranch": "main",
+  "mergeMethods": { "mergeCommit": false, "squash": true, "rebase": false },
+  "deleteBranchOnMerge": true,
+  "rulesets": {
+    "main": {
+      "name": "main-protection",
+      "target": "branch",
+      "enforcement": "active",
+      "include": ["refs/heads/main"],
+      "exclude": [],
+      "bypassActors": [],
+      "requireBranchUpToDate": true,
+      "requireExtraApprovalForUnattributedChanges": false,
+      "requiredReviewThreadResolution": false,
+      "doNotEnforceOnCreate": false,
+      "requiredRules": ["deletion", "non_fast_forward", "pull_request", "required_status_checks"],
+      "requiredStatusChecks": ["verify"]
+    },
+    "releaseTags": {
+      "name": "release-tags",
+      "target": "tag",
+      "enforcement": "active",
+      "include": ["refs/tags/v*"],
+      "exclude": [],
+      "bypassActors": [],
+      "requiredRules": ["deletion", "update"]
+    }
+  }
+}

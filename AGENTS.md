@@ -63,8 +63,7 @@ a blocked first task, substitute a later task, or bundle more than one queued SV
    correct the same task and revalidate rather than starting another task.
 6. Merge only when the exact controlled head is current, green and mergeable under the live
    provider rules, then re-fetch `main` and confirm that the delivered change is present.
-   Finished controlled branches are removed automatically by native provider cleanup when
-   available or by the repository's merged-PR cleanup job; verify that cleanup occurred rather
+   Finished controlled branches are removed automatically by native provider cleanup; verify that cleanup occurred rather
    than asking the owner to delete the branch.
 
 The delivering PR removes its own task from `IMPLEMENTATION_PLAN.md`; do not leave completed
