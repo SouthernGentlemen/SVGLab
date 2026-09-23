@@ -20,9 +20,10 @@
     "pretest": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run check:history && npm run check:motions && npm run check:cruft && npm run build && npm run check:footprint && npm run typecheck && npm test && npm run assert-local-only",
+    "verify": "npm run check",
     "check:history": "node pipelines/guards/history.ts",
-    "test:history": "vitest run tests/guards/history.test.ts"
+    "test:history": "vitest run tests/guards/history.test.ts",
+    "check": "npm run check:history && npm run check:motions && npm run check:cruft && npm run build && npm run check:footprint && npm run typecheck && npm test --ignore-scripts && npm run assert-local-only"
   },
   "dependencies": {
     "boneyard": "file:../Boneyard"

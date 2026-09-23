@@ -127,7 +127,7 @@ Never authored source, never a `.blend` someone is editing.
 
 ## Contracts
 
-Each one is testable, and something in `verify` tests it.
+Each one is testable, and something in `check` tests it.
 
 **C1 — Boneyard is upstream, and there is one of it.** The rig, the art, the clips and the pure
 functions that interpret them arrive through the `boneyard` package. This repository never forks
@@ -227,7 +227,8 @@ npm run assert-local-only reject production Cloudflare/deployment configuration
 npm run typecheck         validate the strip-only TypeScript dialect
 npm run test              run the complete Vitest suite
 npm run test:watch        run Vitest in watch mode
-npm run verify            every gate, typecheck, tests and production build
+npm run check             canonical complete acceptance: every gate, typecheck, tests and build
+npm run verify            temporary compatibility alias for npm run check
 ```
 
 Anything about the rig, the art or the clips themselves is a command in Boneyard —
@@ -235,17 +236,21 @@ Anything about the rig, the art or the clips themselves is a command in Boneyard
 
 ## Verification gates
 
-Local developers can run `verify` directly. Pull requests are also checked by
-`.github/workflows/controlled-delivery.yml`: it checks out the exact PR head and the pinned
-publicly readable Boneyard sibling in a clean runner, installs from the committed lockfile with
-`npm ci`, runs `npm run verify`, then runs committed-range `git diff --check`. The pinned Boneyard
-commit was confirmed anonymously readable on 2026-09-22; a failed sibling checkout fails
-acceptance rather than skipping the dependency.
+`npm run check` is the canonical complete credential-free local acceptance command. `npm run
+verify` remains a temporary compatibility alias that delegates to `check`. Pull requests are
+also checked by `.github/workflows/controlled-delivery.yml`: it checks out the exact PR head and
+the pinned publicly readable Boneyard sibling in a clean runner, installs from the committed
+lockfile with `npm ci`, invokes the current `npm run verify` compatibility entry point, then runs
+committed-range `git diff --check`. Because `verify` delegates to `check`, exact-head acceptance
+exercises the same canonical gate; SVG-008 owns the later workflow-name convergence. The pinned
+Boneyard commit was confirmed anonymously readable on 2026-09-22; a failed sibling checkout
+fails acceptance rather than skipping the dependency.
 
 Required exact-head GitHub acceptance is authoritative for merge. Local commands remain the
 developer feedback path, but a web agent without a shell does not need an owner-terminal replay
-of a green exact-head workflow. `verify` runs in this order, with the production build before
-footprint and typecheck plus tests before the closing gate.
+of a green exact-head workflow. `check` runs in this order, with one explicit production build
+before footprint; its complete Vitest invocation disables npm lifecycle scripts so the standalone
+`pretest` build is not repeated inside the umbrella command.
 
 1. `check:history` — `SVG-001` onward obeys the prospective controlled identity/body contract,
    the published-plus-queued namespace is contiguous, and a new controlled head consumes the
@@ -265,7 +270,7 @@ A change that touches the rig, the art or a clip needs Boneyard's `verify` too. 
 
 ## Working rules
 
-- Small branches off `main`. `verify` before merge. Merge promptly, then delete the branch.
+- Small branches off `main`. `check` before merge. Merge promptly, then delete the branch.
   Never leave finished work parked in an open branch.
 - Never edit a file that has uncommitted changes in it. Use a separate worktree — a branch
   alone does not isolate anything.
