@@ -1,3 +1,5 @@
+import { compareGithubRepositorySettings, rulesetPayload } from "../pipelines/guards/github-settings-policy.mjs";
+
 const API_VERSION = "2026-03-10";
 
 export function adminToken() {
@@ -43,4 +45,35 @@ export async function fetchLiveGithubSettings(expected, { token, fetchImpl = fet
     rulesets.push(await githubApi(`${root}/rulesets/${summary.id}`, { token, fetchImpl }));
   }
   return { repository, rulesets };
+}
+
+export async function applyGithubSettings(expected, { token, fetchImpl = fetch } = {}) {
+  const root = `/repos/${expected.repository}`;
+  await fetchLiveGithubSettings(expected, { token, fetchImpl });
+  await githubApi(root, {
+    token, fetchImpl, method: "PATCH",
+    body: {
+      default_branch: expected.defaultBranch,
+      allow_merge_commit: expected.mergeMethods.mergeCommit,
+      allow_squash_merge: expected.mergeMethods.squash,
+      allow_rebase_merge: expected.mergeMethods.rebase,
+      delete_branch_on_merge: expected.deleteBranchOnMerge,
+    },
+  });
+  const summaries = await githubApi(`${root}/rulesets?includes_parents=false`, { token, fetchImpl });
+  for (const policy of Object.values(expected.rulesets)) {
+    const payload = rulesetPayload(expected, policy);
+    const current = summaries.find((summary) => summary.name === policy.name);
+    await githubApi(current ? `${root}/rulesets/${current.id}` : `${root}/rulesets`, {
+      token, fetchImpl, method: current ? "PUT" : "POST", body: payload,
+    });
+  }
+  const actual = await fetchLiveGithubSettings(expected, { token, fetchImpl });
+  const failures = compareGithubRepositorySettings(expected, actual.repository, actual.rulesets);
+  if (failures.length) {
+    const error = new Error(`GitHub settings were applied but independent re-read found drift:\n${failures.join("\n")}`);
+    error.code = "GITHUB_POST_APPLY_VERIFY_FAILED";
+    throw error;
+  }
+  return actual;
 }

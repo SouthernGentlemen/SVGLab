@@ -243,6 +243,8 @@ Anything about the rig, the art or the clips themselves is a command in Boneyard
 reads live repository settings and both rulesets with `GH_ADMIN_TOKEN` or an authorized
 `GH_TOKEN`; it never changes GitHub. Keep tokens in the process environment only, never in
 files, documentation examples, logs, or `npm run check`.
+`npm run apply:github-settings` is the explicit repository-owned administration command;
+it applies only the committed repository/ruleset policy and independently re-reads the result.
 
 `npm run check` is the canonical complete credential-free local acceptance command. `npm run
 verify` remains a temporary compatibility alias that delegates to `check`. Pull requests are

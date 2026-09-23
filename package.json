@@ -27,6 +27,7 @@
     "test:history": "vitest run tests/guards/history.test.ts",
     "test:github-settings": "node --test tests/guards/github-settings.cases.mjs",
     "verify:github-settings": "node scripts/verify-github-settings.mjs",
+    "apply:github-settings": "node scripts/apply-github-settings.mjs",
     "check": "npm run check:history && npm run test:github-settings && npm run check:motions && npm run check:cruft && npm run build && npm run check:footprint && npm run typecheck && npm test --ignore-scripts && npm run assert-local-only"
   },
   "dependencies": {

@@ -6,29 +6,9 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-012 — [BUILD] Expose the common GitHub settings CLI
-
-- Dependency: SVG-010 merged.
-- Why: Read-only live verification is useful, but the shared repository process also needs an explicit, deterministic apply path instead of recurring manual provider configuration.
-- Scope: Add the standard `test:github-settings`, `verify:github-settings` and `apply:github-settings` command surface. Keep pure comparison tests credential-free, keep verify read-only, and make apply explicit, bounded to committed settings and safe to rerun.
-- Non-goals: Do not mutate GitHub from `npm run check`; no release publication or deployment.
-- Acceptance: Pure tests run offline; verify reports normalized live drift; apply changes only declared settings and a subsequent verify can prove convergence.
-- Validation: CLI-focused tests; credential-free command paths; `npm run check`; `git diff --check`.
-- Authorities: `package.json`, repository-settings authority, shared provider CLI pattern.
-
-### SVG-013 — [OPS] Apply and verify the live repository policy
-
-- Dependency: SVG-012 merged.
-- Why: Repository-local expectations are not proof that GitHub enforces the shared controlled-delivery policy.
-- Scope: Re-fetch live provider state, apply the committed settings through the explicit CLI/provider path, then verify protected `main`, required exact-head acceptance, squash-only merging, completed-branch cleanup where supported, least-privilege workflow permissions and immutable release-tag protection.
-- Non-goals: No bypass, visibility change, paid-plan purchase, release publication or production deployment.
-- Acceptance: Live provider evidence matches committed expectations. If GitHub makes a required setting unavailable, keep the exact provider blocker explicit and do not mark the task complete.
-- Validation: Provider reads before/after apply; `npm run verify:github-settings`; `npm run check`; exact-head CI.
-- Authorities: GitHub live repository/ruleset state and committed settings authority.
-
 ### SVG-014 — [BUILD] Define immutable release identity
 
-- Dependency: SVG-013 merged.
+- Dependency: SVG-012 merged and live settings verified.
 - Why: SVGLab has no GitHub Release line, but organization-wide release parity requires a deterministic identity for any intentionally published source release.
 - Scope: Tie `package.json` version, annotated semantic tag `vX.Y.Z`, exact tagged commit and repository content together. Keep the package private and make GitHub Releases, not npm, the publication authority.
 - Non-goals: No npm registry publication, production Cloudflare deployment or automatic version bump.
