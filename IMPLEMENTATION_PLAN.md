@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-006 — [BUILD] Expose complete acceptance as `npm run check`
-
-- Dependency: SVG-005 merged.
-- Why: `verify` currently owns rig, generated assets, sockets, motions, wardrobe, exchange, footprint, cruft, Blender, typecheck, tests and build; `check` is absent.
-- Scope: Make `check` own the same credential-free applicable gates plus prospective history, with `verify` a documented compatibility alias; avoid duplicate build/test within one invocation.
-- Non-goals: No weakening of deterministic/visual checks or addition of hosted deploy.
-- Acceptance: `npm run check` is the single complete local gate; `verify` callers remain valid temporarily.
-- Validation: `npm run check`; `npm run verify`; `git diff --check`.
-- Authorities: `package.json`, `CONTRIBUTING.md`.
-
 ### SVG-007 — [BUILD] Pin the tested Node/npm pipeline toolchain
 
 - Dependency: SVG-006 merged.

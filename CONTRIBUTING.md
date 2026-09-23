@@ -24,7 +24,7 @@ Prospective work uses one queued `SVG-NNN` ID per delivery.
    commit and PR bodies name the same SVG ID and report only validation/provider facts actually
    observed.
 4. Implement only that task. In a developer checkout, run its focused checks,
-   `npm run verify`, and `git diff --check`; inspect the complete diff. GitHub exact-head CI
+   `npm run check`, and `git diff --check`; inspect the complete diff. GitHub exact-head CI
    runs the canonical acceptance and committed-range whitespace check for merge. A web agent that
    lacks a shell must use that exact-head result instead of requiring the owner to rerun it.
 5. Re-fetch the exact PR head, current `main`, mergeability, reviews/checks and live provider
@@ -85,14 +85,18 @@ run its generator, then run the matching `--check`/guard command.
 
 ### Complete acceptance
 
-`npm run verify` is currently SVGLab's complete acceptance umbrella. It runs, in order,
-`check:history`, `check:motions`, `check:cruft`, the production build, `check:footprint`,
-`typecheck`, tests, and `assert-local-only`. Until the queued process work replaces this temporary command
-shape, use `verify` rather than assembling a smaller substitute.
+`npm run check` is SVGLab's canonical complete credential-free acceptance umbrella. It runs,
+in order, `check:history`, `check:motions`, `check:cruft`, the production build,
+`check:footprint`, `typecheck`, the complete Vitest suite, and `assert-local-only`. The umbrella
+invokes the tests with npm lifecycle scripts disabled after its explicit build, so the standalone
+`pretest` build is not repeated. `npm test` itself still keeps that pretest build when run on its
+own. `npm run verify` remains a temporary compatibility alias to `npm run check`.
 
-Pull requests run the same gate in `.github/workflows/controlled-delivery.yml`. The workflow
+Pull requests exercise the same gate in `.github/workflows/controlled-delivery.yml`. The workflow
 uses a clean exact-head checkout, a pinned publicly readable Boneyard sibling at `../Boneyard`,
-`npm ci`, `npm run verify`, and `git diff --check <base>...<head>`. The pinned commit was
+`npm ci`, the current `npm run verify` compatibility entry point, and
+`git diff --check <base>...<head>`. Because `verify` delegates to `check`, this remains the same
+acceptance surface; SVG-008 owns the later CI command-name convergence. The pinned commit was
 confirmed anonymously readable on 2026-09-22, so no cross-repository Actions secret is needed.
 If that access changes, the sibling checkout fails acceptance and requires a read-only credential
 before merge.
