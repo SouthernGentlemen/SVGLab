@@ -266,7 +266,7 @@ function scriptAudit(
         deadScripts.push({ script: name, entry, message: "command is unavailable from node_modules/.bin" });
       }
     }
-    for (const match of command.matchAll(/\bnpm\s+(?:run\s+)?([A-Za-z0-9:_-]+)/g)) {
+    for (const match of command.matchAll(/\bnpm\s+run\s+([A-Za-z0-9:_-]+)/g)) {
       const entry = match[1];
       if (!(entry in scripts)) deadScripts.push({ script: name, entry, message: "referenced npm script does not exist" });
     }

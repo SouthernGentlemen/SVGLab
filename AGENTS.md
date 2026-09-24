@@ -1,11 +1,5 @@
 # Working in SVGLab
 
-## Portfolio plan maintenance
-
-An explicit owner-directed portfolio planning request may append or clarify future tasks while the first open implementation task or its pull request remains active. Preserve all existing open tasks and their order; the maintenance change does not deliver, retire, or skip one. Reserve a separate controlled maintenance ID outside the implementation task headings: normally the first unassigned ID after the queued IDs, or an existing unassigned gap when the repository history contract requires it. Once this policy setup is merged, routine amendments change only the active implementation plan file. This exception is for planning edits, not implementation or provider mutation.
-
-Record authoritative `main` and the plan's base before editing. Immediately before a maintenance merge, re-fetch `main`, open pull requests, the exact head, checks, and mergeability. If `main` or the plan moved, rebase and reconcile the additive plan edit, then revalidate the new exact head. Only the actual last remaining task deletes the plan. The normal first-open-task rule still governs the next implementation delivery.
-
 SVGLab is a local, deliberately unsafe 2D character animation laboratory. It fetches a rig, its
 art and its clips from [Boneyard](../Boneyard/AGENTS.md), assembles a figure in the DOM, plays
 it against a sealed deterministic combat kernel, and serves the whole thing from a local
@@ -15,15 +9,11 @@ This file is the contract. It describes the repository as it exists. When code a
 disagree, one of them is a bug — say which.
 
 
-[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) is the active current/future queue for
-adopting the WizardGang development process. Its first open task has priority over new lab
-features unless the owner explicitly changes priority; completed tasks belong in Git/GitHub.
-
 ## Controlled changes
 
 `SVG-001` begins the prospective controlled-change sequence. Earlier published commits keep
 their existing identities; do not rewrite history to retrofit SVG IDs. Every queued delivery
-uses exactly one `SVG-NNN` ID from `IMPLEMENTATION_PLAN.md`.
+uses exactly one `SVG-NNN` ID from the active implementation queue.
 
 The owner-directed `[OPS] Restore self-service controlled delivery` prerequisite is a singular
 out-of-band repair between controlled SVG deliveries. It does not consume an SVG ID and must not
@@ -73,12 +63,9 @@ a blocked first task, substitute a later task, or bundle more than one queued SV
    Finished controlled branches are removed automatically by native provider cleanup; verify that
    cleanup occurred rather than asking the owner to delete the branch.
 
-The delivering PR removes its own task from `IMPLEMENTATION_PLAN.md`; do not leave completed
-checkboxes or historical task prose in the active queue. Update later dependency text only when
-needed to keep future work truthful. When the final queued task is delivered, delete
-`IMPLEMENTATION_PLAN.md` in that same PR. An absent/exhausted queue means fresh planning mode:
-inspect current repository and provider drift and publish the next small current/future wave
-before implementing any newly discovered work.
+When no active implementation queue exists, fresh planning mode applies: inspect current
+repository and provider drift and publish the next small current/future wave before implementing
+any newly discovered work. Completed task prose belongs in Git/GitHub, not current-state docs.
 
 End each delivery after exactly one task. Return a complete kickoff prompt for the new first
 open task, including repository, confirmed `main`, task ID/title, branch/title, scope,
@@ -218,6 +205,12 @@ strip-only TypeScript, so tooling needs no build step. Every relative import has
 The tested repository toolchain is Node 26.9.0 with npm 11.19.1. `.node-version`,
 `packageManager`, `engines`, `.npmrc`, and the locked `allowScripts` list govern clean installs.
 
+Shared process normalization pins SVGLab's common direct tooling to `@types/node` 26.6.2,
+TypeScript 7.0.2, Vite 8.3.0, Vitest 5.0.1, Wrangler 4.136.1 and
+`@cloudflare/workers-types` 5.20260922.1. Equivalent GitHub jobs use `actions/checkout@v7`
+and `actions/setup-node@v7`. Packages and hosted capabilities SVGLab does not use remain absent;
+the pinned Boneyard sibling revision is product input authority, not a shared vendor-version target.
+
 ## Commands
 
 ```
@@ -241,6 +234,7 @@ npm run typecheck         validate the strip-only TypeScript dialect
 npm run test              run the complete Vitest suite
 npm run test:watch        run Vitest in watch mode
 npm run check             canonical complete acceptance: every gate, typecheck, tests and build
+npm run audit:dependencies network-dependent high-severity dependency advisory gate
 npm run verify            temporary compatibility alias for npm run check
 ```
 
@@ -267,7 +261,8 @@ create a tag, GitHub Release, npm publication, or Cloudflare deployment.
 `.github/workflows/source-publication.yml` is the explicit source-publication path. It is manually dispatched with a required stable `vX.Y.Z` tag, checks out that exact tag with full Git history, requires an annotated tag resolving to the checked-out commit, installs with the pinned Node/npm toolchain, runs `npm ci` and canonical `npm run check`, re-runs immutable release-identity verification, and only then calls `gh release create --verify-tag`. A previously published non-draft, non-prerelease release is an idempotent no-op; conflicting draft/prerelease state fails without mutation. This publishes source metadata only and does not authorize npm publication or production Cloudflare deployment.
 
 `npm run check` is the canonical complete credential-free local acceptance command. `npm run
-verify` remains a temporary compatibility alias that delegates to `check`. Pull requests are
+audit:dependencies` is the separate network-dependent dependency-advisory gate. `npm run verify`
+remains a temporary compatibility alias that delegates to `check`. Pull requests are
 also checked by `.github/workflows/controlled-delivery.yml`: it checks out the exact PR head and
 the pinned publicly readable Boneyard sibling in a clean runner, installs from the committed
 lockfile with `npm ci`, invokes `npm run check`, then runs
