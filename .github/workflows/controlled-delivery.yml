@@ -32,7 +32,7 @@ jobs:
           persist-credentials: false
 
       - name: Use repository runtime authority
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: SVGLab/.node-version
 
@@ -42,6 +42,10 @@ jobs:
       - name: Install locked SVGLab dependencies
         working-directory: SVGLab
         run: npm ci
+
+      - name: Dependency advisories
+        working-directory: SVGLab
+        run: npm run audit:dependencies
 
       - name: Complete acceptance
         working-directory: SVGLab

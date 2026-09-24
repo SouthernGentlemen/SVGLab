@@ -133,7 +133,7 @@ function renderFigurePickers(): void {
 renderFigurePickers();
 pauseButton.addEventListener("click", () => setPaused(!paused)); stepButton.addEventListener("click", () => { if (paused) step(); });
 required<HTMLButtonElement>("#reset").addEventListener("click", reset);
-debugToggle.addEventListener("click", () => setDebugVisible(debugOverlay.hidden));
+debugToggle.addEventListener("click", () => setDebugVisible(debugOverlay.hidden !== false));
 required<HTMLButtonElement>("#debug-close").addEventListener("click", () => setDebugVisible(false));
 dummyInvulnerable.addEventListener("change", () => { simulation.setDummyInvulnerable(dummyInvulnerable.checked); render(); });
 for (const toggle of document.querySelectorAll<HTMLInputElement>("[data-toggle]")) toggle.addEventListener("change", render);
@@ -144,7 +144,7 @@ window.addEventListener("keydown", (event) => {
   if (action === "pause") setPaused(!paused);
   else if (action === "step" && paused) step();
   else if (action === "reset") reset();
-  else if (action === "debug") setDebugVisible(debugOverlay.hidden);
+  else if (action === "debug") setDebugVisible(debugOverlay.hidden !== false);
   else if (action === "labels") { labelMode = nextPartLabelMode(labelMode); render(); }
   else return;
   event.preventDefault();
