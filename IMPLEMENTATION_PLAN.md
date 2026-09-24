@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-016 — [OPS] Publish GitHub Releases from verified tags
-
-- Dependency: SVG-015 merged.
-- Why: The shared release path is reviewed commit -> annotated immutable tag -> exact identity verification -> canonical acceptance -> GitHub Release.
-- Scope: Add the provider workflow/CLI path that accepts only a verified annotated `vX.Y.Z` tag, resolves the exact tagged revision, runs the pinned toolchain, `npm ci`, canonical `npm run check`, verifies package/tag/commit identity, then publishes with `gh release create --verify-tag`. Existing releases must be handled idempotently or fail safely.
-- Non-goals: No npm registry publication, production Wrangler deployment or automatic version mutation.
-- Acceptance: Only a correctly annotated, correctly versioned and fully validated immutable tag can create a GitHub Release; arbitrary `main` state cannot publish.
-- Validation: Workflow/CLI structure tests; tag acceptance evidence; GitHub Release provider evidence when exercised; `git diff --check`.
-- Authorities: Release workflow, GitHub CLI, annotated tag, package version.
-
 ### SVG-017 — [TEST] Guard the local-only post-release boundary
 
 - Dependency: SVG-016 merged.
