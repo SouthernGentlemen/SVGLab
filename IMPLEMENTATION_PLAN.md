@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-015 — [TEST] Guard annotated tag and package identity
-
-- Dependency: SVG-014 merged.
-- Why: Release publication must depend on deterministic failure cases rather than assumptions about how a tag was created.
-- Scope: Add disposable Git cases proving lightweight tags fail, malformed semantic tags fail, package/tag version mismatch fails, wrong-commit tags fail, and a correct annotated exact-head tag succeeds.
-- Non-goals: No GitHub Release creation, provider mutation or deployment.
-- Acceptance: Canonical `npm run check` exercises positive and negative release-identity behavior without network access or credentials.
-- Validation: Release identity test suite; `npm run check`; `git diff --check`.
-- Authorities: Release identity implementation and Git semantics.
-
 ### SVG-016 — [OPS] Publish GitHub Releases from verified tags
 
 - Dependency: SVG-015 merged.
