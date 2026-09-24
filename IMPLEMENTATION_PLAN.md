@@ -8,16 +8,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-018 — [DOCS] Complete process-parity acceptance
-
-- Dependency: SVG-017 merged.
-- Why: The wave should finish with a fresh comparison against the active organization baseline instead of trusting assumptions accumulated during the individual tasks.
-- Scope: Re-audit Node/npm toolchain, `npm ci`, canonical `npm run check`, controlled history, exact-head and merged-main CI, squash-only merge behavior, provider settings CLI, live rules/rulesets, branch cleanup, annotated tag identity, GitHub Release publication and the explicit no-production-deploy boundary. Reconcile only current-state docs and delete `IMPLEMENTATION_PLAN.md` when all applicable evidence is green.
-- Non-goals: No feature work, product deployment or unrelated refactor.
-- Acceptance: Fresh repository and provider evidence show SVGLab follows the shared development/release process everywhere applicable, production deployment is explicitly and testably N/A, and no implementation queue remains.
-- Validation: `npm ci`; `npm run check`; `npm run verify:github-settings`; live provider verification; release/tag evidence; exact-head CI; post-merge CI; `git diff --check`.
-- Authorities: Current repository state, current GitHub provider state and organization baseline.
-
 ### SVG-021 — [OPS] Normalize shared package, workflow, and npm command contracts
 
 - Dependency: SVG-018 delivered; portfolio planning policy SVG-020 merged. Coordinate with the same normalization task in every public sibling repository.
@@ -41,4 +31,4 @@ Then stop. SVGLab has no production deploy stage. That absence is an architectur
 
 ## Recheck after this wave
 
-Review current source and provider state for fresh drift only after SVG-018. Preserve the local-only product boundary, deterministic generated assets, Boneyard ownership line, visual evidence requirements, provenance rules, footprint/cruft guards and checkout-owned dev cleanup.
+Review current source and provider state for fresh drift only after SVG-021. Preserve the local-only product boundary, deterministic generated assets, Boneyard ownership line, visual evidence requirements, provenance rules, footprint/cruft guards and checkout-owned dev cleanup.
