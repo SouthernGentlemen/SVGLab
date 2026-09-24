@@ -1,5 +1,11 @@
 # Working in SVGLab
 
+## Portfolio plan maintenance
+
+An explicit owner-directed portfolio planning request may append or clarify future tasks while the first open implementation task or its pull request remains active. Preserve all existing open tasks and their order; the maintenance change does not deliver, retire, or skip one. Reserve a separate controlled maintenance ID outside the implementation task headings: normally the first unassigned ID after the queued IDs, or an existing unassigned gap when the repository history contract requires it. Once this policy setup is merged, routine amendments change only the active implementation plan file. This exception is for planning edits, not implementation or provider mutation.
+
+Record authoritative `main` and the plan's base before editing. Immediately before a maintenance merge, re-fetch `main`, open pull requests, the exact head, checks, and mergeability. If `main` or the plan moved, rebase and reconcile the additive plan edit, then revalidate the new exact head. Only the actual last remaining task deletes the plan. The normal first-open-task rule still governs the next implementation delivery.
+
 SVGLab is a local, deliberately unsafe 2D character animation laboratory. It fetches a rig, its
 art and its clips from [Boneyard](../Boneyard/AGENTS.md), assembles a figure in the DOM, plays
 it against a sealed deterministic combat kernel, and serves the whole thing from a local

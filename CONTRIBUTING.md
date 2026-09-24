@@ -1,161 +1,19 @@
-# Contributing to SVGLab
+# Contributing
 
-SVGLab is a deliberately local-only animation and combat laboratory. Read
-[`AGENTS.md`](AGENTS.md) first: it is the repository contract. The active current/future work
-queue is [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md), and its first open task is the
-next-work authority unless the owner explicitly changes priority.
+Read [AGENTS.md](AGENTS.md) before changing a repository. It owns the repository's product boundaries, controlled change identity, validation details, and merge rules. Read the active implementation plan when present; its filename may be `implementation_plan.md` or `IMPLEMENTATION_PLAN.md`.
 
-The rig, character art, wardrobe, motion source and asset-generation pipelines live in the
-sibling Boneyard repository. SVGLab consumes them; it does not keep a second copy. A change to
-what a bone, cosmetic or clip *means* belongs in Boneyard.
+## Work queue and plan updates
 
-Security vulnerabilities and sensitive local-data handling follow [`SECURITY.md`](SECURITY.md).
-Use its private vulnerability reporting route rather than disclosing security details publicly.
+The first open plan task is the default next implementation task unless the owner explicitly changes priority. Keep existing open tasks in place when appending future work. A separately requested portfolio plan maintenance change may append or clarify future tasks while another task or pull request is in progress. Once the shared policy is established, that maintenance change edits only the active plan file and does not claim to deliver a queued task. The last task deletes the plan only when no later task remains.
 
-## Controlled SVG changes
+Before editing or merging, fetch current `main` and inspect open pull requests. Record the base commit and the plan's current contents. Immediately before merging, fetch again and compare the current `main` commit, exact pull request head, and plan against that recorded base. Rebase and reconcile any concurrent plan change rather than overwriting it. Merge only the current, mergeable head after required checks pass.
 
-Prospective work uses one queued `SVG-NNN` ID per delivery.
+## Toolchain and commands
 
-1. On `do needful`, re-fetch authoritative `main`, open PRs, checks and relevant provider
-   state. Finish a current authoritative PR for the first open task before starting duplicate
-   work. Never skip a blocked first task.
-2. Branch from current `main` as `svg-nnn-short-kebab-summary`.
-3. Use `[SVG-NNN] [TYPE] Imperative summary` for the controlled commit and PR title. The
-   commit and PR bodies name the same SVG ID and report only validation/provider facts actually
-   observed.
-4. Implement only that task. In a developer checkout, run its focused checks,
-   `npm run check`, and `git diff --check`; inspect the complete diff. GitHub exact-head CI
-   runs the canonical acceptance and committed-range whitespace check for merge. A web agent that
-   lacks a shell must use that exact-head result instead of requiring the owner to rerun it.
-5. Re-fetch the exact PR head, current `main`, mergeability, reviews/checks and live provider
-   rules. Required exact-head CI must be present and green; absent, pending or failing CI blocks
-   merge.
-6. Merge only when the exact head is current, validated and mergeable. The same delivery removes
-   its own task from `IMPLEMENTATION_PLAN.md`, confirms merged `main`, verifies automatic
-   finished-branch cleanup, and stops with the next-task handoff.
+Use the exact Node version in `.node-version` and npm version in `package.json`'s `packageManager`; install from the committed lockfile with `npm ci`. `npm run check` is the canonical local repository acceptance command. Run the focused checks named by the active task and `git diff --check` as well. `build`, `test`, `typecheck`, and `dev` follow the repository's `package.json` and AGENTS.md; use only capabilities that repository actually has. Network dependency advisories, live GitHub settings verification, releases, and production deployment are separate operations with repository-specific prerequisites.
 
-`npm run check:history` enforces the published-plus-queued SVG namespace and verifies that a
-new controlled head consumes the parent queue's first ID and primary type, except an explicitly
-owner-directed portfolio process task uses the first unassigned ID after the queue. Published commits
-before SVG-001 remain legacy history and are not retrofitted.
+Shared dependencies and versioned vendor tooling should use one supported version across public repositories when those repositories consume them. GitHub Actions workflows and common npm script names should have equivalent behavior for equivalent capabilities. A library or local-only application does not acquire a hosted deployment merely for parity.
 
-Do not bundle a later SVG task into the same delivery.
+## Contribution and security boundaries
 
-## Command roles
-
-Install dependencies with `npm install`. The `boneyard` dependency is a `file:../Boneyard`
-link, so the sibling checkout must exist and have a built catalog before SVGLab can build.
-
-### Local development
-
-- `npm run dev` is the normal local lifecycle. It tears down checkout-owned local processes,
-  resets disposable `dist/`, Wrangler and runtime state while preserving `out/`, rebuilds,
-  starts the disk-owning sidecar and local Cloudflare runtime, waits for readiness, then opens
-  the browser.
-- `npm run teardown` stops only the checkout's local runtime/sidecar processes.
-- `npm run reset` clears only disposable build/runtime state and preserves `out/`.
-- `npm run launch` starts the already-built local Worker and sidecar without doing the reset
-  and build performed by `npm run dev`.
-
-These commands are local development tools. They do not publish a hosted product.
-
-### Builds and deterministic generated output
-
-- `npm run build` runs the Vite production build; its `prebuild` hook runs
-  `assert-local-only`.
-- `npm run build:motions` regenerates `src/clips/generated/*.ts` from
-  `boneyard/catalog/clips.json`.
-- `npm run check:motions` runs that generator in `--check` mode and fails when tracked
-  generated clip modules are stale.
-
-Do not hand-edit deterministic generated output. Change the applicable authored/upstream input,
-run its generator, then run the matching `--check`/guard command.
-
-### Focused checks and tests
-
-- `npm run check:history` validates the prospective controlled history and active queue.
-- `npm run test:history` runs deterministic disposable-Git positive and negative history cases.
-- `npm run check:cruft` checks reachability, documentation/script references and dependency
-  boundaries.
-- `npm run check:footprint` enforces the committed byte ratchet and runtime invariants.
-- `npm run assert-local-only` rejects production Cloudflare/deployment configuration.
-- `npm run typecheck` runs TypeScript without emitting files.
-- `npm run test` runs the Vitest suite; npm's `pretest` lifecycle runs `npm run build`
-  first.
-- `npm run test:watch` is the interactive Vitest loop.
-
-### Complete acceptance
-
-`npm run check` is SVGLab's canonical complete credential-free acceptance umbrella. It runs,
-in order, `check:history`, `check:motions`, `check:cruft`, the production build,
-`check:footprint`, `typecheck`, the complete Vitest suite, and `assert-local-only`. The umbrella
-invokes the tests with npm lifecycle scripts disabled after its explicit build, so the standalone
-`pretest` build is not repeated. `npm test` itself still keeps that pretest build when run on its
-own. `npm run verify` remains a temporary compatibility alias to `npm run check`.
-
-Pull requests exercise the same gate in `.github/workflows/controlled-delivery.yml`. The workflow
-uses a clean exact-head checkout, a pinned publicly readable Boneyard sibling at `../Boneyard`,
-`npm ci`, `npm run check`, and pull-request committed-range
-`git diff --check <base>...<head>`. Merged `main` runs the same canonical check. The pinned commit was
-confirmed anonymously readable on 2026-09-22, so no cross-repository Actions secret is needed.
-If that access changes, the sibling checkout fails acceptance and requires a read-only credential
-before merge.
-
-Live GitHub policy is checked separately with `npm run verify:github-settings`, using
-`GH_ADMIN_TOKEN` or an authorized `GH_TOKEN` in the process environment. This command only reads
-settings and rulesets; `npm run check` remains credential-free.
-`npm run apply:github-settings` performs authorized policy application and independently
-verifies the resulting live settings; use the same token environment contract.
-
-The exact PR-head workflow result is authoritative for merge. Local commands remain useful for
-developer feedback, but a web agent that cannot execute a shell must not make the owner's terminal
-a second mandatory copy of an already-green exact-head gate.
-
-## Source release identity
-
-SVGLab source releases are separate from product deployment. A candidate is valid only when an
-annotated stable `vX.Y.Z` tag, an exact 40-character commit SHA, that commit's tree and its
-`package.json` agree. The package must remain `private: true`; npm is not a publication surface.
-
-Run `npm run verify:release-identity -- --tag vX.Y.Z --commit <40-char-sha>` to produce the
-machine-readable proof. The verifier reads immutable Git objects only and does not create tags,
-releases or deployments. GitHub Releases are the source-publication authority for a verified
-identity; the local-only Cloudflare boundary remains unchanged.
-
-To publish one, manually run `.github/workflows/source-publication.yml` with the existing annotated
-stable tag. The workflow checks out that exact tag, uses the repository-pinned Node/npm toolchain
-and Boneyard sibling, runs `npm ci` and canonical `npm run check`, verifies the tag/package/commit
-identity again, then calls `gh release create --verify-tag`. An already-published stable release
-is a no-op; draft or prerelease conflicts fail instead of being mutated. This is source
-publication only: it never runs `npm publish` or a production Wrangler deployment.
-
-## Visual review and Boneyard-owned output
-
-Use `npm run dev` to review SVGLab presentation and combat behavior in the local page. When a
-change affects Boneyard-owned sprite, figure, clip or Blender output, make that data change in
-Boneyard and use its current visual/guard commands there, including `render:figure`,
-`render:clip`, `check:sprites`, `check:motions`, `blender` and `check:blender` as
-applicable. Run Boneyard's complete acceptance for a change that touches its data.
-
-Visual output is part of validation: inspect the rendered page, sheet, clip or Blender result
-when the change can affect it.
-Do not fabricate visual validation for documentation or process-only work that cannot affect
-visual output.
-
-## Cloudflare boundary
-
-Cloudflare is a local runtime and development target only. SVGLab intentionally has no
-production account id, route, persistent binding, deployment script, production authentication
-surface or release/deployment train. Do not introduce or imply one as part of ordinary
-contribution work.
-
-## Licensing and attribution
-
-The authoritative root [`LICENSE.md`](LICENSE.md) explains what SVGLab distributes and the
-terms that follow that material; it points to Boneyard's provenance index for the upstream
-assets. Presence in this repository or in `dist/` is not a permission grant. In particular,
-the Bandai Namco-derived motion is CC BY-NC 4.0 and other served art has unresolved or
-non-redistributable provenance described in the licence index.
-
-Do not change source licensing, attribution or third-party provenance terms casually. Treat
-`LICENSE.md` as the repository authority for those questions.
+Keep changes scoped to one controlled delivery unless the owner requests portfolio plan maintenance. Record validation and provider actions truthfully. Follow the repository's AGENTS.md for branch, commit, pull request, exact-head CI, and squash-merge requirements. Use [SECURITY.md](SECURITY.md) for security reports. Ownership is defined by AGENTS.md and its linked ownership policy where present.
