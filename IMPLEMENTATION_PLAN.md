@@ -6,16 +6,6 @@ The laboratory remains deliberately local-only and unsafe as a product capabilit
 
 ## Open tasks
 
-### SVG-017 — [TEST] Guard the local-only post-release boundary
-
-- Dependency: SVG-016 merged.
-- Why: Cross-repository release parity must not accidentally turn SVGLab into a hosted production product.
-- Scope: Extend local-only guards so legitimate release identity, annotated tags and GitHub Release publication are allowed while production Wrangler deploy commands, production Cloudflare account/route configuration, persistent production bindings, Pages/Worker production deployment workflows, npm publication and production authentication/account surfaces remain rejected.
-- Non-goals: No production environment or new application feature.
-- Acceptance: Canonical acceptance proves SVGLab can publish immutable source releases while remaining incapable of production deployment.
-- Validation: Local-only positive/negative cases; `npm run check`; `git diff --check`.
-- Authorities: `assert-local-only`, `AGENTS.md`, `CONTRIBUTING.md`, `package.json`, workflows.
-
 ### SVG-018 — [DOCS] Complete process-parity acceptance
 
 - Dependency: SVG-017 merged.
