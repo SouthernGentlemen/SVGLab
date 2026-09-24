@@ -122,6 +122,13 @@ machine-readable proof. The verifier reads immutable Git objects only and does n
 releases or deployments. GitHub Releases are the source-publication authority for a verified
 identity; the local-only Cloudflare boundary remains unchanged.
 
+To publish one, manually run `.github/workflows/source-publication.yml` with the existing annotated
+stable tag. The workflow checks out that exact tag, uses the repository-pinned Node/npm toolchain
+and Boneyard sibling, runs `npm ci` and canonical `npm run check`, verifies the tag/package/commit
+identity again, then calls `gh release create --verify-tag`. An already-published stable release
+is a no-op; draft or prerelease conflicts fail instead of being mutated. This is source
+publication only: it never runs `npm publish` or a production Wrangler deployment.
+
 ## Visual review and Boneyard-owned output
 
 Use `npm run dev` to review SVGLab presentation and combat behavior in the local page. When a

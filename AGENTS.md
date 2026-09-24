@@ -258,6 +258,8 @@ requires the package version to equal the tag while `private` remains true. Its 
 proof names the package blob and `github-release` as the publication authority. It does not
 create a tag, GitHub Release, npm publication, or Cloudflare deployment.
 
+`.github/workflows/source-publication.yml` is the explicit source-publication path. It is manually dispatched with a required stable `vX.Y.Z` tag, checks out that exact tag with full Git history, requires an annotated tag resolving to the checked-out commit, installs with the pinned Node/npm toolchain, runs `npm ci` and canonical `npm run check`, re-runs immutable release-identity verification, and only then calls `gh release create --verify-tag`. A previously published non-draft, non-prerelease release is an idempotent no-op; conflicting draft/prerelease state fails without mutation. This publishes source metadata only and does not authorize npm publication or production Cloudflare deployment.
+
 `npm run check` is the canonical complete credential-free local acceptance command. `npm run
 verify` remains a temporary compatibility alias that delegates to `check`. Pull requests are
 also checked by `.github/workflows/controlled-delivery.yml`: it checks out the exact PR head and
