@@ -31,6 +31,7 @@ browser fetches those choices, so raster atlases and SVG part payloads never ent
 
 ## Guides
 
+- [Active implementation plan](IMPLEMENTATION_PLAN.md) — current and future baseline work while the queue is open.
 - [Contributing](CONTRIBUTING.md) — controlled SVG delivery, command roles, generated-output
   rules, visual review, and the local-only boundary.
 - [Security](SECURITY.md) — private vulnerability reporting, local/private data handling and
